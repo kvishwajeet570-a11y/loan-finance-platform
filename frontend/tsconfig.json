@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+, "components/dashboard/Achievements.jsx", "components/dashboard/CommissionCard.jsx", "components/dashboard/DashboardNotifications.jsx", "components/dashboard/LeadBreakdown.jsx", "components/dashboard/Leaderboard.jsx", "components/dashboard/LoanApplications.jsx", "components/dashboard/MyLeads.jsx", "components/dashboard/OpenTasks.jsx", "components/dashboard/PipelineFunnel.jsx", "components/dashboard/Sidebar.jsx", "components/dashboard/Topbar.jsx"  ],
+  "exclude": ["node_modules"]
+}
