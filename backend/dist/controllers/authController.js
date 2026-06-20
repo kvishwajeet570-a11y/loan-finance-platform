@@ -86,25 +86,36 @@ const sendRegisterOtp = async (req, res) => {
         const otpExpiry = new Date(Date.now() +
             5 * 60 * 1000);
         /* SAVE USER */
-        await prisma_1.default.user.upsert({
+        const existingUserRecord = await prisma_1.default.user.findUnique({
             where: {
                 email,
             },
-            update: {
-                otp,
-                otpExpiry,
-                isVerified: false,
-            },
-            create: {
-                name: "",
-                email,
-                phoneNo: "",
-                password: "",
-                otp,
-                otpExpiry,
-                isVerified: false,
-            },
         });
+        if (existingUserRecord) {
+            await prisma_1.default.user.update({
+                where: {
+                    email,
+                },
+                data: {
+                    otp,
+                    otpExpiry,
+                    isVerified: false,
+                },
+            });
+        }
+        else {
+            await prisma_1.default.user.create({
+                data: {
+                    name: "Pending User",
+                    email,
+                    phoneNo: `TEMP_${Date.now()}`,
+                    password: "",
+                    otp,
+                    otpExpiry,
+                    isVerified: false,
+                },
+            });
+        }
         /* SEND EMAIL */
         await (0, sendEmail_1.sendEmail)(email, "Register OTP", `Your OTP is ${otp}`);
         return res.status(200).json({

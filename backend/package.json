@@ -1,87 +1,45 @@
 {
   "name": "backend",
   "version": "1.0.0",
-
   "main": "index.js",
-
   "scripts": {
-
-    "dev":
-      "ts-node-dev --respawn --transpile-only src/app.ts",
-
-    "start":
-      "node dist/app.js",
-
-    "build":
-      "tsc",
-
-    "lint":
-      "eslint ."
-
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "start": "node dist/app.js",
+    "build": "tsc",
+    "lint": "eslint ."
   },
-
   "dependencies": {
-
     "@prisma/client": "^5.22.0",
-
     "bcryptjs": "^3.0.3",
-
     "cloudinary": "^2.10.0",
-
     "cors": "^2.8.6",
-
     "dotenv": "^17.4.2",
-
     "express": "^5.1.0",
-
     "express-rate-limit": "^8.5.2",
-
     "jsonwebtoken": "^9.0.3",
-
+    "morgan": "^1.11.0",
     "nodemailer": "^8.0.7",
-
     "otp-generator": "^4.0.1",
-
     "prisma": "^5.22.0",
-
     "prop-types": "^15.8.1",
-
     "socket.io": "^4.8.3"
-
   },
-
   "devDependencies": {
-
     "@eslint/js": "^9.39.4",
-
     "@types/bcryptjs": "^2.4.6",
-
     "@types/cors": "^2.8.19",
-
     "@types/express": "^5.0.6",
-
     "@types/jsonwebtoken": "^9.0.10",
-
+    "@types/morgan": "^1.9.10",
     "@types/node": "^25.9.1",
-
     "@types/nodemailer": "^8.0.0",
-
     "eslint": "^9.39.4",
-
     "eslint-config-next": "^16.2.6",
-
     "eslint-plugin-react": "^7.37.5",
-
     "globals": "^17.6.0",
-
     "ts-node": "^10.9.2",
-
     "ts-node-dev": "^2.0.0",
-
     "typescript": "^5.9.3",
-
     "typescript-eslint": "^8.60.0"
-
   }
-
 }
