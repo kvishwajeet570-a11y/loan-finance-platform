@@ -61,6 +61,7 @@ import revenueRoutes from "./routes/revenueRoutes";
 
 const app = express();
 
+app.set("trust proxy", 1);
 /* ========================================
    CORS
 ======================================== */
@@ -333,3 +334,5 @@ app.listen(
 ======================================== */
 
 export default app;
+
+

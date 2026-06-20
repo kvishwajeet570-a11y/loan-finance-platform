@@ -35,6 +35,7 @@ const revenueRoutes_1 = __importDefault(require("./routes/revenueRoutes"));
    APP
 ======================================== */
 const app = (0, express_1.default)();
+app.set("trust proxy", 1);
 /* ========================================
    CORS
 ======================================== */
