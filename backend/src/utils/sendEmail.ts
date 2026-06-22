@@ -18,7 +18,7 @@ export const sendEmail = async (
     });
 
     const info = await transporter.sendMail({
-      from: `"Loan Finance" <${process.env.EMAIL_USER}>`,
+      from: `"Loan Finance Platform" <kvishwajeet570@gmail.com>`,
       to,
       subject,
       text,
