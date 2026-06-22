@@ -169,6 +169,7 @@ export const sendRegisterOtp =
       }
 
       /* OTP COOLDOWN */
+      /*
 
       if (
 
@@ -190,6 +191,7 @@ export const sendRegisterOtp =
 
       }
 
+      /*
       /* GENERATE OTP */
 
       const otp =
