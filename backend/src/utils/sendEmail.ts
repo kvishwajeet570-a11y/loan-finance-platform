@@ -10,15 +10,17 @@ export const sendEmail = async (
       host: "smtp-relay.brevo.com",
       port: 587,
       secure: false,
-
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
+    await transporter.verify();
+    console.log("SMTP VERIFIED");
+
     const info = await transporter.sendMail({
-      from: `"Loan Finance Platform" <kvishwajeet570@gmail.com>`,
+      from: `"Loan Finance Platform" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
