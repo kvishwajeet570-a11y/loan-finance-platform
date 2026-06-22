@@ -168,30 +168,22 @@ export const sendRegisterOtp =
 
       }
 
-      /* OTP COOLDOWN */
-      /*
+      /* OTP COOLDOWN DISABLED FOR TESTING
 
-      if (
+     if (
+    existingUser?.otpExpiry &&
+    existingUser.otpExpiry > new Date()
+    ) {
+    return res.status(429).json({
+    success: false,
+    message:
+      "OTP already sent. Please wait 5 minutes.",
+   });
+   }
 
-        existingUser?.otpExpiry &&
+*/
 
-        existingUser.otpExpiry >
-          new Date()
-
-      ) {
-
-        return res.status(429).json({
-
-          success: false,
-
-          message:
-            "OTP already sent. Please wait 5 minutes.",
-
-        });
-
-      }
-
-      /*
+      
       /* GENERATE OTP */
 
       const otp =
@@ -273,15 +265,21 @@ if (existingUserRecord) {
 }
       /* SEND EMAIL */
 
-      await sendEmail(
+      /* SEND EMAIL */
 
-        email,
+console.log("BEFORE SEND EMAIL");
 
-        "Register OTP",
+await sendEmail(
 
-        `Your OTP is ${otp}`
+  email,
 
-      );
+  "Register OTP",
+
+  `Your OTP is ${otp}`
+
+);
+
+console.log("AFTER SEND EMAIL");
 
       return res.status(200).json({
 
