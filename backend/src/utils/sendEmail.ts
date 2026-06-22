@@ -11,24 +11,30 @@ export const sendEmail = async (
 
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 2525, // 587 की जगह 2525 टेस्ट करो
+      port: 2525,
       secure: false,
 
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER!,
+        pass: process.env.EMAIL_PASS!,
       },
 
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 15000,
     });
 
+    console.log("VERIFYING SMTP...");
+
     await transporter.verify();
+
     console.log("SMTP VERIFIED");
 
     const info = await transporter.sendMail({
-      from: `"Loan Finance Platform" <${process.env.EMAIL_USER}>`,
+      from: {
+        name: "Loan Finance Platform",
+        address: process.env.EMAIL_USER!,
+      },
       to,
       subject,
       text,
