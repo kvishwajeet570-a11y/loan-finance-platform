@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import axios from "axios";
 
 export const sendEmail = async (
   to: string,
@@ -6,29 +6,37 @@ export const sendEmail = async (
   text: string
 ) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 465,
-      secure: true,
-
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+    const response = await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {
+          name: "Loan Finance Platform",
+          email: "yourverifiedemail@gmail.com",
+        },
+        to: [
+          {
+            email: to,
+          },
+        ],
+        subject,
+        textContent: text,
       },
-    });
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const info = await transporter.sendMail({
-      from: `"Loan Finance Platform" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      text,
-    });
+    console.log("EMAIL SENT =>", response.data);
 
-    console.log("EMAIL SENT =>", info.messageId);
-
-    return info;
-  } catch (error) {
-    console.error("EMAIL ERROR =>", error);
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "EMAIL ERROR =>",
+      error?.response?.data || error.message
+    );
     throw error;
   }
 };
