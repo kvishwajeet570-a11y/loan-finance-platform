@@ -6,12 +6,22 @@ export const sendEmail = async (
   text: string
 ) => {
   try {
+    console.log(
+      "BREVO_API_KEY EXISTS =",
+      !!process.env.BREVO_API_KEY
+    );
+
+    console.log(
+      "BREVO_API_KEY FIRST 15 =",
+      process.env.BREVO_API_KEY?.substring(0, 15)
+    );
+
     const response = await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {
           name: "Loan Finance Platform",
-          email: "yourverifiedemail@gmail.com",
+          email: "kvishwajeet570@gmail.com" // Brevo verified sender email
         },
         to: [
           {
@@ -23,8 +33,9 @@ export const sendEmail = async (
       },
       {
         headers: {
-          "api-key": process.env.BREVO_API_KEY,
+          "api-key": process.env.BREVO_API_KEY || "",
           "Content-Type": "application/json",
+          Accept: "application/json",
         },
       }
     );
@@ -34,9 +45,10 @@ export const sendEmail = async (
     return response.data;
   } catch (error: any) {
     console.error(
-      "EMAIL ERROR =>",
+      "BREVO API ERROR =>",
       error?.response?.data || error.message
     );
+
     throw error;
   }
 };
