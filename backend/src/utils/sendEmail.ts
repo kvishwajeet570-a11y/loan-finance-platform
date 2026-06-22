@@ -6,9 +6,12 @@ export const sendEmail = async (
   text: string
 ) => {
   try {
+    console.log("EMAIL_USER =", process.env.EMAIL_USER);
+    console.log("EMAIL_PASS EXISTS =", !!process.env.EMAIL_PASS);
+
     const transporter = nodemailer.createTransport({
       host: "smtp-relay.brevo.com",
-      port: 587,
+      port: 2525, // 587 की जगह 2525 टेस्ट करो
       secure: false,
 
       auth: {
@@ -21,7 +24,6 @@ export const sendEmail = async (
       socketTimeout: 10000,
     });
 
-    // SMTP Connection Test
     await transporter.verify();
     console.log("SMTP VERIFIED");
 
