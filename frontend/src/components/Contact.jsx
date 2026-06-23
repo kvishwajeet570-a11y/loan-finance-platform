@@ -69,7 +69,7 @@ export default function Contact() {
       const response =
         await axios.post(
 
-          "http://localhost:5000/api/contact/send",
+          "https://loan-finance-platform.onrender.com/api/contact/send",
 
 
           formData
