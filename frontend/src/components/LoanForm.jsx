@@ -78,7 +78,7 @@ export default function LoanForm() {
       const response =
         await axios.post(
 
-          "http://127.0.0.1:5000/api/loan/apply",
+          "https://loan-finance-platform.onrender.com/api/loan/apply",
 
           formData
 

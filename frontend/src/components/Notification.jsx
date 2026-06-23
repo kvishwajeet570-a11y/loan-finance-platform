@@ -26,7 +26,7 @@ export default function Notification() {
         const response =
           await axios.get(
 
-            "http://localhost:5000/api/loan/all"
+            "https://loan-finance-platform.onrender.com/api/loan/all"
 
           );
 
