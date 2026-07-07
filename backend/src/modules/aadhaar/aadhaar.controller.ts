@@ -1,0 +1,35 @@
+import { Request, Response } from "express";
+import * as AadhaarService from "./aadhaar.service";
+
+export const verifyAadhaar = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { aadhaarNo, fullName, dob } = req.body;
+
+    if (!aadhaarNo || !fullName || !dob) {
+      res.status(400).json({
+        success: false,
+        message: "Required fields missing",
+      });
+      return;
+    }
+
+    const result = await AadhaarService.verifyAadhaar({
+      aadhaarNo,
+      fullName,
+      dob,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

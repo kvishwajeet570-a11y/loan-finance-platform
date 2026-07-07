@@ -1,0 +1,31 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Permission = exports.Role = void 0;
+var Role;
+(function (Role) {
+    Role["SUPER_ADMIN"] = "SUPER_ADMIN";
+    Role["ADMIN"] = "ADMIN";
+    Role["EMPLOYEE"] = "EMPLOYEE";
+    Role["DSA"] = "DSA";
+    Role["PARTNER"] = "PARTNER";
+    Role["CUSTOMER"] = "CUSTOMER";
+})(Role || (exports.Role = Role = {}));
+var Permission;
+(function (Permission) {
+    Permission["USER_VIEW"] = "USER_VIEW";
+    Permission["USER_CREATE"] = "USER_CREATE";
+    Permission["USER_UPDATE"] = "USER_UPDATE";
+    Permission["USER_DELETE"] = "USER_DELETE";
+    Permission["LOAN_VIEW"] = "LOAN_VIEW";
+    Permission["LOAN_CREATE"] = "LOAN_CREATE";
+    Permission["LOAN_UPDATE"] = "LOAN_UPDATE";
+    Permission["LOAN_APPROVE"] = "LOAN_APPROVE";
+    Permission["LOAN_REJECT"] = "LOAN_REJECT";
+    Permission["KYC_VIEW"] = "KYC_VIEW";
+    Permission["KYC_VERIFY"] = "KYC_VERIFY";
+    Permission["COMMISSION_VIEW"] = "COMMISSION_VIEW";
+    Permission["COMMISSION_UPDATE"] = "COMMISSION_UPDATE";
+    Permission["REPORT_VIEW"] = "REPORT_VIEW";
+    Permission["WALLET_VIEW"] = "WALLET_VIEW";
+    Permission["WALLET_UPDATE"] = "WALLET_UPDATE";
+})(Permission || (exports.Permission = Permission = {}));

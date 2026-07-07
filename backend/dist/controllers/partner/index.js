@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.partnerAnalytics = exports.togglePartnerStatus = exports.rejectPartner = exports.approvePartner = exports.getPartnerById = exports.getAllPartners = exports.createPartner = void 0;
+var partner_controller_1 = require("./partner.controller");
+Object.defineProperty(exports, "createPartner", { enumerable: true, get: function () { return partner_controller_1.createPartner; } });
+Object.defineProperty(exports, "getAllPartners", { enumerable: true, get: function () { return partner_controller_1.getAllPartners; } });
+Object.defineProperty(exports, "getPartnerById", { enumerable: true, get: function () { return partner_controller_1.getPartnerById; } });
+Object.defineProperty(exports, "approvePartner", { enumerable: true, get: function () { return partner_controller_1.approvePartner; } });
+Object.defineProperty(exports, "rejectPartner", { enumerable: true, get: function () { return partner_controller_1.rejectPartner; } });
+Object.defineProperty(exports, "togglePartnerStatus", { enumerable: true, get: function () { return partner_controller_1.togglePartnerStatus; } });
+Object.defineProperty(exports, "partnerAnalytics", { enumerable: true, get: function () { return partner_controller_1.partnerAnalytics; } });
