@@ -109,11 +109,6 @@ export * from "./faq/faq.dto";
 export * from "./fastag/fastag.dto";
 
 /* =========================================
-   FILE
-========================================= */
-export * from "./file/file.dto";
-
-/* =========================================
    INSURANCE
 ========================================= */
 export * from "./insurance/insurance.dto";
@@ -145,13 +140,15 @@ export * from "./leaderboard/leaderboard.dto";
 
 /* =========================================
    LOAN
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./loan/loan.dto";
+// export * from "./loan/loan.dto";
 
 /* =========================================
    LOAN STATUS HISTORY
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./loanStatusHistory/loanStatusHistory.dto";
+// export * from "./loanStatusHistory/loanStatusHistory.dto";
 
 /* =========================================
    LOGIN HISTORY
@@ -175,13 +172,15 @@ export * from "./notificationTemplate/notificationTemplate.dto";
 
 /* =========================================
    OTP
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./otp/otp.dto";
+// export * from "./otp/otp.dto";
 
 /* =========================================
    PARTNER
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./partner/partner.dto";
+// export * from "./partner/partner.dto";
 
 /* =========================================
    PAYMENT
@@ -205,18 +204,21 @@ export * from "./recharge/recharge.dto";
 
 /* =========================================
    RECHARGE HISTORY
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./rechargeHistory/rechargeHistory.dto";
+// export * from "./rechargeHistory/rechargeHistory.dto";
 
 /* =========================================
    REFERRAL
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./referral/referral.dto";
+// export * from "./referral/referral.dto";
 
 /* =========================================
    REFRESH TOKEN
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./refreshToken/refreshToken.dto";
+// export * from "./refreshToken/refreshToken.dto";
 
 /* =========================================
    REPORT
@@ -230,8 +232,9 @@ export * from "./revenue/revenue.dto";
 
 /* =========================================
    ROLE
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./role/role.dto";
+// export * from "./role/role.dto";
 
 /* =========================================
    ROLE PERMISSION
@@ -285,8 +288,9 @@ export * from "./upload/upload.dto";
 
 /* =========================================
    USER
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-export * from "./user/user.dto";
+// export * from "./user/user.dto";
 
 /* =========================================
    WALLET

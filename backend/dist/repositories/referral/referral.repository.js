@@ -1,276 +1,419 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReferralRepository = void 0;
-const prisma_1 = require("../../prisma");
+const client_1 = require("@prisma/client");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class ReferralRepository {
-    /* =========================
-        CREATE REFERRAL
-    ========================= */
-    static async createReferral(data) {
-        return prisma_1.prisma.referral.create({
-            data
+    /* =========================================
+       CREATE REFERRAL
+    ========================================= */
+    async createReferral(data) {
+        return prisma_1.default.referral.create({
+            data,
+            include: {
+                user: true,
+                referrer: true,
+                referredUser: true,
+            },
         });
     }
-    /* =========================
-        GET BY ID
-    ========================= */
-    static async getById(id) {
-        return prisma_1.prisma.referral.findUnique({
+    /* =========================================
+       FIND BY ID
+    ========================================= */
+    async findById(id) {
+        return prisma_1.default.referral.findUnique({
             where: { id },
             include: {
+                user: true,
                 referrer: true,
-                referredUser: true
-            }
+                referredUser: true,
+                referralHistory: {
+                    orderBy: {
+                        createdAt: "desc",
+                    },
+                },
+            },
         });
     }
-    /* =========================
-        GET REFERRAL CODE
-    ========================= */
-    static async getByCode(referralCode) {
-        return prisma_1.prisma.referral.findFirst({
+    /* =========================================
+       FIND BY USER ID
+    ========================================= */
+    async findByUserId(userId) {
+        return prisma_1.default.referral.findUnique({
             where: {
-                referralCode
+                userId,
             },
             include: {
-                referrer: true
-            }
-        });
-    }
-    /* =========================
-        COMPLETE REFERRAL
-    ========================= */
-    static async completeReferral(referralId, referredUserId, rewardAmount = 0, commissionAmount = 0) {
-        return prisma_1.prisma.referral.update({
-            where: {
-                id: referralId
-            },
-            data: {
-                referredUserId,
-                rewardAmount,
-                commissionAmount,
-                status: "COMPLETED",
-                completedAt: new Date()
-            }
-        });
-    }
-    /* =========================
-        MARK JOINED
-    ========================= */
-    static async markJoined(referralId, referredUserId) {
-        return prisma_1.prisma.referral.update({
-            where: {
-                id: referralId
-            },
-            data: {
-                referredUserId,
-                status: "JOINED",
-                joinedAt: new Date()
-            }
-        });
-    }
-    /* =========================
-        REJECT REFERRAL
-    ========================= */
-    static async rejectReferral(referralId, remarks) {
-        return prisma_1.prisma.referral.update({
-            where: {
-                id: referralId
-            },
-            data: {
-                status: "REJECTED",
-                remarks
-            }
-        });
-    }
-    /* =========================
-        REFERRER REFERRALS
-    ========================= */
-    static async getReferralsByUser(referrerId) {
-        return prisma_1.prisma.referral.findMany({
-            where: {
-                referrerId
-            },
-            include: {
-                referredUser: true
-            },
-            orderBy: {
-                createdAt: "desc"
-            }
-        });
-    }
-    /* =========================
-        PENDING REFERRALS
-    ========================= */
-    static async getPendingReferrals() {
-        return prisma_1.prisma.referral.findMany({
-            where: {
-                status: "PENDING"
-            },
-            include: {
-                referrer: true
-            }
-        });
-    }
-    /* =========================
-        COMPLETED REFERRALS
-    ========================= */
-    static async getCompletedReferrals() {
-        return prisma_1.prisma.referral.findMany({
-            where: {
-                status: "COMPLETED"
-            },
-            include: {
+                user: true,
                 referrer: true,
-                referredUser: true
-            }
+                referredUser: true,
+                referralHistory: true,
+            },
         });
     }
-    /* =========================
-        SEARCH REFERRALS
-    ========================= */
-    static async searchReferrals(keyword) {
-        return prisma_1.prisma.referral.findMany({
+    /* =========================================
+       FIND BY REFERRAL CODE
+    ========================================= */
+    async findByReferralCode(referralCode) {
+        return prisma_1.default.referral.findUnique({
             where: {
+                referralCode,
+            },
+            include: {
+                user: true,
+                referrer: true,
+                referredUser: true,
+            },
+        });
+    }
+    /* =========================================
+       CHECK REFERRAL EXISTS
+    ========================================= */
+    async exists(userId) {
+        const referral = await prisma_1.default.referral.findUnique({
+            where: {
+                userId,
+            },
+            select: {
+                id: true,
+            },
+        });
+        return !!referral;
+    }
+    /* =========================================
+       GET ALL REFERRALS
+    ========================================= */
+    async getAllReferrals({ page = 1, limit = 20, search, status, source, campaign, isFraud, }) {
+        const skip = (page - 1) * limit;
+        const where = {
+            ...(status && { status }),
+            ...(source && { source }),
+            ...(campaign && { campaign }),
+            ...(typeof isFraud === "boolean" && { isFraud }),
+            ...(search && {
                 OR: [
                     {
                         referralCode: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
+                            contains: search,
+                            mode: "insensitive",
+                        },
                     },
                     {
-                        status: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
-            },
-            include: {
-                referrer: true,
-                referredUser: true
-            }
-        });
-    }
-    /* =========================
-        TOP REFERRERS
-    ========================= */
-    static async getTopReferrers(limit = 10) {
-        return prisma_1.prisma.referral.groupBy({
-            by: ["referrerId"],
-            where: {
-                status: "COMPLETED"
-            },
-            _count: {
-                referrerId: true
-            },
-            _sum: {
-                rewardAmount: true,
-                commissionAmount: true
-            },
-            orderBy: {
-                _count: {
-                    referrerId: "desc"
-                }
-            },
-            take: limit
-        });
-    }
-    /* =========================
-        REFERRAL EARNINGS
-    ========================= */
-    static async getReferralEarnings(referrerId) {
-        return prisma_1.prisma.referral.aggregate({
-            where: {
-                referrerId,
-                status: "COMPLETED"
-            },
-            _sum: {
-                rewardAmount: true,
-                commissionAmount: true
-            },
-            _count: true
-        });
-    }
-    /* =========================
-        ALL REFERRALS
-    ========================= */
-    static async getAllReferrals(page = 1, limit = 20) {
-        const skip = (page - 1) * limit;
-        const [referrals, total] = await Promise.all([
-            prisma_1.prisma.referral.findMany({
+                        user: {
+                            name: {
+                                contains: search,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                    {
+                        user: {
+                            email: {
+                                contains: search,
+                                mode: "insensitive",
+                            },
+                        },
+                    },
+                ],
+            }),
+        };
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.referral.findMany({
+                where,
                 skip,
                 take: limit,
-                include: {
-                    referrer: true,
-                    referredUser: true
-                },
                 orderBy: {
-                    createdAt: "desc"
-                }
+                    createdAt: "desc",
+                },
+                include: {
+                    user: true,
+                    referrer: true,
+                    referredUser: true,
+                },
             }),
-            prisma_1.prisma.referral.count()
+            prisma_1.default.referral.count({
+                where,
+            }),
         ]);
         return {
-            referrals,
-            total,
-            page,
-            limit
+            data,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+                hasNext: page * limit < total,
+                hasPrevious: page > 1,
+            },
         };
     }
-    /* =========================
-        REFERRAL ANALYTICS
-    ========================= */
-    static async getAnalytics() {
-        const [totalReferrals, completedReferrals, pendingReferrals, totalRewards, totalCommission] = await Promise.all([
-            prisma_1.prisma.referral.count(),
-            prisma_1.prisma.referral.count({
+    /* =========================================
+       UPDATE REFERRAL
+    ========================================= */
+    async updateReferral(id, data) {
+        return prisma_1.default.referral.update({
+            where: { id },
+            data,
+            include: {
+                user: true,
+                referrer: true,
+                referredUser: true,
+                referralHistory: true,
+            },
+        });
+    }
+    /* =========================================
+       APPROVE REFERRAL
+    ========================================= */
+    async approveReferral(referralId, approvedBy, rewardAmount) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.APPROVED,
+                approvedBy,
+                approvedAt: new Date(),
+                rewardAmount,
+            },
+        });
+    }
+    /* =========================================
+       REJECT REFERRAL
+    ========================================= */
+    async rejectReferral(referralId, rejectedBy, rejectionReason) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.REJECTED,
+                rejectedBy,
+                rejectedAt: new Date(),
+                rejectionReason,
+            },
+        });
+    }
+    /* =========================================
+       MARK AS FRAUD
+    ========================================= */
+    async markAsFraud(referralId, fraudReason, updatedBy) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.FRAUD,
+                isFraud: true,
+                fraudReason,
+                updatedBy,
+            },
+        });
+    }
+    /* =========================================
+       MARK AS PAID
+    ========================================= */
+    async markAsPaid(referralId, rewardAmount, rewardTransactionId) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.PAID,
+                rewardTransactionId,
+                rewardPaidAmount: {
+                    increment: rewardAmount,
+                },
+                paidAt: new Date(),
+            },
+        });
+    }
+    /* =========================================
+       APPLY REWARD
+    ========================================= */
+    async applyReward(referralId, rewardAmount, rewardTransactionId) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.REWARDED,
+                rewardAmount: {
+                    increment: rewardAmount,
+                },
+                rewardPaidAmount: {
+                    increment: rewardAmount,
+                },
+                totalEarnings: {
+                    increment: rewardAmount,
+                },
+                successfulReferrals: {
+                    increment: 1,
+                },
+                pendingReferrals: {
+                    decrement: 1,
+                },
+                rewardTransactionId,
+                paidAt: new Date(),
+            },
+            include: {
+                user: true,
+                referrer: true,
+                referredUser: true,
+            },
+        });
+    }
+    /* =========================================
+       EXPIRE REFERRAL
+    ========================================= */
+    async expireReferral(referralId) {
+        return prisma_1.default.referral.update({
+            where: {
+                id: referralId,
+            },
+            data: {
+                status: client_1.ReferralStatus.EXPIRED,
+                expiresAt: new Date(),
+            },
+        });
+    }
+    /* =========================================
+       REFERRAL ANALYTICS
+    ========================================= */
+    async getAnalytics() {
+        const [totalReferrals, pendingReferrals, approvedReferrals, rewardedReferrals, paidReferrals, rejectedReferrals, fraudReferrals, expiredReferrals, totalReward, totalPaidReward, totalEarnings,] = await prisma_1.default.$transaction([
+            prisma_1.default.referral.count(),
+            prisma_1.default.referral.count({
                 where: {
-                    status: "COMPLETED"
-                }
+                    status: client_1.ReferralStatus.PENDING,
+                },
             }),
-            prisma_1.prisma.referral.count({
+            prisma_1.default.referral.count({
                 where: {
-                    status: "PENDING"
-                }
+                    status: client_1.ReferralStatus.APPROVED,
+                },
             }),
-            prisma_1.prisma.referral.aggregate({
-                _sum: {
-                    rewardAmount: true
-                }
+            prisma_1.default.referral.count({
+                where: {
+                    status: client_1.ReferralStatus.REWARDED,
+                },
             }),
-            prisma_1.prisma.referral.aggregate({
+            prisma_1.default.referral.count({
+                where: {
+                    status: client_1.ReferralStatus.PAID,
+                },
+            }),
+            prisma_1.default.referral.count({
+                where: {
+                    status: client_1.ReferralStatus.REJECTED,
+                },
+            }),
+            prisma_1.default.referral.count({
+                where: {
+                    status: client_1.ReferralStatus.FRAUD,
+                },
+            }),
+            prisma_1.default.referral.count({
+                where: {
+                    status: client_1.ReferralStatus.EXPIRED,
+                },
+            }),
+            prisma_1.default.referral.aggregate({
                 _sum: {
-                    commissionAmount: true
-                }
-            })
+                    rewardAmount: true,
+                },
+            }),
+            prisma_1.default.referral.aggregate({
+                _sum: {
+                    rewardPaidAmount: true,
+                },
+            }),
+            prisma_1.default.referral.aggregate({
+                _sum: {
+                    totalEarnings: true,
+                },
+            }),
         ]);
         return {
             totalReferrals,
-            completedReferrals,
             pendingReferrals,
-            totalRewards: totalRewards._sum.rewardAmount || 0,
-            totalCommission: totalCommission._sum.commissionAmount || 0
+            approvedReferrals,
+            rewardedReferrals,
+            paidReferrals,
+            rejectedReferrals,
+            fraudReferrals,
+            expiredReferrals,
+            totalReward: totalReward._sum.rewardAmount ?? 0,
+            totalPaidReward: totalPaidReward._sum.rewardPaidAmount ?? 0,
+            totalEarnings: totalEarnings._sum.totalEarnings ?? 0,
         };
     }
-    /* =========================
-        USER REFERRAL DASHBOARD
-    ========================= */
-    static async getReferralDashboard(referrerId) {
-        const [referrals, earnings] = await Promise.all([
-            prisma_1.prisma.referral.count({
-                where: {
-                    referrerId
-                }
-            }),
-            this.getReferralEarnings(referrerId)
-        ]);
-        return {
-            totalReferrals: referrals,
-            totalRewards: earnings._sum.rewardAmount || 0,
-            totalCommission: earnings._sum.commissionAmount || 0,
-            totalCompleted: earnings._count
-        };
+    /* =========================================
+       LEADERBOARD
+    ========================================= */
+    async getLeaderboard(limit = 10) {
+        return prisma_1.default.referral.findMany({
+            take: limit,
+            where: {
+                status: {
+                    in: [
+                        client_1.ReferralStatus.REWARDED,
+                        client_1.ReferralStatus.PAID,
+                    ],
+                },
+            },
+            orderBy: [
+                {
+                    totalEarnings: "desc",
+                },
+                {
+                    successfulReferrals: "desc",
+                },
+            ],
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phoneNo: true,
+                        profileImage: true,
+                    },
+                },
+            },
+        });
+    }
+    /* =========================================
+       DELETE REFERRAL
+    ========================================= */
+    async deleteReferral(id) {
+        return prisma_1.default.referral.delete({
+            where: {
+                id,
+            },
+        });
+    }
+    /* =========================================
+       SOFT DELETE (OPTIONAL)
+    ========================================= */
+    async cancelReferral(id, updatedBy) {
+        return prisma_1.default.referral.update({
+            where: {
+                id,
+            },
+            data: {
+                status: client_1.ReferralStatus.CANCELLED,
+                updatedBy,
+            },
+        });
     }
 }
 exports.ReferralRepository = ReferralRepository;
+/* =========================================
+   EXPORT INSTANCE
+========================================= */
+const referralRepository = new ReferralRepository();
+exports.default = referralRepository;

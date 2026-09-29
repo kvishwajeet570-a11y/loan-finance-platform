@@ -1,0 +1,353 @@
+﻿"use client";
+
+import { useState } from "react";
+
+const companies = [
+  {
+    name: "Poonawalla Fincorp",
+    short: "P",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 11.8%",
+    fee: "1% to 1.2% + GST",
+    tenure: "3 Years",
+    website: "https://poonawallafincorp.com/",
+    high: true,
+  },
+  {
+    name: "Aditya Birla Capital",
+    short: "AB",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 12.25%",
+    fee: "1.2% to 1.4% + GST",
+    tenure: "4 Years",
+    website: "https://www.adityabirlacapital.com/",
+    high: true,
+  },
+  {
+    name: "Bajaj Finance",
+    short: "B",
+    amount: "upto ₹10,00,000",
+    rate: "Starting from 11%",
+    fee: "1% to 2% + GST",
+    tenure: "5 Years",
+    website: "https://www.bajajfinserv.in/",
+    high: true,
+  },
+  {
+    name: "Tata Capital",
+    short: "TC",
+    amount: "upto ₹10,00,000",
+    rate: "Starting from 10.99%",
+    fee: "1% to 2% + GST",
+    tenure: "5 Years",
+    website: "https://www.tatacapital.com/",
+    high: true,
+  },
+  {
+    name: "Shriram Finance",
+    short: "SF",
+    amount: "upto ₹10,00,000",
+    rate: "Starting from 11%",
+    fee: "1% to 2% + GST",
+    tenure: "7 Years",
+    website: "https://www.shriramfinance.in/",
+    high: true,
+  },
+  {
+    name: "Hero FinCorp",
+    short: "HF",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 12.4%",
+    fee: "1.2% to 1.5% + GST",
+    tenure: "2 Years",
+    website: "https://www.herofincorp.com/",
+    high: false,
+  },
+  {
+    name: "Muthoot Finance",
+    short: "MF",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "1% to 1.5% + GST",
+    tenure: "5 Years",
+    website: "https://www.muthootfinance.com/",
+    high: false,
+  },
+  {
+    name: "Mahindra Finance",
+    short: "MF",
+    amount: "upto ₹10,00,000",
+    rate: "Starting from 11.5%",
+    fee: "1% to 2% + GST",
+    tenure: "6 Years",
+    website: "https://www.mahindrafinance.com/",
+    high: false,
+  },
+  {
+    name: "L&T Finance",
+    short: "L&T",
+    amount: "upto ₹7,50,000",
+    rate: "Starting from 12%",
+    fee: "1% to 2% + GST",
+    tenure: "5 Years",
+    website: "https://www.ltfinance.com/",
+    high: false,
+  },
+  {
+    name: "Cholamandalam Finance",
+    short: "C",
+    amount: "upto ₹10,00,000",
+    rate: "Starting from 12%",
+    fee: "1% to 2% + GST",
+    tenure: "5 Years",
+    website: "https://www.cholamandalam.com/",
+    high: false,
+  },
+  {
+    name: "Moneyview",
+    short: "MV",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 12.33% per month",
+    fee: "1% to 1.5% + GST",
+    tenure: "2 Years",
+    website: "https://moneyview.in/",
+    high: true,
+  },
+  {
+    name: "Unity Small Finance Bank",
+    short: "U",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 13%",
+    fee: "1.3% to 1.5% + GST",
+    tenure: "60 month",
+    website: "https://unitybank.co.in/",
+    high: true,
+  },
+  {
+    name: "Bharat Loan",
+    short: "BL",
+    amount: "upto ₹1,00,000",
+    rate: "Starting from 12%",
+    fee: "1.2% + GST",
+    tenure: "60 month",
+    website: "https://bharatloan.com/",
+    high: false,
+  },
+  {
+    name: "SmartCoin",
+    short: "SC",
+    amount: "upto ₹1,00,000",
+    rate: "Starting from 12%",
+    fee: "1.2% + GST",
+    tenure: "60 month",
+    website: "https://www.smartcoin.co.in/",
+    high: false,
+  },
+  {
+    name: "PayRupik",
+    short: "PR",
+    amount: "upto ₹30,00,000",
+    rate: "Starting from 11%",
+    fee: "1% to 1.5% + GST",
+    tenure: "7 Years",
+    website: "https://payrupik.com/",
+    high: false,
+  },
+  {
+    name: "Fibe",
+    short: "Fi",
+    amount: "upto ₹5,00,000",
+    rate: "Starting from 14%",
+    fee: "1% to 2% + GST",
+    tenure: "5 Years",
+    website: "https://www.fibe.in/",
+    high: false,
+  },
+];
+
+export default function DSAProductsPage() {
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const applyNow = (website: string) => {
+    window.open(website, "_blank", "noopener,noreferrer");
+  };
+
+  return (
+    <main className="min-h-screen bg-white">
+      <div className="mx-auto max-w-[1350px] px-4 py-8 sm:px-6 lg:px-10">
+
+        <div className="mb-8 text-center">
+          <div className="mb-3 inline-flex rounded-full border border-blue-100 bg-blue-50 px-5 py-2 text-sm font-bold text-blue-700">
+            LOAN PARTNERS & OFFERS
+          </div>
+
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
+            Find the Right Loan Offer for You
+          </h1>
+
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
+            Compare multiple lending partners and explore available loan
+            options in one place.
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {companies.map((company) => (
+            <div
+              key={company.name}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <div className="p-5 sm:p-7">
+
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+
+                  <div className="flex min-w-0 items-center gap-4 lg:w-[32%]">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-xl font-black text-blue-700 shadow-sm">
+                      {company.short}
+                    </div>
+
+                    <div>
+                      <h2 className="text-xl font-extrabold text-slate-900">
+                        {company.name}
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500">
+                        Personal Loan
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid flex-1 grid-cols-2 gap-5 sm:grid-cols-4 lg:pt-2">
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Loan Amount
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">
+                        {company.amount}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Interest Rate
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">
+                        {company.rate}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Processing Fee
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">
+                        {company.fee}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Tenure
+                      </p>
+                      <p className="mt-2 text-sm font-bold text-slate-900">
+                        {company.tenure}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="flex shrink-0 flex-col items-stretch gap-3 lg:w-[135px]">
+
+                    {company.high && (
+                      <div className="rounded-full bg-blue-600 px-3 py-2 text-center text-xs font-extrabold text-white shadow-sm">
+                        ⚡ HIGH DISBURSEMENT
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => applyNow(company.website)}
+                      className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-800 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:from-cyan-600 hover:to-blue-900"
+                    >
+                      Apply Now
+                    </button>
+
+                  </div>
+                </div>
+
+                <div className="mt-7 flex flex-col gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+
+                  <p className="text-sm italic text-slate-500">
+                    View your loan eligibility quickly—just a few simple
+                    fields required!
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpanded(
+                        expanded === company.name ? null : company.name
+                      )
+                    }
+                    className="font-semibold text-blue-700 hover:text-blue-900"
+                  >
+                    Detailed Offers {expanded === company.name ? "⌃" : "⌄"}
+                  </button>
+                </div>
+
+                {expanded === company.name && (
+                  <div className="mt-5 rounded-xl bg-slate-50 p-5">
+                    <div className="grid gap-4 sm:grid-cols-3">
+
+                      <div>
+                        <p className="text-xs font-bold uppercase text-slate-400">
+                          Loan Type
+                        </p>
+                        <p className="mt-1 font-semibold text-slate-800">
+                          Personal Loan
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-bold uppercase text-slate-400">
+                          Processing
+                        </p>
+                        <p className="mt-1 font-semibold text-slate-800">
+                          {company.fee}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-bold uppercase text-slate-400">
+                          Tenure
+                        </p>
+                        <p className="mt-1 font-semibold text-slate-800">
+                          {company.tenure}
+                        </p>
+                      </div>
+
+                    </div>
+
+                    <p className="mt-5 text-xs leading-5 text-slate-500">
+                      Eligibility, interest rate, loan amount, tenure,
+                      documents and final approval are subject to the
+                      applicable lender policy and customer profile.
+                    </p>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-amber-100 bg-amber-50 p-5 text-center text-xs leading-5 text-amber-800">
+          Loan approval, interest rate, processing fee, tenure and eligibility
+          are determined by the respective lender based on its applicable
+          policies and customer profile.
+        </div>
+
+      </div>
+    </main>
+  );
+}

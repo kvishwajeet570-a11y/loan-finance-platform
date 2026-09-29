@@ -58,6 +58,7 @@ class WalletService {
             });
             await tx.transaction.create({
                 data: {
+                    transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                     userId,
                     amount,
                     type: "CREDIT",
@@ -95,6 +96,7 @@ class WalletService {
             });
             await tx.transaction.create({
                 data: {
+                    transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                     userId,
                     amount,
                     type: "DEBIT",
@@ -109,8 +111,8 @@ class WalletService {
         });
     }
     /**
-     * Transfer Wallet Balance
-     */
+   * Transfer Wallet Balance
+   */
     async transferBalance(senderId, receiverId, amount) {
         return prisma_1.default.$transaction(async (tx) => {
             const sender = await tx.wallet.findUnique({
@@ -124,6 +126,7 @@ class WalletService {
             if (sender.balance < amount) {
                 throw new Error("Insufficient balance");
             }
+            // Debit Sender
             await tx.wallet.update({
                 where: {
                     userId: senderId,
@@ -134,6 +137,7 @@ class WalletService {
                     },
                 },
             });
+            // Credit Receiver
             await tx.wallet.upsert({
                 where: {
                     userId: receiverId,
@@ -148,9 +152,11 @@ class WalletService {
                     balance: amount,
                 },
             });
+            // Create Transaction History
             await tx.transaction.createMany({
                 data: [
                     {
+                        transactionId: `TXN-${Date.now()}-1`,
                         userId: senderId,
                         amount,
                         type: "DEBIT",
@@ -159,6 +165,7 @@ class WalletService {
                         status: "SUCCESS",
                     },
                     {
+                        transactionId: `TXN-${Date.now()}-2`,
                         userId: receiverId,
                         amount,
                         type: "CREDIT",

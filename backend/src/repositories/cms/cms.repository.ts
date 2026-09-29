@@ -1,5 +1,4 @@
-import { prisma } from "../../prisma/prisma";
-
+import prisma from "../../prisma/prisma";
 export class CmsRepository {
 
   /* =========================
@@ -17,7 +16,7 @@ export class CmsRepository {
     createdBy?: string;
   }) {
 
-    return prisma.cmsPage.create({
+    return prisma.cMSPage.create({
       data
     });
   }
@@ -30,7 +29,7 @@ export class CmsRepository {
     pageId: string
   ) {
 
-    return prisma.cmsPage.findUnique({
+    return prisma.cMSPage.findUnique({
       where: {
         id: pageId
       }
@@ -45,7 +44,7 @@ export class CmsRepository {
     slug: string
   ) {
 
-    return prisma.cmsPage.findUnique({
+    return prisma.cMSPage.findUnique({
       where: {
         slug
       }
@@ -66,7 +65,7 @@ export class CmsRepository {
     const [pages, total] =
       await Promise.all([
 
-        prisma.cmsPage.findMany({
+        prisma.cMSPage.findMany({
           skip,
           take: limit,
           orderBy: {
@@ -74,7 +73,7 @@ export class CmsRepository {
           }
         }),
 
-        prisma.cmsPage.count()
+        prisma.cMSPage.count()
       ]);
 
     return {
@@ -91,7 +90,7 @@ export class CmsRepository {
 
   static async getPublishedPages() {
 
-    return prisma.cmsPage.findMany({
+    return prisma.cMSPage.findMany({
       where: {
         isPublished: true
       },
@@ -109,7 +108,7 @@ export class CmsRepository {
     keyword: string
   ) {
 
-    return prisma.cmsPage.findMany({
+    return prisma.cMSPage.findMany({
       where: {
         OR: [
           {
@@ -152,7 +151,7 @@ export class CmsRepository {
     }
   ) {
 
-    return prisma.cmsPage.update({
+    return prisma.cMSPage.update({
       where: {
         id: pageId
       },
@@ -168,7 +167,7 @@ export class CmsRepository {
     pageId: string
   ) {
 
-    return prisma.cmsPage.update({
+    return prisma.cMSPage.update({
       where: {
         id: pageId
       },
@@ -186,7 +185,7 @@ export class CmsRepository {
     pageId: string
   ) {
 
-    return prisma.cmsPage.update({
+    return prisma.cMSPage.update({
       where: {
         id: pageId
       },
@@ -204,7 +203,7 @@ export class CmsRepository {
     pageId: string
   ) {
 
-    return prisma.cmsPage.delete({
+    return prisma.cMSPage.delete({
       where: {
         id: pageId
       }
@@ -217,7 +216,7 @@ export class CmsRepository {
 
   static async getPageTypes() {
 
-    return prisma.cmsPage.groupBy({
+    return prisma.cMSPage.groupBy({
       by: ["pageType"]
     });
   }
@@ -234,15 +233,15 @@ export class CmsRepository {
       draftPages
     ] = await Promise.all([
 
-      prisma.cmsPage.count(),
+      prisma.cMSPage.count(),
 
-      prisma.cmsPage.count({
+      prisma.cMSPage.count({
         where: {
           isPublished: true
         }
       }),
 
-      prisma.cmsPage.count({
+      prisma.cMSPage.count({
         where: {
           isPublished: false
         }
@@ -264,7 +263,7 @@ export class CmsRepository {
     pageIds: string[]
   ) {
 
-    return prisma.cmsPage.deleteMany({
+    return prisma.cMSPage.deleteMany({
       where: {
         id: {
           in: pageIds

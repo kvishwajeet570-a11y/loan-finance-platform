@@ -1,4 +1,5 @@
-import prisma from "../../prisma/prisma";
+﻿import prisma from "../../prisma/prisma";
+import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 
 interface SubmitKYCDto {
@@ -21,9 +22,10 @@ interface KYCFilters {
 }
 
 class KYCService {
-  /**
-   * Submit KYC
-   */
+  /* ========================================
+     SUBMIT KYC
+  ======================================== */
+
   async submitKYC(data: SubmitKYCDto) {
     const existingKYC =
       await prisma.kYC.findFirst({
@@ -46,20 +48,40 @@ class KYCService {
     });
   }
 
-  /**
-   * Get KYC By User
-   */
+  /* ========================================
+     GET KYC BY USER
+  ======================================== */
+
   async getUserKYC(userId: string) {
     return prisma.kYC.findFirst({
       where: {
         userId,
       },
+      include: {
+        user: true,
+      },
     });
   }
 
-  /**
-   * Verify KYC
-   */
+  /* ========================================
+     GET KYC BY ID
+  ======================================== */
+
+  async getKYCById(id: string) {
+    return prisma.kYC.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  /* ========================================
+     APPROVE KYC
+  ======================================== */
+
   async approveKYC(
     kycId: string,
     adminId: string
@@ -92,9 +114,10 @@ class KYCService {
     );
   }
 
-  /**
-   * Reject KYC
-   */
+  /* ========================================
+     REJECT KYC
+  ======================================== */
+
   async rejectKYC(
     kycId: string,
     reason: string,
@@ -112,24 +135,67 @@ class KYCService {
     });
   }
 
-  /**
-   * Update KYC
-   */
+  /* ========================================
+     UPDATE KYC
+  ======================================== */
   async updateKYC(
     kycId: string,
-    data: Partial<SubmitKYCDto>
+    data: Partial<SubmitKYCDto> & { status?: string }
   ) {
+    const updateData: Prisma.KYCUpdateInput = {
+      ...(data.fullName !== undefined ? { fullName: String(data.fullName) } : {}),
+      ...(data.panNumber !== undefined ? { panNumber: String(data.panNumber) } : {}),
+      ...(data.dob !== undefined ? { dob: String(data.dob) } : {}),
+      ...(data.address !== undefined ? { address: String(data.address) } : {}),
+      ...(data.city !== undefined ? { city: String(data.city) } : {}),
+      ...(data.state !== undefined ? { state: String(data.state) } : {}),
+      ...(data.pincode !== undefined ? { pincode: String(data.pincode) } : {}),
+      ...(data.status !== undefined ? { status: String(data.status) } : {}),
+    };
+
+    return prisma.kYC.update({
+      where: { id: kycId },
+      data: updateData,
+    });
+  }
+
+  /* ========================================
+     DELETE KYC
+  ======================================== */
+
+  async submitExistingKYC(kycId: string, userId: string) {
+    const kyc = await prisma.kYC.findFirst({
+      where: {
+        id: kycId,
+        userId,
+      },
+    });
+
+    if (!kyc) {
+      throw new Error("KYC record not found");
+    }
+
     return prisma.kYC.update({
       where: {
         id: kycId,
       },
-      data,
+      data: {
+        status: "PENDING",
+      },
+    });
+  }
+  async deleteKYC(id: string) {
+    return prisma.kYC.delete({
+      where: {
+        id,
+      },
     });
   }
 
-  /**
-   * Get All KYC
-   */
+  /* ========================================
+     GET ALL KYC
+  ======================================== */
+
   async getAllKYC(
     filters: KYCFilters
   ) {
@@ -140,7 +206,8 @@ class KYCService {
       status,
     } = filters;
 
-    const skip = (page - 1) * limit;
+    const skip =
+      (page - 1) * limit;
 
     const where: Prisma.KYCWhereInput =
       {};
@@ -189,13 +256,70 @@ class KYCService {
       kycs,
       total,
       page,
-      pages: Math.ceil(total / limit),
+      pages: Math.ceil(
+        total / limit
+      ),
     };
   }
 
-  /**
-   * Pending KYC
-   */
+  /* ========================================
+     APPROVED KYC
+  ======================================== */
+
+  async getApprovedKYC() {
+    return prisma.kYC.findMany({
+      where: {
+        status: "APPROVED",
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* ========================================
+     REJECTED KYC
+  ======================================== */
+
+  async getRejectedKYC() {
+    return prisma.kYC.findMany({
+      where: {
+        status: "REJECTED",
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* ========================================
+     UNDER REVIEW KYC
+  ======================================== */
+
+  async getUnderReviewKYC() {
+    return prisma.kYC.findMany({
+      where: {
+        status: "UNDER_REVIEW",
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* ========================================
+     PENDING KYC
+  ======================================== */
+
   async getPendingKYC() {
     return prisma.kYC.findMany({
       where: {
@@ -210,9 +334,10 @@ class KYCService {
     });
   }
 
-  /**
-   * KYC Dashboard Stats
-   */
+  /* ========================================
+     DASHBOARD STATS
+  ======================================== */
+
   async getKYCStats() {
     const [
       total,
@@ -249,9 +374,260 @@ class KYCService {
     };
   }
 
-  /**
-   * Check User Eligibility
-   */
+  /* ========================================
+     ANALYTICS
+  ======================================== */
+
+  async getAnalytics() {
+    return this.getKYCStats();
+  }
+
+  /* ========================================
+     CHECK KYC STATUS
+  ======================================== */
+
+
+  /* ========================================
+     VERIFICATION
+  ======================================== */
+
+  async verifyPan(
+    kycId: string,
+    panNumber?: string,
+    dob?: string
+  ) {
+    const kyc = await prisma.kYC.findUnique({
+      where: { id: kycId },
+    });
+
+    if (!kyc) {
+      throw new Error("KYC not found");
+    }
+
+    const pan = (panNumber || kyc.panNumber || "")
+      .trim()
+      .toUpperCase();
+
+    const dateOfBirth = (dob || kyc.dob || "").trim();
+
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
+      throw new Error("Invalid PAN number format");
+    }
+
+    const verificationId = crypto.randomUUID();
+
+    await prisma.kYCVerification.create({
+      data: {
+        id: verificationId,
+        kycId,
+        verificationType: "PAN",
+        status: "PENDING",
+        provider: "KYC_API",
+        message: "PAN verification request initiated",
+      updatedAt: new Date(),
+      },
+    });
+
+    if (!process.env.KYC_API_URL || !process.env.KYC_API_KEY) {
+      await prisma.kYCVerification.update({
+        where: { id: verificationId },
+        data: {
+          status: "FAILED",
+          message: "PAN verification provider is not configured",
+        },
+      });
+
+      throw new Error(
+        "PAN verification provider is not configured"
+      );
+    }
+
+    try {
+      const {
+        verifyPanApi,
+        verifyPanDobApi,
+      } = await import("../../integrations/kyc/kycApi");
+
+      const providerResponse = dateOfBirth
+        ? await verifyPanDobApi(pan, dateOfBirth)
+        : await verifyPanApi(pan);
+
+      const verified =
+        providerResponse?.verified === true ||
+        providerResponse?.data?.verified === true;
+
+      const referenceId =
+        providerResponse?.referenceId ||
+        providerResponse?.reference_id ||
+        providerResponse?.data?.referenceId ||
+        null;
+
+      const message =
+        providerResponse?.message ||
+        providerResponse?.data?.message ||
+        (verified
+          ? "PAN verification successful"
+          : "PAN verification failed");
+
+      const now = new Date();
+
+      await prisma.$transaction(async (tx) => {
+        await tx.kYCVerification.update({
+          where: { id: verificationId },
+          data: {
+            status: verified ? "VERIFIED" : "FAILED",
+            referenceId,
+            message,
+            verifiedAt: verified ? now : null,
+          },
+        });
+
+        await tx.kYC.update({
+          where: { id: kycId },
+          data: {
+            panVerificationStatus:
+              verified ? "VERIFIED" : "FAILED",
+            panVerifiedAt: verified ? now : null,
+            verificationUpdatedAt: now,
+          },
+        });
+      });
+
+      return {
+        verified,
+        status: verified ? "VERIFIED" : "FAILED",
+        referenceId,
+        message,
+      };
+
+    } catch (error: any) {
+
+      await prisma.kYCVerification.update({
+        where: { id: verificationId },
+        data: {
+          status: "FAILED",
+          message:
+            error?.response?.data?.message ||
+            error?.message ||
+            "PAN verification request failed",
+        },
+      });
+
+      throw error;
+    }
+  }
+
+  async verifyAadhaar(
+    kycId: string,
+    aadhaarNumber?: string
+  ) {
+    const kyc = await prisma.kYC.findUnique({
+      where: { id: kycId },
+    });
+
+    if (!kyc) {
+      throw new Error("KYC not found");
+    }
+
+    if (
+      aadhaarNumber &&
+      !/^\d{12}$/.test(
+        aadhaarNumber.replace(/\s+/g, "")
+      )
+    ) {
+      throw new Error(
+        "Aadhaar number must contain exactly 12 digits"
+      );
+    }
+
+    const now = new Date();
+
+    await prisma.kYCVerification.create({
+      data: {
+        id: crypto.randomUUID(),
+        kycId,
+        verificationType: "AADHAAR",
+        status: "PENDING",
+        provider: "NOT_CONFIGURED",
+        message:
+          "Aadhaar verification provider is not configured",
+      updatedAt: new Date(),
+      },
+    });
+
+    await prisma.kYC.update({
+      where: { id: kycId },
+      data: {
+        aadhaarVerificationStatus: "PENDING",
+        verificationUpdatedAt: now,
+      },
+    });
+
+    return {
+      verified: false,
+      status: "PENDING",
+      message:
+        "Aadhaar verification provider is not configured",
+    };
+  }
+
+  async verifyBank(
+    kycId: string,
+    bankAccountId: string
+  ) {
+    const kyc = await prisma.kYC.findUnique({
+      where: { id: kycId },
+    });
+
+    if (!kyc) {
+      throw new Error("KYC not found");
+    }
+
+    const bankAccount =
+      await prisma.bankAccount.findUnique({
+        where: { id: bankAccountId },
+      });
+
+    if (!bankAccount) {
+      throw new Error("Bank account not found");
+    }
+
+    if (bankAccount.userId !== kyc.userId) {
+      throw new Error(
+        "Bank account does not belong to this KYC user"
+      );
+    }
+
+    await prisma.kYCVerification.create({
+      data: {
+        id: crypto.randomUUID(),
+        kycId,
+        verificationType: "BANK",
+        status: "PENDING",
+        provider: "MANUAL_BANK_VERIFICATION",
+        referenceId: bankAccountId,
+        message:
+          "Bank account requires external or admin verification",
+      updatedAt: new Date(),
+      },
+    });
+
+    await prisma.kYC.update({
+      where: { id: kycId },
+      data: {
+        bankVerificationStatus: "PENDING",
+        verificationUpdatedAt: new Date(),
+      },
+    });
+
+    return {
+      verified: false,
+      status: "PENDING",
+      bankAccountId,
+      message:
+        "Bank account requires external or admin verification",
+    };
+  }
   async isKYCCompleted(
     userId: string
   ) {
@@ -271,3 +647,4 @@ class KYCService {
 }
 
 export default new KYCService();
+

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteJobApplication = exports.updateJobStatus = exports.getSingleApplication = exports.getJobApplications = exports.createJobApplication = void 0;
-const prisma_1 = __importDefault(require("../prisma/prisma"));
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 /* ========================================
    CREATE JOB APPLICATION
 ======================================== */

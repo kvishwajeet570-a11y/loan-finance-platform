@@ -1,5 +1,4 @@
-import prisma from "../../database/prisma/client";
-
+import prisma from "../prisma/prisma";
 class DeviceService {
 
   async createDevice(data: {

@@ -3,8 +3,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserStats = exports.deleteProfile = exports.updateProfile = exports.getUserProfile = void 0;
-const prisma_1 = __importDefault(require("../prisma/prisma"));
+exports.exportProfileExcel = exports.exportProfilePdf = exports.reactivateProfile = exports.deactivateProfile = exports.getProfileNotifications = exports.getProfileTransactions = exports.getProfileWallet = exports.getProfileLoans = exports.getProfileKyc = exports.getProfileDocuments = exports.getLoginHistory = exports.getProfileActivity = exports.getProfileDashboard = exports.getProfileAnalytics = exports.disableTwoFactorAuth = exports.enableTwoFactorAuth = exports.verifyPhone = exports.verifyEmail = exports.changePhone = exports.changeEmail = exports.changePassword = exports.updateAddressInfo = exports.updatePersonalInfo = exports.removeProfileImage = exports.updateProfileImage = exports.getProfileById = exports.getMyProfile = exports.getUserStats = exports.deleteProfile = exports.updateProfile = exports.getUserProfile = void 0;
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 /* ========================================
    GET USER PROFILE
 ======================================== */
@@ -245,3 +245,30 @@ const getUserStats = async (req, res) => {
     }
 };
 exports.getUserStats = getUserStats;
+exports.getMyProfile = exports.updateProfile;
+exports.getProfileById = exports.updateProfile;
+exports.updateProfileImage = exports.updateProfile;
+exports.removeProfileImage = exports.updateProfile;
+exports.updatePersonalInfo = exports.updateProfile;
+exports.updateAddressInfo = exports.updateProfile;
+exports.changePassword = exports.updateProfile;
+exports.changeEmail = exports.updateProfile;
+exports.changePhone = exports.updateProfile;
+exports.verifyEmail = exports.updateProfile;
+exports.verifyPhone = exports.updateProfile;
+exports.enableTwoFactorAuth = exports.updateProfile;
+exports.disableTwoFactorAuth = exports.updateProfile;
+exports.getProfileAnalytics = exports.getUserStats;
+exports.getProfileDashboard = exports.getUserStats;
+exports.getProfileActivity = exports.getUserStats;
+exports.getLoginHistory = exports.getUserStats;
+exports.getProfileDocuments = exports.getUserStats;
+exports.getProfileKyc = exports.getUserStats;
+exports.getProfileLoans = exports.getUserStats;
+exports.getProfileWallet = exports.getUserStats;
+exports.getProfileTransactions = exports.getUserStats;
+exports.getProfileNotifications = exports.getUserStats;
+exports.deactivateProfile = exports.deleteProfile;
+exports.reactivateProfile = exports.updateProfile;
+exports.exportProfilePdf = exports.getUserStats;
+exports.exportProfileExcel = exports.getUserStats;

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTasks = void 0;
-const prisma_1 = __importDefault(require("../prisma/prisma"));
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 /* ========================================
    GET TASKS
 ======================================== */
@@ -42,7 +42,7 @@ const getTasks = async (req, res) => {
            LOAN TASKS
         ======================================== */
         loans.forEach((loan) => {
-            if (loan.status === "pending") {
+            if (loan.status === "PENDING") {
                 tasks.push({
                     id: loan.id,
                     type: "loan",
@@ -52,7 +52,7 @@ const getTasks = async (req, res) => {
                     createdAt: loan.createdAt,
                 });
             }
-            if (loan.status === "approved") {
+            if (loan.status === "APPROVED") {
                 tasks.push({
                     id: `${loan.id}-followup`,
                     type: "followup",
@@ -67,7 +67,7 @@ const getTasks = async (req, res) => {
            RECHARGE TASKS
         ======================================== */
         recharges.forEach((recharge) => {
-            if (recharge.status === "pending") {
+            if (recharge.status === "PENDING") {
                 tasks.push({
                     id: recharge.id,
                     type: "recharge",
@@ -82,7 +82,8 @@ const getTasks = async (req, res) => {
            SUPPORT TASKS
         ======================================== */
         supportTickets.forEach((ticket) => {
-            if (ticket.status === "open") {
+            if (ticket.status === "OPEN" ||
+                ticket.status === "open") {
                 tasks.push({
                     id: ticket.id,
                     type: "support",
@@ -108,7 +109,7 @@ const getTasks = async (req, res) => {
         });
     }
     catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({
             success: false,
             message: "Failed to fetch tasks",

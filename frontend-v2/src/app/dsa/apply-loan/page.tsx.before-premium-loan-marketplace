@@ -1,0 +1,7 @@
+﻿"use client";
+
+import AdvancedLoanOffers from "@/components/AdvancedLoanOffers";
+
+export default function ApplyLoanPage() {
+  return <AdvancedLoanOffers />;
+}

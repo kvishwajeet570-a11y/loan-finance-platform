@@ -1,21 +1,30 @@
 "use strict";
 // src/services/analytics/analytics.service.ts
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = __importDefault(require("../prisma/prisma"));
 class AnalyticsService {
     async getDashboardAnalytics() {
         const [totalUsers, totalLoans, approvedLoans, rejectedLoans, pendingLoans,] = await Promise.all([
-            prisma.user.count(),
-            prisma.loanApplication.count(),
-            prisma.loanApplication.count({
-                where: { status: "approved" },
+            prisma_1.default.user.count(),
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.APPROVED,
+                },
             }),
-            prisma.loanApplication.count({
-                where: { status: "rejected" },
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.REJECTED,
+                },
             }),
-            prisma.loanApplication.count({
-                where: { status: "pending" },
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.PENDING,
+                },
             }),
         ]);
         const approvalRate = totalLoans > 0
@@ -31,15 +40,20 @@ class AnalyticsService {
         };
     }
     async getLoanTypeAnalytics() {
-        return prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["loanType"],
             _count: {
                 loanType: true,
             },
+            orderBy: {
+                _count: {
+                    loanType: "desc",
+                },
+            },
         });
     }
     async getMonthlyLoanTrend() {
-        const loans = await prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             select: {
                 amount: true,
                 createdAt: true,
@@ -48,12 +62,11 @@ class AnalyticsService {
                 createdAt: "asc",
             },
         });
-        return loans;
     }
     async getRevenueAnalytics() {
-        const approvedLoans = await prisma.loanApplication.findMany({
+        const approvedLoans = await prisma_1.default.loanApplication.findMany({
             where: {
-                status: "approved",
+                status: client_1.LoanStatus.APPROVED,
             },
             select: {
                 amount: true,
@@ -67,7 +80,7 @@ class AnalyticsService {
         };
     }
     async getRecentApplications() {
-        return prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             take: 10,
             orderBy: {
                 createdAt: "desc",

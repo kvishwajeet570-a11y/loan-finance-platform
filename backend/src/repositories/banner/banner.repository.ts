@@ -1,52 +1,46 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class BannerRepository {
 
-  /* ==========================
-      CREATE BANNER
-  ========================== */
+  // ==========================================
+  // CREATE BANNER
+  // ==========================================
 
   static async createBanner(data: {
     title: string;
-    subtitle?: string;
     description?: string;
-    imageUrl: string;
-    mobileImage?: string;
+    image: string;
     redirectUrl?: string;
-    buttonText?: string;
-    position?: number;
-    bannerType?: string;
-    targetAudience?: string;
+    position?: string;
     startDate?: Date;
     endDate?: Date;
+    isActive?: boolean;
   }) {
-
     return prisma.banner.create({
-      data
+      data: {
+        ...data,
+        isActive: data.isActive ?? true,
+      },
     });
   }
 
-  /* ==========================
-      GET BANNER BY ID
-  ========================== */
+  // ==========================================
+  // GET BANNER BY ID
+  // ==========================================
 
-  static async getBannerById(
-    bannerId: string
-  ) {
-
+  static async getBannerById(bannerId: string) {
     return prisma.banner.findUnique({
       where: {
-        id: bannerId
-      }
+        id: bannerId,
+      },
     });
   }
 
-  /* ==========================
-      GET ACTIVE BANNERS
-  ========================== */
+  // ==========================================
+  // GET ACTIVE BANNERS
+  // ==========================================
 
   static async getActiveBanners() {
-
     const now = new Date();
 
     return prisma.banner.findMany({
@@ -54,252 +48,192 @@ export class BannerRepository {
         isActive: true,
         OR: [
           {
-            startDate: null
+            startDate: null,
           },
           {
             startDate: {
-              lte: now
-            }
-          }
-        ]
+              lte: now,
+            },
+          },
+        ],
       },
       orderBy: {
-        position: "asc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
-  /* ==========================
-      GET BANNERS BY TYPE
-  ========================== */
+  // ==========================================
+  // GET BANNER BY TYPE
+  // ==========================================
 
-  static async getBannerByType(
-    bannerType: string
-  ) {
-
+  static async getBannerByType(type: string) {
+    // bannerType field schema में नहीं है
     return prisma.banner.findMany({
       where: {
-        bannerType,
-        isActive: true
+        isActive: true,
       },
       orderBy: {
-        position: "asc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
-  /* ==========================
-      GET AUDIENCE BANNERS
-  ========================== */
+  // ==========================================
+  // GET AUDIENCE BANNERS
+  // ==========================================
 
-  static async getAudienceBanners(
-    audience: string
-  ) {
-
+  static async getAudienceBanners(audience: string) {
+    // targetAudience field schema में नहीं है
     return prisma.banner.findMany({
       where: {
-        targetAudience: audience,
-        isActive: true
+        isActive: true,
       },
       orderBy: {
-        position: "asc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
-  /* ==========================
-      UPDATE BANNER
-  ========================== */
+  // ==========================================
+  // UPDATE BANNER
+  // ==========================================
 
   static async updateBanner(
     bannerId: string,
-    data: any
+    data: {
+      title?: string;
+      description?: string;
+      image?: string;
+      redirectUrl?: string;
+      position?: string;
+      startDate?: Date;
+      endDate?: Date;
+      isActive?: boolean;
+    }
   ) {
-
     return prisma.banner.update({
       where: {
-        id: bannerId
+        id: bannerId,
       },
-      data
+      data,
     });
   }
 
-  /* ==========================
-      ACTIVATE BANNER
-  ========================== */
+  // ==========================================
+  // ACTIVATE BANNER
+  // ==========================================
 
-  static async activateBanner(
-    bannerId: string
-  ) {
-
+  static async activateBanner(bannerId: string) {
     return prisma.banner.update({
       where: {
-        id: bannerId
-      },
-      data: {
-        isActive: true
-      }
-    });
-  }
-
-  /* ==========================
-      DEACTIVATE BANNER
-  ========================== */
-
-  static async deactivateBanner(
-    bannerId: string
-  ) {
-
-    return prisma.banner.update({
-      where: {
-        id: bannerId
+        id: bannerId,
       },
       data: {
-        isActive: false
-      }
+        isActive: true,
+      },
     });
   }
 
-  /* ==========================
-      INCREMENT VIEW
-  ========================== */
+  // ==========================================
+  // DEACTIVATE BANNER
+  // ==========================================
 
-  static async incrementView(
-    bannerId: string
-  ) {
-
+  static async deactivateBanner(bannerId: string) {
     return prisma.banner.update({
       where: {
-        id: bannerId
+        id: bannerId,
       },
       data: {
-        viewCount: {
-          increment: 1
-        }
-      }
+        isActive: false,
+      },
     });
   }
 
-  /* ==========================
-      INCREMENT CLICK
-  ========================== */
+  // ==========================================
+  // INCREMENT VIEW
+  // ==========================================
 
-  static async incrementClick(
-    bannerId: string
-  ) {
-
-    return prisma.banner.update({
+  static async incrementView(bannerId: string) {
+    // viewCount schema में नहीं है
+    return prisma.banner.findUnique({
       where: {
-        id: bannerId
+        id: bannerId,
       },
-      data: {
-        clickCount: {
-          increment: 1
-        }
-      }
     });
   }
 
-  /* ==========================
-      DELETE BANNER
-  ========================== */
+  // ==========================================
+  // INCREMENT CLICK
+  // ==========================================
 
-  static async deleteBanner(
-    bannerId: string
-  ) {
+  static async incrementClick(bannerId: string) {
+    // clickCount schema में नहीं है
+    return prisma.banner.findUnique({
+      where: {
+        id: bannerId,
+      },
+    });
+  }
 
+  // ==========================================
+  // DELETE BANNER
+  // ==========================================
+
+  static async deleteBanner(bannerId: string) {
     return prisma.banner.delete({
       where: {
-        id: bannerId
-      }
+        id: bannerId,
+      },
     });
   }
 
-  /* ==========================
-      ADMIN ALL BANNERS
-  ========================== */
+  // ==========================================
+  // ADMIN ALL BANNERS
+  // ==========================================
 
-  static async getAllBanners(
-    page = 1,
-    limit = 20
-  ) {
-
+  static async getAllBanners(page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    const [banners, total] =
-      await Promise.all([
+    const [banners, total] = await Promise.all([
+      prisma.banner.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
 
-        prisma.banner.findMany({
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
-
-        prisma.banner.count()
-      ]);
+      prisma.banner.count(),
+    ]);
 
     return {
       total,
       page,
       limit,
-      banners
+      banners,
     };
   }
 
-  /* ==========================
-      BANNER ANALYTICS
-  ========================== */
+  // ==========================================
+  // BANNER ANALYTICS
+  // ==========================================
 
   static async getBannerAnalytics() {
-
-    const [
-      totalBanners,
-      activeBanners,
-      totalViews,
-      totalClicks
-    ] = await Promise.all([
-
+    const [totalBanners, activeBanners] = await Promise.all([
       prisma.banner.count(),
 
       prisma.banner.count({
         where: {
-          isActive: true
-        }
+          isActive: true,
+        },
       }),
-
-      prisma.banner.aggregate({
-        _sum: {
-          viewCount: true
-        }
-      }),
-
-      prisma.banner.aggregate({
-        _sum: {
-          clickCount: true
-        }
-      })
     ]);
 
     return {
       totalBanners,
       activeBanners,
-      totalViews:
-        totalViews._sum.viewCount || 0,
-
-      totalClicks:
-        totalClicks._sum.clickCount || 0,
-
-      ctr:
-        totalClicks._sum.clickCount &&
-        totalViews._sum.viewCount
-          ? (
-              (totalClicks._sum.clickCount /
-                totalViews._sum.viewCount) *
-              100
-            ).toFixed(2)
-          : 0
+      inactiveBanners: totalBanners - activeBanners,
     };
   }
 }

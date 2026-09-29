@@ -1,207 +1,94 @@
 import { Router } from "express";
 
 import {
-  createDsa,
-  getDsaById,
-  getAllDsa,
-  updateDsa,
-  deleteDsa,
-
-  verifyDsa,
-  rejectDsa,
-  blockDsa,
-  unblockDsa,
-
-  searchDsa,
-
-  getActiveDsa,
-  getInactiveDsa,
-  getPendingDsa,
-  getVerifiedDsa,
-
-  getDsaProfile,
-  getDsaDashboard,
-
-  getDsaCustomers,
-  getDsaLoans,
-  getDsaCommissions,
-  getDsaReferrals,
-
-  getTopDsa,
-  getMonthlyDsa,
-
-  getDsaAnalytics,
-
-  exportDsaExcel,
-  exportDsaPdf,
-
-  bulkVerifyDsa,
-  bulkBlockDsa,
+  getDSAs,
+  getDSAById,
+  createDSA,
+  approveDSA,
+  rejectDSA,
+  blockDSA,
+  unblockDSA,
+  getDSALoans,
+  getDSADashboard,
+  getTopDSA,
+  getDSAAnalytics,
 } from "../../controllers/dsa/dsa.controller";
 
 const router = Router();
 
-/* ========================================
+/* ==========================
    ANALYTICS
-======================================== */
+========================== */
 
 router.get(
   "/analytics",
-  getDsaAnalytics
-);
-
-router.get(
-  "/dashboard",
-  getDsaDashboard
+  getDSAAnalytics
 );
 
 router.get(
   "/top-performers",
-  getTopDsa
+  getTopDSA
 );
+
+/* ==========================
+   DASHBOARD
+========================== */
 
 router.get(
-  "/monthly",
-  getMonthlyDsa
+  "/dashboard/:id",
+  getDSADashboard
 );
 
-/* ========================================
-   EXPORT
-======================================== */
-
-router.get(
-  "/export/excel",
-  exportDsaExcel
-);
-
-router.get(
-  "/export/pdf",
-  exportDsaPdf
-);
-
-/* ========================================
-   STATUS
-======================================== */
-
-router.get(
-  "/active",
-  getActiveDsa
-);
-
-router.get(
-  "/inactive",
-  getInactiveDsa
-);
-
-router.get(
-  "/pending",
-  getPendingDsa
-);
-
-router.get(
-  "/verified",
-  getVerifiedDsa
-);
-
-/* ========================================
+/* ==========================
    MANAGEMENT
-======================================== */
+========================== */
 
 router.post(
   "/",
-  createDsa
+  createDSA
 );
 
 router.get(
   "/",
-  getAllDsa
-);
-
-router.get(
-  "/search",
-  searchDsa
-);
-
-router.get(
-  "/profile/:dsaId",
-  getDsaProfile
+  getDSAs
 );
 
 router.get(
   "/:id",
-  getDsaById
+  getDSAById
 );
 
-router.put(
-  "/:id",
-  updateDsa
-);
-
-router.delete(
-  "/:id",
-  deleteDsa
-);
-
-/* ========================================
+/* ==========================
    VERIFICATION
-======================================== */
+========================== */
 
 router.patch(
-  "/:id/verify",
-  verifyDsa
+  "/:id/approve",
+  approveDSA
 );
 
 router.patch(
   "/:id/reject",
-  rejectDsa
+  rejectDSA
 );
 
 router.patch(
   "/:id/block",
-  blockDsa
+  blockDSA
 );
 
 router.patch(
   "/:id/unblock",
-  unblockDsa
+  unblockDSA
 );
 
-/* ========================================
-   RELATIONS
-======================================== */
+/* ==========================
+   DSA LOANS
+========================== */
 
 router.get(
-  "/:dsaId/customers",
-  getDsaCustomers
-);
-
-router.get(
-  "/:dsaId/loans",
-  getDsaLoans
-);
-
-router.get(
-  "/:dsaId/commissions",
-  getDsaCommissions
-);
-
-router.get(
-  "/:dsaId/referrals",
-  getDsaReferrals
-);
-
-/* ========================================
-   BULK ACTIONS
-======================================== */
-
-router.post(
-  "/bulk-verify",
-  bulkVerifyDsa
-);
-
-router.post(
-  "/bulk-block",
-  bulkBlockDsa
+  "/:id/loans",
+  getDSALoans
 );
 
 export default router;

@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 import {
   getDashboardStats,
@@ -9,11 +9,29 @@ import {
   verifyUser,
   getRecentLoans,
   getLoanById,
+  updateLoanAmount,
   approveLoan,
   rejectLoan,
 } from "../../controllers/admin/admin.controller";
 
+import authMiddleware from "../../middlewares/auth";
+import adminMiddleware from "../../middlewares/admin";
+
 const router = Router();
+
+/*
+==================================================
+ADMIN SECURITY
+==================================================
+All admin routes require:
+
+1. Valid JWT
+2. User role = admin
+==================================================
+*/
+
+router.use(authMiddleware);
+router.use(adminMiddleware);
 
 /* ==========================================
    DASHBOARD
@@ -65,6 +83,11 @@ router.get(
 router.get(
   "/loans/:id",
   getLoanById
+);
+
+router.patch(
+  "/loans/:id/amount",
+  updateLoanAmount
 );
 
 router.patch(

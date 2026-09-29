@@ -1,52 +1,57 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class BankRepository {
-
   /* =========================
-      CREATE BANK ACCOUNT
+     CREATE BANK ACCOUNT
   ========================= */
 
   static async createBankAccount(data: {
     userId: string;
-    accountHolder: string;
+    accountHolderName: string;
     bankName: string;
     accountNumber: string;
     ifscCode: string;
     branchName?: string;
   }) {
-
     return prisma.bankAccount.create({
-      data
+      data: {
+        userId: data.userId,
+        accountHolderName: data.accountHolderName,
+        bankName: data.bankName,
+        accountNumber: data.accountNumber,
+        ifscCode: data.ifscCode,
+        branchName: data.branchName,
+      },
     });
   }
 
   /* =========================
-      GET USER BANKS
+     GET USER BANKS
   ========================= */
 
   static async getUserBankAccounts(
     userId: string
   ) {
-
     return prisma.bankAccount.findMany({
-      where: { userId },
+      where: {
+        userId,
+      },
       orderBy: {
-        createdAt: "desc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
   /* =========================
-      GET BANK BY ID
+     GET BANK BY ID
   ========================= */
 
   static async getBankById(
     bankId: string
   ) {
-
     return prisma.bankAccount.findUnique({
       where: {
-        id: bankId
+        id: bankId,
       },
       include: {
         user: {
@@ -54,212 +59,240 @@ export class BankRepository {
             id: true,
             name: true,
             email: true,
-            phoneNo: true
-          }
-        }
-      }
+            phoneNo: true,
+          },
+        },
+      },
     });
   }
 
   /* =========================
-      VERIFY BANK ACCOUNT
+     VERIFY BANK ACCOUNT
   ========================= */
 
   static async verifyBankAccount(
-    bankId: string,
-    pennyDropRef?: string
+    bankId: string
   ) {
-
     return prisma.bankAccount.update({
       where: {
-        id: bankId
+        id: bankId,
       },
       data: {
-        isVerified: true,
-        pennyDropRef
-      }
+        verificationStatus: "VERIFIED",
+        rejectionReason: null,
+        verifiedAt: new Date(),
+      },
     });
   }
 
   /* =========================
-      SET PRIMARY ACCOUNT
+     REJECT BANK ACCOUNT
+  ========================= */
+
+  static async rejectBankAccount(
+    bankId: string,
+    reason: string
+  ) {
+    return prisma.bankAccount.update({
+      where: {
+        id: bankId,
+      },
+      data: {
+        verificationStatus: "REJECTED",
+        rejectionReason: reason,
+        verifiedAt: null,
+      },
+    });
+  }
+
+  /* =========================
+     SET PRIMARY ACCOUNT
   ========================= */
 
   static async setPrimaryAccount(
     userId: string,
     bankId: string
   ) {
-
     await prisma.bankAccount.updateMany({
       where: {
-        userId
+        userId,
       },
       data: {
-        isPrimary: false
-      }
+        isPrimary: false,
+      },
     });
 
     return prisma.bankAccount.update({
       where: {
-        id: bankId
+        id: bankId,
       },
       data: {
-        isPrimary: true
-      }
+        isPrimary: true,
+      },
     });
   }
 
   /* =========================
-      UPDATE BANK ACCOUNT
+     UPDATE BANK ACCOUNT
   ========================= */
 
   static async updateBankAccount(
     bankId: string,
     data: Partial<{
-      accountHolder: string;
+      accountHolderName: string;
       bankName: string;
+      accountNumber: string;
       ifscCode: string;
       branchName: string;
     }>
   ) {
-
     return prisma.bankAccount.update({
       where: {
-        id: bankId
+        id: bankId,
       },
-      data
+      data,
     });
   }
 
   /* =========================
-      DELETE ACCOUNT
+     DELETE ACCOUNT
   ========================= */
 
   static async deleteBankAccount(
     bankId: string
   ) {
-
     return prisma.bankAccount.delete({
       where: {
-        id: bankId
-      }
+        id: bankId,
+      },
     });
   }
 
   /* =========================
-      SEARCH ACCOUNT
+     SEARCH ACCOUNT
   ========================= */
 
   static async searchAccounts(
     search: string
   ) {
-
     return prisma.bankAccount.findMany({
       where: {
         OR: [
           {
-            accountHolder: {
+            accountHolderName: {
               contains: search,
-              mode: "insensitive"
-            }
+              mode: "insensitive",
+            },
           },
           {
             bankName: {
               contains: search,
-              mode: "insensitive"
-            }
+              mode: "insensitive",
+            },
           },
           {
             accountNumber: {
-              contains: search
-            }
-          }
-        ]
-      }
+              contains: search,
+            },
+          },
+        ],
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   }
 
   /* =========================
-      ADMIN ALL BANKS
+     ADMIN ALL BANKS
   ========================= */
 
   static async getAllBankAccounts(
     page = 1,
     limit = 20
   ) {
-
-    const skip = (page - 1) * limit;
+    const skip =
+      (page - 1) * limit;
 
     const [accounts, total] =
       await Promise.all([
-
         prisma.bankAccount.findMany({
           skip,
           take: limit,
+
           orderBy: {
-            createdAt: "desc"
+            createdAt: "desc",
           },
+
           include: {
             user: {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         }),
 
-        prisma.bankAccount.count()
+        prisma.bankAccount.count(),
       ]);
 
     return {
       total,
       page,
       limit,
-      accounts
+      totalPages:
+        Math.ceil(total / limit),
+      accounts,
     };
   }
 
   /* =========================
-      BANK ANALYTICS
+     BANK ANALYTICS
   ========================= */
 
   static async getBankAnalytics() {
-
     const [
       totalAccounts,
       verifiedAccounts,
       pendingAccounts,
-      primaryAccounts
+      rejectedAccounts,
+      primaryAccounts,
     ] = await Promise.all([
-
       prisma.bankAccount.count(),
 
       prisma.bankAccount.count({
         where: {
-          isVerified: true
-        }
+          verificationStatus: "VERIFIED",
+        },
       }),
 
       prisma.bankAccount.count({
         where: {
-          isVerified: false
-        }
+          verificationStatus: "PENDING",
+        },
       }),
 
       prisma.bankAccount.count({
         where: {
-          isPrimary: true
-        }
-      })
+          verificationStatus: "REJECTED",
+        },
+      }),
+
+      prisma.bankAccount.count({
+        where: {
+          isPrimary: true,
+        },
+      }),
     ]);
 
     return {
       totalAccounts,
       verifiedAccounts,
       pendingAccounts,
-      primaryAccounts
+      rejectedAccounts,
+      primaryAccounts,
     };
   }
 }

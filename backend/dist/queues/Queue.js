@@ -1,21 +1,17 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createQueue = exports.redisConnection = void 0;
-const ioredis_1 = __importDefault(require("ioredis"));
+exports.createQueue = void 0;
 const bullmq_1 = require("bullmq");
-exports.redisConnection = new ioredis_1.default({
-    host: process.env.REDIS_HOST,
-    port: Number(process.env.REDIS_PORT),
-    password: process.env.REDIS_PASSWORD,
+const redisConnection = {
+    host: process.env.REDIS_HOST || "localhost",
+    port: Number(process.env.REDIS_PORT || 6379),
+    password: process.env.REDIS_PASSWORD || undefined,
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
-});
+};
 const createQueue = (queueName) => {
     const queue = new bullmq_1.Queue(queueName, {
-        connection: exports.redisConnection,
+        connection: redisConnection,
         defaultJobOptions: {
             attempts: 5,
             backoff: {
@@ -27,7 +23,7 @@ const createQueue = (queueName) => {
         },
     });
     const events = new bullmq_1.QueueEvents(queueName, {
-        connection: exports.redisConnection,
+        connection: redisConnection,
     });
     events.on("completed", ({ jobId }) => {
         console.log(`✅ ${queueName} Job Completed: ${jobId}`);

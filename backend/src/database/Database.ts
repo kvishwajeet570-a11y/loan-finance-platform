@@ -1,5 +1,5 @@
-import prisma from "./database/prisma/client";
-import redis from "./database/prisma/redis/redis";
+import prisma from "../prisma/prisma";
+import redis from "./redis/redis";
 
 export {
   prisma,

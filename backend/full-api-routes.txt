@@ -1,0 +1,7023 @@
+﻿import express from "express";
+
+import {
+getAchievements,
+} from "../../controllers/achievement/achievement.controller";
+
+const router = express.Router();
+
+/* ========================================
+ACHIEVEMENT ROUTES
+======================================== */
+
+router.get("/", getAchievements);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getDashboardStats,
+  getAllUsers,
+  getUserById,
+  blockUser,
+  unblockUser,
+  verifyUser,
+  getRecentLoans,
+  getLoanById,
+  approveLoan,
+  rejectLoan,
+} from "../../controllers/admin/admin.controller";
+
+const router = Router();
+
+/* ==========================================
+   DASHBOARD
+========================================== */
+
+router.get(
+  "/dashboard",
+  getDashboardStats
+);
+
+/* ==========================================
+   USER MANAGEMENT
+========================================== */
+
+router.get(
+  "/users",
+  getAllUsers
+);
+
+router.get(
+  "/users/:id",
+  getUserById
+);
+
+router.patch(
+  "/users/:id/block",
+  blockUser
+);
+
+router.patch(
+  "/users/:id/unblock",
+  unblockUser
+);
+
+router.patch(
+  "/users/:id/verify",
+  verifyUser
+);
+
+/* ==========================================
+   LOAN MANAGEMENT
+========================================== */
+
+router.get(
+  "/loans",
+  getRecentLoans
+);
+
+router.get(
+  "/loans/:id",
+  getLoanById
+);
+
+router.patch(
+  "/loans/:id/approve",
+  approveLoan
+);
+
+router.patch(
+  "/loans/:id/reject",
+  rejectLoan
+);
+
+export default router;
+import { Router } from "express";
+
+import adminRoutes from "./admin.route";
+
+const router = Router();
+
+/* ========================================
+   ADMIN ROUTES
+======================================== */
+
+router.use("/", adminRoutes);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getOverviewAnalytics,
+  getLoanAmountAnalytics,
+  getLoanStatusAnalytics,
+  getLoanTypeAnalytics,
+  getUserRoleAnalytics,
+  getMonthlyLoanAnalytics,
+  getMonthlyUserAnalytics,
+  getTopCustomers,
+  getRecentActivities,
+  getDashboardAnalytics,
+} from "../../controllers/analytics/analytics.controller";
+
+const router = Router();
+
+/* =========================================
+   OVERVIEW
+========================================= */
+
+router.get(
+  "/overview",
+  getOverviewAnalytics
+);
+
+/* =========================================
+   LOAN ANALYTICS
+========================================= */
+
+router.get(
+  "/loan-amount",
+  getLoanAmountAnalytics
+);
+
+router.get(
+  "/loan-status",
+  getLoanStatusAnalytics
+);
+
+router.get(
+  "/loan-type",
+  getLoanTypeAnalytics
+);
+
+router.get(
+  "/monthly-loans",
+  getMonthlyLoanAnalytics
+);
+
+/* =========================================
+   USER ANALYTICS
+========================================= */
+
+router.get(
+  "/user-roles",
+  getUserRoleAnalytics
+);
+
+router.get(
+  "/monthly-users",
+  getMonthlyUserAnalytics
+);
+
+router.get(
+  "/top-customers",
+  getTopCustomers
+);
+
+/* =========================================
+   ACTIVITIES
+========================================= */
+
+router.get(
+  "/recent-activities",
+  getRecentActivities
+);
+
+/* =========================================
+   DASHBOARD
+========================================= */
+
+router.get(
+  "/dashboard",
+  getDashboardAnalytics
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createAuditLog,
+  getAuditLogs,
+  getUserAuditLogs,
+  getModuleLogs,
+  getActionLogs,
+  searchAuditLogs,
+  getAuditStats,
+  deleteOldLogs,
+} from "../../controllers/audit/audit.controller";
+
+const router = Router();
+
+/* ========================================
+   AUDIT DASHBOARD
+======================================== */
+
+router.get(
+  "/stats",
+  getAuditStats
+);
+
+/* ========================================
+   AUDIT LOGS
+======================================== */
+
+router.get(
+  "/",
+  getAuditLogs
+);
+
+router.post(
+  "/",
+  createAuditLog
+);
+
+/* ========================================
+   USER LOGS
+======================================== */
+
+router.get(
+  "/user/:userId",
+  getUserAuditLogs
+);
+
+/* ========================================
+   MODULE LOGS
+======================================== */
+
+router.get(
+  "/module/:module",
+  getModuleLogs
+);
+
+/* ========================================
+   ACTION LOGS
+======================================== */
+
+router.get(
+  "/action/:action",
+  getActionLogs
+);
+
+/* ========================================
+   SEARCH
+======================================== */
+
+router.get(
+  "/search/:keyword",
+  searchAuditLogs
+);
+
+/* ========================================
+   CLEANUP
+======================================== */
+
+router.delete(
+  "/cleanup",
+  deleteOldLogs
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  sendRegisterOtp,
+  verifyRegisterOtp,
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+  deleteAccount,
+} from "../../controllers/auth/auth.controller";
+
+const router = Router();
+
+router.post("/send-otp", sendRegisterOtp);
+
+router.post("/verify-otp", verifyRegisterOtp);
+
+router.post("/register", registerUser);
+
+router.post("/login", loginUser);
+
+router.post("/forgot-password", forgotPassword);
+
+router.post("/reset-password", resetPassword);
+
+router.delete("/delete-account/:id", deleteAccount);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createBankAccount,
+  getUserBankAccounts,
+  getBankById,
+  verifyBankAccount,
+  setPrimaryAccount,
+  updateBankAccount,
+  deleteBankAccount,
+  searchAccounts,
+  getAllBankAccounts,
+  getBankAnalytics,
+} from "../../controllers/bank/bank.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getBankAnalytics
+);
+
+/* ========================================
+   BANK ACCOUNTS
+======================================== */
+
+router.post(
+  "/",
+  createBankAccount
+);
+
+router.get(
+  "/",
+  getAllBankAccounts
+);
+
+router.get(
+  "/search/:keyword",
+  searchAccounts
+);
+
+router.get(
+  "/:id",
+  getBankById
+);
+
+router.put(
+  "/:id",
+  updateBankAccount
+);
+
+router.delete(
+  "/:id",
+  deleteBankAccount
+);
+
+/* ========================================
+   USER BANK ACCOUNTS
+======================================== */
+
+router.get(
+  "/user/:userId",
+  getUserBankAccounts
+);
+
+/* ========================================
+   VERIFICATION
+======================================== */
+
+router.patch(
+  "/:id/verify",
+  verifyBankAccount
+);
+
+/* ========================================
+   PRIMARY ACCOUNT
+======================================== */
+
+router.patch(
+  "/:id/set-primary",
+  setPrimaryAccount
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createBanner,
+  getBannerById,
+  getActiveBanners,
+  getBannerByType,
+  getAudienceBanners,
+  updateBanner,
+  activateBanner,
+  deactivateBanner,
+  incrementView,
+  incrementClick,
+  deleteBanner,
+  getAllBanners,
+  getBannerAnalytics,
+} from "../../controllers/banner/banner.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getBannerAnalytics
+);
+
+/* ========================================
+   BANNERS
+======================================== */
+
+router.post(
+  "/",
+  createBanner
+);
+
+router.get(
+  "/",
+  getAllBanners
+);
+
+router.get(
+  "/active",
+  getActiveBanners
+);
+
+router.get(
+  "/type/:type",
+  getBannerByType
+);
+
+router.get(
+  "/audience/:audience",
+  getAudienceBanners
+);
+
+router.get(
+  "/:id",
+  getBannerById
+);
+
+router.put(
+  "/:id",
+  updateBanner
+);
+
+router.delete(
+  "/:id",
+  deleteBanner
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.patch(
+  "/:id/activate",
+  activateBanner
+);
+
+router.patch(
+  "/:id/deactivate",
+  deactivateBanner
+);
+
+/* ========================================
+   TRACKING
+======================================== */
+
+router.patch(
+  "/:id/view",
+  incrementView
+);
+
+router.patch(
+  "/:id/click",
+  incrementClick
+);
+
+export default router;
+import { Router } from "express";
+import { BlogController } from "../../controllers/blog/blog.controller";
+
+const router = Router();
+
+/* ========================================
+   BLOG ANALYTICS
+======================================== */
+
+router.get("/analytics", BlogController.getBlogAnalytics);
+
+/* ========================================
+   PUBLIC BLOG ROUTES
+======================================== */
+
+router.get("/published", BlogController.getPublishedBlogs);
+
+router.get("/category/:category", BlogController.getBlogsByCategory);
+
+router.get("/slug/:slug", BlogController.getBlogBySlug);
+
+router.get("/search", BlogController.searchBlogs);
+
+/* ========================================
+   BLOG CRUD
+======================================== */
+
+router.post("/", BlogController.createBlog);
+
+router.get("/", BlogController.getAllBlogs);
+
+router.get("/:id", BlogController.getBlogById);
+
+router.put("/:id", BlogController.updateBlog);
+
+router.delete("/:id", BlogController.deleteBlog);
+
+/* ========================================
+   BLOG STATUS
+======================================== */
+
+router.patch("/:id/publish", BlogController.publishBlog);
+
+router.patch("/:id/unpublish", BlogController.unpublishBlog);
+
+/* ========================================
+   BLOG TRACKING
+======================================== */
+
+router.patch("/:id/view", BlogController.incrementView);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createPage,
+  getPageById,
+  getPageBySlug,
+  getAllPages,
+  getPublishedPages,
+  searchPages,
+  updatePage,
+  publishPage,
+  unpublishPage,
+  deletePage,
+  getPageTypes,
+  getCmsAnalytics,
+  bulkDelete,
+} from "../../controllers/cms/cms.controller";
+
+const router = Router();
+
+/* ========================================
+   CMS ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getCmsAnalytics
+);
+
+/* ========================================
+   CMS TYPES
+======================================== */
+
+router.get(
+  "/types",
+  getPageTypes
+);
+
+/* ========================================
+   PUBLIC CMS
+======================================== */
+
+router.get(
+  "/published",
+  getPublishedPages
+);
+
+router.get(
+  "/slug/:slug",
+  getPageBySlug
+);
+
+router.get(
+  "/search",
+  searchPages
+);
+
+/* ========================================
+   CMS CRUD
+======================================== */
+
+router.post(
+  "/",
+  createPage
+);
+
+router.get(
+  "/",
+  getAllPages
+);
+
+router.get(
+  "/:id",
+  getPageById
+);
+
+router.put(
+  "/:id",
+  updatePage
+);
+
+router.delete(
+  "/:id",
+  deletePage
+);
+
+/* ========================================
+   PAGE STATUS
+======================================== */
+
+router.patch(
+  "/:id/publish",
+  publishPage
+);
+
+router.patch(
+  "/:id/unpublish",
+  unpublishPage
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.delete(
+  "/bulk/delete",
+  bulkDelete
+);
+
+export default router;
+import { Router } from "express";
+import CommissionController from "../../controllers/commission/commission.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  CommissionController.getCommissionAnalytics
+);
+
+router.get(
+  "/top-earners",
+  CommissionController.getTopEarners
+);
+
+router.get(
+  "/monthly",
+  CommissionController.getMonthlyCommission
+);
+
+/* ========================================
+   COMMISSIONS
+======================================== */
+
+router.post(
+  "/",
+  CommissionController.createCommission
+);
+
+router.get(
+  "/",
+  CommissionController.getAllCommissions
+);
+
+router.get(
+  "/pending",
+  CommissionController.getPendingCommissions
+);
+
+router.get(
+  "/search",
+  CommissionController.searchCommissions
+);
+
+router.get(
+  "/user/:userId",
+  CommissionController.getUserCommissions
+);
+
+router.get(
+  "/:id",
+  CommissionController.getCommissionById
+);
+
+/* ========================================
+   APPROVAL FLOW
+======================================== */
+
+router.patch(
+  "/:id/approve",
+  CommissionController.approveCommission
+);
+
+router.patch(
+  "/:id/reject",
+  CommissionController.rejectCommission
+);
+
+router.patch(
+  "/:id/pay",
+  CommissionController.markCommissionPaid
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  checkCreditScore,
+  getCreditScoreById,
+  getAllCreditScores,
+  deleteCreditScore,
+  getCreditAnalytics,
+} from "../../controllers/creditScore/creditScore.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getCreditAnalytics
+);
+
+/* ========================================
+   CREDIT SCORE
+======================================== */
+
+router.post(
+  "/check",
+  checkCreditScore
+);
+
+router.get(
+  "/",
+  getAllCreditScores
+);
+
+router.get(
+  "/:id",
+  getCreditScoreById
+);
+
+router.delete(
+  "/:id",
+  deleteCreditScore
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createCustomer,
+  getCustomerById,
+  getCustomerByUserId,
+  getAllCustomers,
+  updateCustomer,
+  deleteCustomer,
+  searchCustomers,
+
+  getCustomerLoans,
+  getCustomerTransactions,
+  getCustomerDocuments,
+  getCustomerKyc,
+
+  verifyCustomer,
+  blockCustomer,
+  unblockCustomer,
+
+  getActiveCustomers,
+  getInactiveCustomers,
+
+  getCustomerAnalytics,
+  getTopCustomers,
+  getMonthlyCustomers,
+
+  getCustomerDashboard,
+  getCustomerProfile,
+
+  exportCustomersExcel,
+  exportCustomersPdf,
+} from "../../controllers/customer/customer.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getCustomerAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getCustomerDashboard
+);
+
+router.get(
+  "/top-customers",
+  getTopCustomers
+);
+
+router.get(
+  "/monthly",
+  getMonthlyCustomers
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportCustomersExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportCustomersPdf
+);
+
+/* ========================================
+   CUSTOMER MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createCustomer
+);
+
+router.get(
+  "/",
+  getAllCustomers
+);
+
+router.get(
+  "/search",
+  searchCustomers
+);
+
+router.get(
+  "/active",
+  getActiveCustomers
+);
+
+router.get(
+  "/inactive",
+  getInactiveCustomers
+);
+
+router.get(
+  "/user/:userId",
+  getCustomerByUserId
+);
+
+router.get(
+  "/profile/:customerId",
+  getCustomerProfile
+);
+
+router.get(
+  "/:id",
+  getCustomerById
+);
+
+router.put(
+  "/:id",
+  updateCustomer
+);
+
+router.delete(
+  "/:id",
+  deleteCustomer
+);
+
+/* ========================================
+   CUSTOMER STATUS
+======================================== */
+
+router.patch(
+  "/:id/verify",
+  verifyCustomer
+);
+
+router.patch(
+  "/:id/block",
+  blockCustomer
+);
+
+router.patch(
+  "/:id/unblock",
+  unblockCustomer
+);
+
+/* ========================================
+   CUSTOMER DATA
+======================================== */
+
+router.get(
+  "/:customerId/loans",
+  getCustomerLoans
+);
+
+router.get(
+  "/:customerId/transactions",
+  getCustomerTransactions
+);
+
+router.get(
+  "/:customerId/documents",
+  getCustomerDocuments
+);
+
+router.get(
+  "/:customerId/kyc",
+  getCustomerKyc
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getDashboardOverview,
+
+  getAdminDashboard,
+  getSuperAdminDashboard,
+
+  getCustomerDashboard,
+  getDsaDashboard,
+  getPartnerDashboard,
+
+  getLoanDashboard,
+  getCommissionDashboard,
+  getWalletDashboard,
+  getRevenueDashboard,
+
+  getAnalyticsDashboard,
+  getLeaderboardDashboard,
+
+  getRecentActivities,
+  getRecentLoans,
+  getRecentUsers,
+  getRecentTransactions,
+
+  getNotifications,
+
+  getMonthlyStats,
+  getTodayStats,
+
+  getTopCustomers,
+  getTopDsa,
+  getTopPartners,
+
+  getPendingApprovals,
+  getPendingKyc,
+  getPendingLoans,
+
+  getSystemHealth,
+} from "../../controllers/dashboard/dashboard.controller";
+
+const router = Router();
+
+/* ========================================
+   MAIN DASHBOARD
+======================================== */
+
+router.get(
+  "/",
+  getDashboardOverview
+);
+
+router.get(
+  "/overview",
+  getDashboardOverview
+);
+
+/* ========================================
+   ROLE DASHBOARD
+======================================== */
+
+router.get(
+  "/admin",
+  getAdminDashboard
+);
+
+router.get(
+  "/super-admin",
+  getSuperAdminDashboard
+);
+
+router.get(
+  "/customer",
+  getCustomerDashboard
+);
+
+router.get(
+  "/dsa",
+  getDsaDashboard
+);
+
+router.get(
+  "/partner",
+  getPartnerDashboard
+);
+
+/* ========================================
+   MODULE DASHBOARD
+======================================== */
+
+router.get(
+  "/loan",
+  getLoanDashboard
+);
+
+router.get(
+  "/commission",
+  getCommissionDashboard
+);
+
+router.get(
+  "/wallet",
+  getWalletDashboard
+);
+
+router.get(
+  "/revenue",
+  getRevenueDashboard
+);
+
+router.get(
+  "/analytics",
+  getAnalyticsDashboard
+);
+
+router.get(
+  "/leaderboard",
+  getLeaderboardDashboard
+);
+
+/* ========================================
+   RECENT DATA
+======================================== */
+
+router.get(
+  "/recent-activities",
+  getRecentActivities
+);
+
+router.get(
+  "/recent-loans",
+  getRecentLoans
+);
+
+router.get(
+  "/recent-users",
+  getRecentUsers
+);
+
+router.get(
+  "/recent-transactions",
+  getRecentTransactions
+);
+
+/* ========================================
+   PENDING DATA
+======================================== */
+
+router.get(
+  "/pending-approvals",
+  getPendingApprovals
+);
+
+router.get(
+  "/pending-kyc",
+  getPendingKyc
+);
+
+router.get(
+  "/pending-loans",
+  getPendingLoans
+);
+
+/* ========================================
+   TOP PERFORMERS
+======================================== */
+
+router.get(
+  "/top-customers",
+  getTopCustomers
+);
+
+router.get(
+  "/top-dsa",
+  getTopDsa
+);
+
+router.get(
+  "/top-partners",
+  getTopPartners
+);
+
+/* ========================================
+   STATS
+======================================== */
+
+router.get(
+  "/today-stats",
+  getTodayStats
+);
+
+router.get(
+  "/monthly-stats",
+  getMonthlyStats
+);
+
+/* ========================================
+   NOTIFICATIONS
+======================================== */
+
+router.get(
+  "/notifications",
+  getNotifications
+);
+
+/* ========================================
+   SYSTEM
+======================================== */
+
+router.get(
+  "/system-health",
+  getSystemHealth
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  uploadDocument,
+  getDocumentById,
+  getUserDocuments,
+  getAllDocuments,
+
+  updateDocument,
+  deleteDocument,
+
+  verifyDocument,
+  rejectDocument,
+
+  searchDocuments,
+
+  getPendingDocuments,
+  getVerifiedDocuments,
+  getRejectedDocuments,
+
+  getDocumentsByType,
+
+  downloadDocument,
+
+  getDocumentAnalytics,
+  getDocumentDashboard,
+
+  getRecentDocuments,
+  getExpiredDocuments,
+
+  bulkVerifyDocuments,
+  bulkRejectDocuments,
+
+  exportDocumentsExcel,
+  exportDocumentsPdf,
+} from "../../controllers/document/document.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getDocumentAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getDocumentDashboard
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportDocumentsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportDocumentsPdf
+);
+
+/* ========================================
+   DOCUMENT STATUS
+======================================== */
+
+router.get(
+  "/pending",
+  getPendingDocuments
+);
+
+router.get(
+  "/verified",
+  getVerifiedDocuments
+);
+
+router.get(
+  "/rejected",
+  getRejectedDocuments
+);
+
+router.get(
+  "/recent",
+  getRecentDocuments
+);
+
+router.get(
+  "/expired",
+  getExpiredDocuments
+);
+
+/* ========================================
+   DOCUMENT TYPES
+======================================== */
+
+router.get(
+  "/type/:type",
+  getDocumentsByType
+);
+
+/* ========================================
+   DOCUMENT MANAGEMENT
+======================================== */
+
+router.post(
+  "/upload",
+  uploadDocument
+);
+
+router.get(
+  "/",
+  getAllDocuments
+);
+
+router.get(
+  "/search",
+  searchDocuments
+);
+
+router.get(
+  "/user/:userId",
+  getUserDocuments
+);
+
+router.get(
+  "/:id",
+  getDocumentById
+);
+
+router.put(
+  "/:id",
+  updateDocument
+);
+
+router.delete(
+  "/:id",
+  deleteDocument
+);
+
+/* ========================================
+   DOCUMENT ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/verify",
+  verifyDocument
+);
+
+router.patch(
+  "/:id/reject",
+  rejectDocument
+);
+
+router.get(
+  "/:id/download",
+  downloadDocument
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-verify",
+  bulkVerifyDocuments
+);
+
+router.post(
+  "/bulk-reject",
+  bulkRejectDocuments
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getDSAs,
+  getDSAById,
+  createDSA,
+  approveDSA,
+  rejectDSA,
+  blockDSA,
+  unblockDSA,
+  getDSALoans,
+  getDSADashboard,
+  getTopDSA,
+  getDSAAnalytics,
+} from "../../controllers/dsa/dsa.controller";
+
+const router = Router();
+
+/* ==========================
+   ANALYTICS
+========================== */
+
+router.get(
+  "/analytics",
+  getDSAAnalytics
+);
+
+router.get(
+  "/top-performers",
+  getTopDSA
+);
+
+/* ==========================
+   DASHBOARD
+========================== */
+
+router.get(
+  "/dashboard/:id",
+  getDSADashboard
+);
+
+/* ==========================
+   MANAGEMENT
+========================== */
+
+router.post(
+  "/",
+  createDSA
+);
+
+router.get(
+  "/",
+  getDSAs
+);
+
+router.get(
+  "/:id",
+  getDSAById
+);
+
+/* ==========================
+   VERIFICATION
+========================== */
+
+router.patch(
+  "/:id/approve",
+  approveDSA
+);
+
+router.patch(
+  "/:id/reject",
+  rejectDSA
+);
+
+router.patch(
+  "/:id/block",
+  blockDSA
+);
+
+router.patch(
+  "/:id/unblock",
+  unblockDSA
+);
+
+/* ==========================
+   DSA LOANS
+========================== */
+
+router.get(
+  "/:id/loans",
+  getDSALoans
+);
+
+export default router;
+import { Router } from "express";
+import dsaRoutes from "./dsa.route";
+
+const router = Router();
+
+router.use("/", dsaRoutes);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createFaq,
+  getFaqById,
+  getFaqBySlug,
+  getAllFaqs,
+
+  updateFaq,
+  deleteFaq,
+
+  publishFaq,
+  unpublishFaq,
+
+  getPublishedFaqs,
+  getFeaturedFaqs,
+
+  getFaqsByCategory,
+  searchFaqs,
+
+  incrementFaqView,
+
+  getFaqAnalytics,
+  getFaqDashboard,
+
+  getPopularFaqs,
+  getRecentFaqs,
+
+  exportFaqExcel,
+  exportFaqPdf,
+
+  bulkDeleteFaqs,
+  bulkPublishFaqs,
+} from "../../controllers/faq/faq.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getFaqAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getFaqDashboard
+);
+
+router.get(
+  "/popular",
+  getPopularFaqs
+);
+
+router.get(
+  "/recent",
+  getRecentFaqs
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportFaqExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportFaqPdf
+);
+
+/* ========================================
+   FAQ FILTERS
+======================================== */
+
+router.get(
+  "/published",
+  getPublishedFaqs
+);
+
+router.get(
+  "/featured",
+  getFeaturedFaqs
+);
+
+router.get(
+  "/category/:category",
+  getFaqsByCategory
+);
+
+router.get(
+  "/slug/:slug",
+  getFaqBySlug
+);
+
+router.get(
+  "/search",
+  searchFaqs
+);
+
+/* ========================================
+   FAQ MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createFaq
+);
+
+router.get(
+  "/",
+  getAllFaqs
+);
+
+router.get(
+  "/:id",
+  getFaqById
+);
+
+router.put(
+  "/:id",
+  updateFaq
+);
+
+router.delete(
+  "/:id",
+  deleteFaq
+);
+
+/* ========================================
+   FAQ ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/publish",
+  publishFaq
+);
+
+router.patch(
+  "/:id/unpublish",
+  unpublishFaq
+);
+
+router.patch(
+  "/:id/view",
+  incrementFaqView
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-delete",
+  bulkDeleteFaqs
+);
+
+router.post(
+  "/bulk-publish",
+  bulkPublishFaqs
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createFastag,
+  getFastagById,
+  getAllFastags,
+  updateFastag,
+  deleteFastag,
+
+  activateFastag,
+  deactivateFastag,
+  blockFastag,
+  unblockFastag,
+
+  rechargeFastag,
+  getFastagTransactions,
+
+  getUserFastags,
+  getFastagByVehicle,
+
+  searchFastags,
+
+  getActiveFastags,
+  getInactiveFastags,
+  getBlockedFastags,
+
+  getFastagAnalytics,
+  getFastagDashboard,
+
+  getTopRechargeUsers,
+  getMonthlyRecharges,
+
+  exportFastagExcel,
+  exportFastagPdf,
+
+  bulkActivateFastags,
+  bulkBlockFastags,
+} from "../../controllers/fastag/fastag.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getFastagAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getFastagDashboard
+);
+
+router.get(
+  "/top-recharges",
+  getTopRechargeUsers
+);
+
+router.get(
+  "/monthly-recharges",
+  getMonthlyRecharges
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportFastagExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportFastagPdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/active",
+  getActiveFastags
+);
+
+router.get(
+  "/inactive",
+  getInactiveFastags
+);
+
+router.get(
+  "/blocked",
+  getBlockedFastags
+);
+
+/* ========================================
+   MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createFastag
+);
+
+router.get(
+  "/",
+  getAllFastags
+);
+
+router.get(
+  "/search",
+  searchFastags
+);
+
+router.get(
+  "/vehicle/:vehicleNo",
+  getFastagByVehicle
+);
+
+router.get(
+  "/user/:userId",
+  getUserFastags
+);
+
+router.get(
+  "/:id",
+  getFastagById
+);
+
+router.put(
+  "/:id",
+  updateFastag
+);
+
+router.delete(
+  "/:id",
+  deleteFastag
+);
+
+/* ========================================
+   FASTAG ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/activate",
+  activateFastag
+);
+
+router.patch(
+  "/:id/deactivate",
+  deactivateFastag
+);
+
+router.patch(
+  "/:id/block",
+  blockFastag
+);
+
+router.patch(
+  "/:id/unblock",
+  unblockFastag
+);
+
+router.post(
+  "/:id/recharge",
+  rechargeFastag
+);
+
+/* ========================================
+   TRANSACTIONS
+======================================== */
+
+router.get(
+  "/:id/transactions",
+  getFastagTransactions
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-activate",
+  bulkActivateFastags
+);
+
+router.post(
+  "/bulk-block",
+  bulkBlockFastags
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createInsurance,
+  getAllInsurances,
+  getInsuranceById,
+  updateInsurance,
+  deleteInsurance,
+
+  approveInsurance,
+  rejectInsurance,
+
+  getUserPolicies,
+
+  createClaim,
+  getPolicyClaims,
+  approveClaim,
+  rejectClaim,
+
+  getInsuranceAnalytics,
+} from "../../controllers/insurance/insurance.controller";
+
+const router = Router();
+
+/* =========================================
+   ANALYTICS
+========================================= */
+
+router.get(
+  "/analytics",
+  getInsuranceAnalytics
+);
+
+/* =========================================
+   USER POLICIES
+========================================= */
+
+router.get(
+  "/user/:userId",
+  getUserPolicies
+);
+
+/* =========================================
+   CLAIMS
+========================================= */
+
+router.get(
+  "/:id/claims",
+  getPolicyClaims
+);
+
+router.post(
+  "/:id/claims",
+  createClaim
+);
+
+router.patch(
+  "/claim/:claimId/approve",
+  approveClaim
+);
+
+router.patch(
+  "/claim/:claimId/reject",
+  rejectClaim
+);
+
+/* =========================================
+   INSURANCE CRUD
+========================================= */
+
+router.post(
+  "/",
+  createInsurance
+);
+
+router.get(
+  "/",
+  getAllInsurances
+);
+
+router.get(
+  "/:id",
+  getInsuranceById
+);
+
+router.put(
+  "/:id",
+  updateInsurance
+);
+
+router.delete(
+  "/:id",
+  deleteInsurance
+);
+
+/* =========================================
+   APPLICATION ACTIONS
+========================================= */
+
+router.patch(
+  "/:id/approve",
+  approveInsurance
+);
+
+router.patch(
+  "/:id/reject",
+  rejectInsurance
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createInvestment,
+  getInvestmentById,
+  getAllInvestments,
+  updateInvestment,
+  deleteInvestment,
+
+  approveInvestment,
+  rejectInvestment,
+
+  activateInvestment,
+  closeInvestment,
+
+  getUserInvestments,
+  searchInvestments,
+
+  getPendingInvestments,
+  getActiveInvestments,
+  getClosedInvestments,
+  getRejectedInvestments,
+
+  getInvestmentAnalytics,
+  getInvestmentDashboard,
+
+  getTopInvestors,
+  getTopPlans,
+  getMonthlyInvestments,
+
+  getInvestmentReturns,
+  calculateReturns,
+
+  exportInvestmentsExcel,
+  exportInvestmentsPdf,
+
+  bulkApproveInvestments,
+  bulkRejectInvestments,
+} from "../../controllers/investment/investment.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getInvestmentAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getInvestmentDashboard
+);
+
+router.get(
+  "/top-investors",
+  getTopInvestors
+);
+
+router.get(
+  "/top-plans",
+  getTopPlans
+);
+
+router.get(
+  "/monthly",
+  getMonthlyInvestments
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportInvestmentsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportInvestmentsPdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/pending",
+  getPendingInvestments
+);
+
+router.get(
+  "/active",
+  getActiveInvestments
+);
+
+router.get(
+  "/closed",
+  getClosedInvestments
+);
+
+router.get(
+  "/rejected",
+  getRejectedInvestments
+);
+
+/* ========================================
+   INVESTMENT MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createInvestment
+);
+
+router.get(
+  "/",
+  getAllInvestments
+);
+
+router.get(
+  "/search",
+  searchInvestments
+);
+
+router.get(
+  "/user/:userId",
+  getUserInvestments
+);
+
+router.get(
+  "/:id",
+  getInvestmentById
+);
+
+router.put(
+  "/:id",
+  updateInvestment
+);
+
+router.delete(
+  "/:id",
+  deleteInvestment
+);
+
+/* ========================================
+   APPROVAL
+======================================== */
+
+router.patch(
+  "/:id/approve",
+  approveInvestment
+);
+
+router.patch(
+  "/:id/reject",
+  rejectInvestment
+);
+
+/* ========================================
+   INVESTMENT ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/activate",
+  activateInvestment
+);
+
+router.patch(
+  "/:id/close",
+  closeInvestment
+);
+
+router.get(
+  "/:id/returns",
+  getInvestmentReturns
+);
+
+router.post(
+  "/calculate-returns",
+  calculateReturns
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-approve",
+  bulkApproveInvestments
+);
+
+router.post(
+  "/bulk-reject",
+  bulkRejectInvestments
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createKyc,
+  getKycById,
+  getAllKycs,
+
+  updateKyc,
+  deleteKyc,
+
+  submitKyc,
+
+  approveKyc,
+  rejectKyc,
+
+  verifyAadhaar,
+  verifyPan,
+  verifyBank,
+
+  getUserKyc,
+
+  searchKyc,
+
+  getPendingKycs,
+  getApprovedKycs,
+  getRejectedKycs,
+  getUnderReviewKycs,
+
+  getKycAnalytics,
+  getKycDashboard,
+
+  getRecentKycs,
+  getExpiringKycs,
+
+  exportKycExcel,
+  exportKycPdf,
+
+  bulkApproveKycs,
+  bulkRejectKycs,
+} from "../../controllers/kyc/kyc.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getKycAnalytics
+);
+
+router.get(
+  "/dashboard",
+  getKycDashboard
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportKycExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportKycPdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/pending",
+  getPendingKycs
+);
+
+router.get(
+  "/approved",
+  getApprovedKycs
+);
+
+router.get(
+  "/rejected",
+  getRejectedKycs
+);
+
+router.get(
+  "/under-review",
+  getUnderReviewKycs
+);
+
+router.get(
+  "/recent",
+  getRecentKycs
+);
+
+router.get(
+  "/expiring",
+  getExpiringKycs
+);
+
+/* ========================================
+   KYC MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createKyc
+);
+
+router.post(
+  "/submit",
+  submitKyc
+);
+
+router.get(
+  "/",
+  getAllKycs
+);
+
+router.get(
+  "/search",
+  searchKyc
+);
+
+router.get(
+  "/user/:userId",
+  getUserKyc
+);
+
+router.get(
+  "/:id",
+  getKycById
+);
+
+router.put(
+  "/:id",
+  updateKyc
+);
+
+router.delete(
+  "/:id",
+  deleteKyc
+);
+
+/* ========================================
+   VERIFICATION
+======================================== */
+
+router.patch(
+  "/:id/approve",
+  approveKyc
+);
+
+router.patch(
+  "/:id/reject",
+  rejectKyc
+);
+
+router.patch(
+  "/:id/verify-aadhaar",
+  verifyAadhaar
+);
+
+router.patch(
+  "/:id/verify-pan",
+  verifyPan
+);
+
+router.patch(
+  "/:id/verify-bank",
+  verifyBank
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-approve",
+  bulkApproveKycs
+);
+
+router.post(
+  "/bulk-reject",
+  bulkRejectKycs
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createLead,
+  getLeads,
+  getLeadById,
+  assignLead,
+  updateLeadStatus,
+  deleteLead,
+  getLeadAnalytics,
+} from "../../controllers/lead/lead.controller";
+
+const router = Router();
+
+/* =========================
+   LEAD ANALYTICS
+========================= */
+
+router.get("/analytics", getLeadAnalytics);
+
+/* =========================
+   LEAD CRUD
+========================= */
+
+router.post("/", createLead);
+
+router.get("/", getLeads);
+
+router.get("/:id", getLeadById);
+
+router.delete("/:id", deleteLead);
+
+/* =========================
+   LEAD ACTIONS
+========================= */
+
+router.patch("/:id/assign", assignLead);
+
+router.patch("/:id/status", updateLeadStatus);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getOverallLeaderboard,
+
+  getCustomerLeaderboard,
+  getDsaLeaderboard,
+  getPartnerLeaderboard,
+
+  getLoanLeaderboard,
+  getCommissionLeaderboard,
+  getReferralLeaderboard,
+
+  getInsuranceLeaderboard,
+  getInvestmentLeaderboard,
+  getFastagLeaderboard,
+
+  getTopCustomers,
+  getTopDsa,
+  getTopPartners,
+
+  getDailyLeaderboard,
+  getWeeklyLeaderboard,
+  getMonthlyLeaderboard,
+  getYearlyLeaderboard,
+
+  getRevenueLeaderboard,
+  getWalletLeaderboard,
+
+  getAchievementLeaderboard,
+
+  getLeaderboardAnalytics,
+  getLeaderboardDashboard,
+
+  exportLeaderboardExcel,
+  exportLeaderboardPdf,
+} from "../../controllers/leaderboard/leaderboard.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD
+======================================== */
+
+router.get(
+  "/dashboard",
+  getLeaderboardDashboard
+);
+
+router.get(
+  "/analytics",
+  getLeaderboardAnalytics
+);
+
+/* ========================================
+   MAIN LEADERBOARD
+======================================== */
+
+router.get(
+  "/",
+  getOverallLeaderboard
+);
+
+router.get(
+  "/overall",
+  getOverallLeaderboard
+);
+
+/* ========================================
+   USER LEADERBOARDS
+======================================== */
+
+router.get(
+  "/customers",
+  getCustomerLeaderboard
+);
+
+router.get(
+  "/dsa",
+  getDsaLeaderboard
+);
+
+router.get(
+  "/partners",
+  getPartnerLeaderboard
+);
+
+/* ========================================
+   TOP PERFORMERS
+======================================== */
+
+router.get(
+  "/top-customers",
+  getTopCustomers
+);
+
+router.get(
+  "/top-dsa",
+  getTopDsa
+);
+
+router.get(
+  "/top-partners",
+  getTopPartners
+);
+
+/* ========================================
+   BUSINESS LEADERBOARDS
+======================================== */
+
+router.get(
+  "/loans",
+  getLoanLeaderboard
+);
+
+router.get(
+  "/commissions",
+  getCommissionLeaderboard
+);
+
+router.get(
+  "/referrals",
+  getReferralLeaderboard
+);
+
+router.get(
+  "/insurance",
+  getInsuranceLeaderboard
+);
+
+router.get(
+  "/investments",
+  getInvestmentLeaderboard
+);
+
+router.get(
+  "/fastag",
+  getFastagLeaderboard
+);
+
+/* ========================================
+   FINANCIAL LEADERBOARDS
+======================================== */
+
+router.get(
+  "/revenue",
+  getRevenueLeaderboard
+);
+
+router.get(
+  "/wallet",
+  getWalletLeaderboard
+);
+
+/* ========================================
+   ACHIEVEMENTS
+======================================== */
+
+router.get(
+  "/achievements",
+  getAchievementLeaderboard
+);
+
+/* ========================================
+   PERIOD WISE
+======================================== */
+
+router.get(
+  "/daily",
+  getDailyLeaderboard
+);
+
+router.get(
+  "/weekly",
+  getWeeklyLeaderboard
+);
+
+router.get(
+  "/monthly",
+  getMonthlyLeaderboard
+);
+
+router.get(
+  "/yearly",
+  getYearlyLeaderboard
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportLeaderboardExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportLeaderboardPdf
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  applyLoan,
+  getAllLoans,
+  getSingleLoan,
+  approveLoan,
+  rejectLoan,
+  deleteLoan,
+} from "../../controllers/loan/loan.controller";
+
+const router = Router();
+
+router.post("/", applyLoan);
+
+router.get("/", getAllLoans);
+
+router.get("/:id", getSingleLoan);
+
+router.patch("/:id/approve", approveLoan);
+
+router.patch("/:id/reject", rejectLoan);
+
+router.delete("/:id", deleteLoan);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getLoanStatusHistory,
+  createStatusEntry,
+  updateLoanStatus,
+  getStatusAnalytics,
+} from "../../controllers/loanStatusHistory/loanStatusHistory.controller";
+
+const router = Router();
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+router.get(
+  "/analytics",
+  getStatusAnalytics
+);
+
+/* ========================================
+   LOAN STATUS HISTORY
+======================================== */
+
+// Get history by Loan ID
+router.get(
+  "/:loanId",
+  getLoanStatusHistory
+);
+
+// Create status entry
+router.post(
+  "/",
+  createStatusEntry
+);
+
+// Update loan status
+router.put(
+  "/:loanId",
+  updateLoanStatus
+);
+
+/* ========================================
+   EXPORT ROUTER
+======================================== */
+
+export default router;
+import { Router } from "express";
+
+import {
+  getAllLoginHistory,
+  getUserLoginHistory,
+  logoutSession,
+  loginAnalytics,
+} from "../../controllers/loginHistory/loginHistory.controller";
+
+const router = Router();
+
+router.get("/", getAllLoginHistory);
+
+router.get("/analytics", loginAnalytics);
+
+router.get("/user/:userId", getUserLoginHistory);
+
+router.put("/logout/:id", logoutSession);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createNotification,
+  getNotificationById,
+  getAllNotifications,
+
+  updateNotification,
+  deleteNotification,
+
+  sendNotification,
+  sendBulkNotification,
+
+  getUserNotifications,
+
+  markAsRead,
+  markAllAsRead,
+
+  archiveNotification,
+
+  searchNotifications,
+
+  getUnreadNotifications,
+  getReadNotifications,
+  getArchivedNotifications,
+
+  getNotificationAnalytics,
+  getNotificationDashboard,
+
+  getRecentNotifications,
+
+  sendEmailNotification,
+  sendSmsNotification,
+  sendPushNotification,
+  sendWhatsappNotification,
+
+  exportNotificationsExcel,
+  exportNotificationsPdf,
+
+  bulkDeleteNotifications,
+  bulkArchiveNotifications,
+} from "../../controllers/notification/notification.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get(
+  "/dashboard",
+  getNotificationDashboard
+);
+
+router.get(
+  "/analytics",
+  getNotificationAnalytics
+);
+
+router.get(
+  "/recent",
+  getRecentNotifications
+);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportNotificationsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportNotificationsPdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/unread",
+  getUnreadNotifications
+);
+
+router.get(
+  "/read",
+  getReadNotifications
+);
+
+router.get(
+  "/archived",
+  getArchivedNotifications
+);
+
+/* ========================================
+   SEND NOTIFICATIONS
+======================================== */
+
+router.post(
+  "/send",
+  sendNotification
+);
+
+router.post(
+  "/send-bulk",
+  sendBulkNotification
+);
+
+router.post(
+  "/send-email",
+  sendEmailNotification
+);
+
+router.post(
+  "/send-sms",
+  sendSmsNotification
+);
+
+router.post(
+  "/send-push",
+  sendPushNotification
+);
+
+router.post(
+  "/send-whatsapp",
+  sendWhatsappNotification
+);
+
+/* ========================================
+   NOTIFICATION MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createNotification
+);
+
+router.get(
+  "/",
+  getAllNotifications
+);
+
+router.get(
+  "/search",
+  searchNotifications
+);
+
+router.get(
+  "/user/:userId",
+  getUserNotifications
+);
+
+router.get(
+  "/:id",
+  getNotificationById
+);
+
+router.put(
+  "/:id",
+  updateNotification
+);
+
+router.delete(
+  "/:id",
+  deleteNotification
+);
+
+/* ========================================
+   ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/read",
+  markAsRead
+);
+
+router.patch(
+  "/user/:userId/read-all",
+  markAllAsRead
+);
+
+router.patch(
+  "/:id/archive",
+  archiveNotification
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-delete",
+  bulkDeleteNotifications
+);
+
+router.post(
+  "/bulk-archive",
+  bulkArchiveNotifications
+);
+
+export default router;
+import { Router } from "express";
+import partnerRoutes from "./partner.route";
+
+const router = Router();
+
+router.use("/", partnerRoutes);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createPartner,
+  getPartnerById,
+  getAllPartners,
+  updatePartner,
+  deletePartner,
+  verifyPartner,
+  rejectPartner,
+  blockPartner,
+  unblockPartner,
+  getPartnerProfile,
+  getPartnerDashboard,
+  getPartnerCustomers,
+  getPartnerLoans,
+  getPartnerCommissions,
+  getPartnerReferrals,
+  getPartnerTransactions,
+  getPartnerWallet,
+  searchPartners,
+  getPendingPartners,
+  getVerifiedPartners,
+  getBlockedPartners,
+  getActivePartners,
+  getTopPartners,
+  getMonthlyPartners,
+  getPartnerAnalytics,
+  exportPartnersExcel,
+  exportPartnersPdf,
+  bulkVerifyPartners,
+  bulkBlockPartners,
+} from "../../controllers/partner/partner.controller";
+
+import authenticate from "../../middlewares/AuthMiddleware";
+import roleMiddleware from "../../middlewares/RoleMiddleware";
+
+const router = Router();
+
+/* ========================================
+   GLOBAL SECURITY
+======================================== */
+
+router.use(authenticate);
+
+/* ========================================
+   DASHBOARD
+======================================== */
+
+router.get(
+  "/dashboard",
+  roleMiddleware("SUPER_ADMIN", "ADMIN", "PARTNER"),
+  getPartnerDashboard
+);
+
+router.get(
+  "/analytics",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getPartnerAnalytics
+);
+
+router.get(
+  "/top-performers",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getTopPartners
+);
+
+router.get(
+  "/monthly",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getMonthlyPartners
+);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get(
+  "/export/excel",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  exportPartnersExcel
+);
+
+router.get(
+  "/export/pdf",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  exportPartnersPdf
+);
+
+/* ========================================
+   STATUS FILTERS
+======================================== */
+
+router.get(
+  "/pending",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getPendingPartners
+);
+
+router.get(
+  "/verified",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getVerifiedPartners
+);
+
+router.get(
+  "/blocked",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getBlockedPartners
+);
+
+router.get(
+  "/active",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  getActivePartners
+);
+
+/* ========================================
+   SEARCH
+======================================== */
+
+router.get(
+  "/search",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
+  searchPartners
+);
+
+/* ========================================
+   EXPORT ROUTER
+======================================== */
+
+export default router;
+import { Router } from "express";
+
+import {
+  createPayment,
+  getPaymentById,
+  getAllPayments,
+
+  updatePayment,
+  deletePayment,
+
+  initiatePayment,
+  verifyPayment,
+
+  markPaymentSuccess,
+  markPaymentFailed,
+  markPaymentRefunded,
+
+  refundPayment,
+
+  getUserPayments,
+  getLoanPayments,
+  getTransactionPayments,
+
+  searchPayments,
+
+  getPendingPayments,
+  getSuccessPayments,
+  getFailedPayments,
+  getRefundedPayments,
+
+  getPaymentAnalytics,
+  getPaymentDashboard,
+
+  getDailyPayments,
+  getMonthlyPayments,
+
+  exportPaymentsExcel,
+  exportPaymentsPdf,
+
+  bulkVerifyPayments,
+  bulkRefundPayments,
+} from "../../controllers/payment/payment.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get(
+  "/dashboard",
+  getPaymentDashboard
+);
+
+router.get(
+  "/analytics",
+  getPaymentAnalytics
+);
+
+router.get(
+  "/daily",
+  getDailyPayments
+);
+
+router.get(
+  "/monthly",
+  getMonthlyPayments
+);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportPaymentsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportPaymentsPdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/pending",
+  getPendingPayments
+);
+
+router.get(
+  "/success",
+  getSuccessPayments
+);
+
+router.get(
+  "/failed",
+  getFailedPayments
+);
+
+router.get(
+  "/refunded",
+  getRefundedPayments
+);
+
+/* ========================================
+   PAYMENT PROCESSING
+======================================== */
+
+router.post(
+  "/initiate",
+  initiatePayment
+);
+
+router.post(
+  "/verify",
+  verifyPayment
+);
+
+router.post(
+  "/refund/:id",
+  refundPayment
+);
+
+/* ========================================
+   PAYMENT MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createPayment
+);
+
+router.get(
+  "/",
+  getAllPayments
+);
+
+router.get(
+  "/search",
+  searchPayments
+);
+
+router.get(
+  "/user/:userId",
+  getUserPayments
+);
+
+router.get(
+  "/loan/:loanId",
+  getLoanPayments
+);
+
+router.get(
+  "/transaction/:transactionId",
+  getTransactionPayments
+);
+
+router.get(
+  "/:id",
+  getPaymentById
+);
+
+router.put(
+  "/:id",
+  updatePayment
+);
+
+router.delete(
+  "/:id",
+  deletePayment
+);
+
+/* ========================================
+   PAYMENT ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/success",
+  markPaymentSuccess
+);
+
+router.patch(
+  "/:id/failed",
+  markPaymentFailed
+);
+
+router.patch(
+  "/:id/refunded",
+  markPaymentRefunded
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-verify",
+  bulkVerifyPayments
+);
+
+router.post(
+  "/bulk-refund",
+  bulkRefundPayments
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createPermission,
+  getPermissionById,
+  getAllPermissions,
+
+  updatePermission,
+  deletePermission,
+
+  assignPermissionToRole,
+  removePermissionFromRole,
+
+  assignPermissionToUser,
+  removePermissionFromUser,
+
+  getRolePermissions,
+  getUserPermissions,
+
+  searchPermissions,
+
+  getPermissionAnalytics,
+  getPermissionDashboard,
+
+  getModules,
+  getActions,
+
+  bulkAssignPermissions,
+  bulkRemovePermissions,
+
+  exportPermissionsExcel,
+  exportPermissionsPdf,
+} from "../../controllers/permission/permission.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get(
+  "/dashboard",
+  getPermissionDashboard
+);
+
+router.get(
+  "/analytics",
+  getPermissionAnalytics
+);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportPermissionsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportPermissionsPdf
+);
+
+/* ========================================
+   MASTER DATA
+======================================== */
+
+router.get(
+  "/modules",
+  getModules
+);
+
+router.get(
+  "/actions",
+  getActions
+);
+
+/* ========================================
+   PERMISSION MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createPermission
+);
+
+router.get(
+  "/",
+  getAllPermissions
+);
+
+router.get(
+  "/search",
+  searchPermissions
+);
+
+router.get(
+  "/:id",
+  getPermissionById
+);
+
+router.put(
+  "/:id",
+  updatePermission
+);
+
+router.delete(
+  "/:id",
+  deletePermission
+);
+
+/* ========================================
+   ROLE PERMISSIONS
+======================================== */
+
+router.get(
+  "/role/:roleId",
+  getRolePermissions
+);
+
+router.post(
+  "/role/:roleId/assign",
+  assignPermissionToRole
+);
+
+router.delete(
+  "/role/:roleId/remove/:permissionId",
+  removePermissionFromRole
+);
+
+/* ========================================
+   USER PERMISSIONS
+======================================== */
+
+router.get(
+  "/user/:userId",
+  getUserPermissions
+);
+
+router.post(
+  "/user/:userId/assign",
+  assignPermissionToUser
+);
+
+router.delete(
+  "/user/:userId/remove/:permissionId",
+  removePermissionFromUser
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-assign",
+  bulkAssignPermissions
+);
+
+router.post(
+  "/bulk-remove",
+  bulkRemovePermissions
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getMyProfile,
+  getProfileById,
+  updateProfile,
+
+  updateProfileImage,
+  removeProfileImage,
+
+  updatePersonalInfo,
+  updateAddressInfo,
+
+  changePassword,
+  changeEmail,
+  changePhone,
+
+  verifyEmail,
+  verifyPhone,
+
+  enableTwoFactorAuth,
+  disableTwoFactorAuth,
+
+  getProfileAnalytics,
+  getProfileDashboard,
+
+  getProfileActivity,
+  getLoginHistory,
+
+  getProfileDocuments,
+  getProfileKyc,
+  getProfileLoans,
+  getProfileWallet,
+  getProfileTransactions,
+  getProfileNotifications,
+
+  deactivateProfile,
+  reactivateProfile,
+
+  exportProfilePdf,
+  exportProfileExcel,
+} from "../../controllers/profile/profile.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get(
+  "/dashboard",
+  getProfileDashboard
+);
+
+router.get(
+  "/analytics",
+  getProfileAnalytics
+);
+
+/* ========================================
+   MY PROFILE
+======================================== */
+
+router.get(
+  "/me",
+  getMyProfile
+);
+
+router.put(
+  "/update",
+  updateProfile
+);
+
+router.put(
+  "/personal-info",
+  updatePersonalInfo
+);
+
+router.put(
+  "/address-info",
+  updateAddressInfo
+);
+
+/* ========================================
+   PROFILE IMAGE
+======================================== */
+
+router.patch(
+  "/image",
+  updateProfileImage
+);
+
+router.delete(
+  "/image",
+  removeProfileImage
+);
+
+/* ========================================
+   ACCOUNT SETTINGS
+======================================== */
+
+router.patch(
+  "/change-password",
+  changePassword
+);
+
+router.patch(
+  "/change-email",
+  changeEmail
+);
+
+router.patch(
+  "/change-phone",
+  changePhone
+);
+
+/* ========================================
+   VERIFICATION
+======================================== */
+
+router.patch(
+  "/verify-email",
+  verifyEmail
+);
+
+router.patch(
+  "/verify-phone",
+  verifyPhone
+);
+
+/* ========================================
+   SECURITY
+======================================== */
+
+router.patch(
+  "/enable-2fa",
+  enableTwoFactorAuth
+);
+
+router.patch(
+  "/disable-2fa",
+  disableTwoFactorAuth
+);
+
+router.get(
+  "/login-history",
+  getLoginHistory
+);
+
+router.get(
+  "/activity",
+  getProfileActivity
+);
+
+/* ========================================
+   PROFILE MODULES
+======================================== */
+
+router.get(
+  "/documents",
+  getProfileDocuments
+);
+
+router.get(
+  "/kyc",
+  getProfileKyc
+);
+
+router.get(
+  "/loans",
+  getProfileLoans
+);
+
+router.get(
+  "/wallet",
+  getProfileWallet
+);
+
+router.get(
+  "/transactions",
+  getProfileTransactions
+);
+
+router.get(
+  "/notifications",
+  getProfileNotifications
+);
+
+/* ========================================
+   PROFILE STATUS
+======================================== */
+
+router.patch(
+  "/deactivate",
+  deactivateProfile
+);
+
+router.patch(
+  "/reactivate",
+  reactivateProfile
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/pdf",
+  exportProfilePdf
+);
+
+router.get(
+  "/export/excel",
+  exportProfileExcel
+);
+
+/* ========================================
+   ADMIN PROFILE ACCESS
+======================================== */
+
+router.get(
+  "/:id",
+  getProfileById
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createRecharge,
+  getRechargeById,
+  getAllRecharges,
+
+  updateRecharge,
+  deleteRecharge,
+
+  processRecharge,
+  verifyRecharge,
+
+  markRechargeSuccess,
+  markRechargeFailed,
+  refundRecharge,
+
+  getUserRecharges,
+  getMobileRecharges,
+  getDthRecharges,
+  getFastagRecharges,
+
+  searchRecharges,
+
+  getPendingRecharges,
+  getSuccessRecharges,
+  getFailedRecharges,
+  getRefundedRecharges,
+
+  getRechargeAnalytics,
+  getRechargeDashboard,
+
+  getTopRechargeUsers,
+  getMonthlyRecharges,
+
+  exportRechargeExcel,
+  exportRechargePdf,
+
+  bulkProcessRecharge,
+  bulkRefundRecharge,
+} from "../../controllers/recharge/recharge.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get(
+  "/dashboard",
+  getRechargeDashboard
+);
+
+router.get(
+  "/analytics",
+  getRechargeAnalytics
+);
+
+router.get(
+  "/top-users",
+  getTopRechargeUsers
+);
+
+router.get(
+  "/monthly",
+  getMonthlyRecharges
+);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportRechargeExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportRechargePdf
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get(
+  "/pending",
+  getPendingRecharges
+);
+
+router.get(
+  "/success",
+  getSuccessRecharges
+);
+
+router.get(
+  "/failed",
+  getFailedRecharges
+);
+
+router.get(
+  "/refunded",
+  getRefundedRecharges
+);
+
+/* ========================================
+   CATEGORY
+======================================== */
+
+router.get(
+  "/mobile",
+  getMobileRecharges
+);
+
+router.get(
+  "/dth",
+  getDthRecharges
+);
+
+router.get(
+  "/fastag",
+  getFastagRecharges
+);
+
+/* ========================================
+   RECHARGE MANAGEMENT
+======================================== */
+
+router.post(
+  "/",
+  createRecharge
+);
+
+router.post(
+  "/process",
+  processRecharge
+);
+
+router.post(
+  "/verify",
+  verifyRecharge
+);
+
+router.get(
+  "/",
+  getAllRecharges
+);
+
+router.get(
+  "/search",
+  searchRecharges
+);
+
+router.get(
+  "/user/:userId",
+  getUserRecharges
+);
+
+router.get(
+  "/:id",
+  getRechargeById
+);
+
+router.put(
+  "/:id",
+  updateRecharge
+);
+
+router.delete(
+  "/:id",
+  deleteRecharge
+);
+
+/* ========================================
+   RECHARGE ACTIONS
+======================================== */
+
+router.patch(
+  "/:id/success",
+  markRechargeSuccess
+);
+
+router.patch(
+  "/:id/failed",
+  markRechargeFailed
+);
+
+router.patch(
+  "/:id/refund",
+  refundRecharge
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk-process",
+  bulkProcessRecharge
+);
+
+router.post(
+  "/bulk-refund",
+  bulkRefundRecharge
+);
+
+export default router;
+import { z } from "zod";
+import { RechargeStatus, RechargeType } from "@prisma/client";
+import { Request, Response, NextFunction } from "express";
+
+// Schema for Creating Recharge
+export const createRechargeSchema = z.object({
+  body: z.object({
+  userId: z.string().cuid({ message: "Invalid User ID format" }),
+  mobileNumber: z.string().min(10).max(15),
+  operator: z.string().min(2),
+  rechargeType: z.nativeEnum(RechargeType),
+  amount: z.number().positive(),
+  planDetails: z.string().optional(),
+  serviceType: z.string().optional(),
+}),
+});
+
+// Schema for Success Status Callback/Webhook
+export const markSuccessSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Recharge ID is required"),
+  }),
+  body: z.object({
+    transactionId: z.string().min(1, "Transaction Ref ID is required"),
+    operatorTxnId: z.string().optional(),
+    commissionAmount: z.number().nonnegative().optional(),
+    apiProvider: z.string().optional(),
+    apiRequest: z.any().optional(),
+    apiResponse: z.any().optional(),
+    updatedBy: z.string().optional(),
+  }),
+});
+
+// Schema for Failure Status Callback/Webhook
+export const markFailedSchema = z.object({
+  params: z.object({
+    id: z.string().min(1, "Recharge ID is required"),
+  }),
+  body: z.object({
+    failureReason: z.string().min(1, "Failure reason is required"),
+    remarks: z.string().optional(),
+    apiResponse: z.any().optional(),
+    updatedBy: z.string().optional(),
+  }),
+});
+
+// Schema for History Filters Query
+export const queryFilterSchema = z.object({
+  query: z.object({
+    page: z.coerce.number().int().positive().default(1),
+    limit: z.coerce.number().int().positive().default(20),
+    status: z.nativeEnum(RechargeStatus).optional(),
+    userId: z.string().optional(),
+    operator: z.string().optional(),
+    search: z.string().optional(),
+    startDate: z.string().datetime().optional(),
+    endDate: z.string().datetime().optional(),
+  }),
+});
+
+// Generic Validation Middleware Runner
+export const validate = (schema: z.ZodType) => {  
+    return async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      const parsed = await schema.parseAsync({
+  body: req.body,
+  query: req.query,
+  params: req.params,
+}) as {
+  body: any;
+  query: any;
+  params: any;
+};
+      // Assign parsed values back to request
+      (req as any).body = parsed.body;
+      (req as any).query = parsed.query;
+      (req as any).params = parsed.params;
+
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({
+          success: false,
+          message: "Validation Error",
+          errors: error.issues.map((e) => ({
+            field: e.path.join("."),
+            message: e.message,
+          })),
+        });
+        return;
+      }
+
+      res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+      });
+      return;
+    }
+  };
+};
+import { Router } from "express";
+
+import {
+  createReferral,
+  getReferralById,
+  getAllReferrals,
+  updateReferral,
+  deleteReferral,
+
+  generateReferralCode,
+  validateReferralCode,
+  applyReferralCode,
+
+  approveReferral,
+  rejectReferral,
+  rewardReferral,
+  markReferralPaid,
+
+  getReferralDashboard,
+  getReferralAnalytics,
+
+  getUserReferrals,
+  getCustomerReferrals,
+  getDsaReferrals,
+  getPartnerReferrals,
+
+  getReferralEarnings,
+  getReferralRewards,
+  getReferralCommissions,
+
+  getPendingReferrals,
+  getApprovedReferrals,
+  getRejectedReferrals,
+  getRewardedReferrals,
+  getPaidReferrals,
+  getExpiredReferrals,
+
+  getTopReferrers,
+  getTopEarners,
+  getTopConverters,
+
+  getTodayReferrals,
+  getWeeklyReferrals,
+  getMonthlyReferrals,
+  getYearlyReferrals,
+
+  getLoanReferrals,
+  getInsuranceReferrals,
+  getInvestmentReferrals,
+  getFastagReferrals,
+  getCreditCardReferrals,
+
+  getReferralLeaderboard,
+
+  searchReferrals,
+  getReferralAuditLogs,
+
+  detectFraudReferrals,
+  detectDuplicateReferrals,
+
+  exportReferralExcel,
+  exportReferralPdf,
+
+  bulkApproveReferrals,
+  bulkRejectReferrals,
+  bulkRewardReferrals,
+  bulkDeleteReferrals,
+
+  getConversionReport,
+  getRevenueReport,
+  getPerformanceReport,
+
+  getLiveReferrals,
+  getReferralStatistics,
+
+} from "../../controllers/referral/referral.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD
+======================================== */
+
+router.get("/dashboard", getReferralDashboard);
+router.get("/analytics", getReferralAnalytics);
+router.get("/statistics", getReferralStatistics);
+router.get("/live", getLiveReferrals);
+
+/* ========================================
+   REPORTS
+======================================== */
+
+router.get("/reports/conversion", getConversionReport);
+router.get("/reports/revenue", getRevenueReport);
+router.get("/reports/performance", getPerformanceReport);
+
+/* ========================================
+   LEADERBOARD
+======================================== */
+
+router.get("/leaderboard", getReferralLeaderboard);
+router.get("/top-referrers", getTopReferrers);
+router.get("/top-earners", getTopEarners);
+router.get("/top-converters", getTopConverters);
+
+/* ========================================
+   TIME BASED
+======================================== */
+
+router.get("/today", getTodayReferrals);
+router.get("/weekly", getWeeklyReferrals);
+router.get("/monthly", getMonthlyReferrals);
+router.get("/yearly", getYearlyReferrals);
+
+/* ========================================
+   REFERRAL TYPES
+======================================== */
+
+router.get("/loan", getLoanReferrals);
+router.get("/insurance", getInsuranceReferrals);
+router.get("/investment", getInvestmentReferrals);
+router.get("/fastag", getFastagReferrals);
+router.get("/credit-card", getCreditCardReferrals);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get("/pending", getPendingReferrals);
+router.get("/approved", getApprovedReferrals);
+router.get("/rejected", getRejectedReferrals);
+router.get("/rewarded", getRewardedReferrals);
+router.get("/paid", getPaidReferrals);
+router.get("/expired", getExpiredReferrals);
+
+/* ========================================
+   REFERRAL CODE
+======================================== */
+
+router.post("/generate-code", generateReferralCode);
+router.post("/validate-code", validateReferralCode);
+router.post("/apply-code", applyReferralCode);
+
+/* ========================================
+   USER REFERRALS
+======================================== */
+
+router.get("/user/:userId", getUserReferrals);
+router.get("/customer/:customerId", getCustomerReferrals);
+router.get("/dsa/:dsaId", getDsaReferrals);
+router.get("/partner/:partnerId", getPartnerReferrals);
+
+/* ========================================
+   EARNINGS
+======================================== */
+
+router.get("/earnings/:userId", getReferralEarnings);
+router.get("/rewards/:userId", getReferralRewards);
+router.get("/commissions/:userId", getReferralCommissions);
+
+/* ========================================
+   FRAUD MANAGEMENT
+======================================== */
+
+router.get("/fraud-check", detectFraudReferrals);
+router.get("/duplicate-check", detectDuplicateReferrals);
+router.get("/audit-logs", getReferralAuditLogs);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get("/export/excel", exportReferralExcel);
+router.get("/export/pdf", exportReferralPdf);
+
+/* ========================================
+   SEARCH
+======================================== */
+
+router.get("/search", searchReferrals);
+
+/* ========================================
+   CRUD
+======================================== */
+
+router.post("/", createReferral);
+
+router.get("/", getAllReferrals);
+
+router.get("/:id", getReferralById);
+
+router.put("/:id", updateReferral);
+
+router.delete("/:id", deleteReferral);
+
+/* ========================================
+   ACTIONS
+======================================== */
+
+router.patch("/:id/approve", approveReferral);
+
+router.patch("/:id/reject", rejectReferral);
+
+router.patch("/:id/reward", rewardReferral);
+
+router.patch("/:id/mark-paid", markReferralPaid);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post("/bulk/approve", bulkApproveReferrals);
+
+router.post("/bulk/reject", bulkRejectReferrals);
+
+router.post("/bulk/reward", bulkRewardReferrals);
+
+router.post("/bulk/delete", bulkDeleteReferrals);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getDashboardReport,
+
+  getLoanReport,
+  getCustomerReport,
+  getDsaReport,
+  getPartnerReport,
+  getCommissionReport,
+  getRevenueReport,
+  getTransactionReport,
+  getWalletReport,
+  getKycReport,
+  getInsuranceReport,
+  getInvestmentReport,
+  getFastagReport,
+  getReferralReport,
+  getRechargeReport,
+  getPaymentReport,
+
+  getDailyReport,
+  getWeeklyReport,
+  getMonthlyReport,
+  getQuarterlyReport,
+  getYearlyReport,
+
+  getPendingReport,
+  getApprovedReport,
+  getRejectedReport,
+
+  getTopCustomersReport,
+  getTopDsaReport,
+  getTopPartnersReport,
+
+  getGrowthReport,
+  getPerformanceReport,
+  getConversionReport,
+  getProfitLossReport,
+
+  getAuditReport,
+  getFraudReport,
+
+  exportReportExcel,
+  exportReportPdf,
+  exportReportCsv,
+
+  scheduleReport,
+  getScheduledReports,
+
+  searchReports,
+
+  getReportById,
+  createReport,
+  updateReport,
+  deleteReport,
+
+  bulkDeleteReports,
+  bulkExportReports,
+} from "../../controllers/report/report.controller";
+
+const router = Router();
+
+/* =========================
+   DASHBOARD
+========================= */
+
+router.get("/dashboard", getDashboardReport);
+
+/* =========================
+   BUSINESS REPORTS
+========================= */
+
+router.get("/loan", getLoanReport);
+router.get("/customer", getCustomerReport);
+router.get("/dsa", getDsaReport);
+router.get("/partner", getPartnerReport);
+router.get("/commission", getCommissionReport);
+router.get("/revenue", getRevenueReport);
+router.get("/transaction", getTransactionReport);
+router.get("/wallet", getWalletReport);
+router.get("/kyc", getKycReport);
+router.get("/insurance", getInsuranceReport);
+router.get("/investment", getInvestmentReport);
+router.get("/fastag", getFastagReport);
+router.get("/referral", getReferralReport);
+router.get("/recharge", getRechargeReport);
+router.get("/payment", getPaymentReport);
+
+/* =========================
+   TIME REPORTS
+========================= */
+
+router.get("/daily", getDailyReport);
+router.get("/weekly", getWeeklyReport);
+router.get("/monthly", getMonthlyReport);
+router.get("/quarterly", getQuarterlyReport);
+router.get("/yearly", getYearlyReport);
+
+/* =========================
+   STATUS REPORTS
+========================= */
+
+router.get("/pending", getPendingReport);
+router.get("/approved", getApprovedReport);
+router.get("/rejected", getRejectedReport);
+
+/* =========================
+   PERFORMANCE REPORTS
+========================= */
+
+router.get("/top-customers", getTopCustomersReport);
+router.get("/top-dsa", getTopDsaReport);
+router.get("/top-partners", getTopPartnersReport);
+
+router.get("/growth", getGrowthReport);
+router.get("/performance", getPerformanceReport);
+router.get("/conversion", getConversionReport);
+router.get("/profit-loss", getProfitLossReport);
+
+/* =========================
+   SECURITY REPORTS
+========================= */
+
+router.get("/audit", getAuditReport);
+router.get("/fraud", getFraudReport);
+
+/* =========================
+   EXPORTS
+========================= */
+
+router.get("/export/excel", exportReportExcel);
+router.get("/export/pdf", exportReportPdf);
+router.get("/export/csv", exportReportCsv);
+
+/* =========================
+   SCHEDULED REPORTS
+========================= */
+
+router.post("/schedule", scheduleReport);
+router.get("/scheduled", getScheduledReports);
+
+/* =========================
+   SEARCH
+========================= */
+
+router.get("/search", searchReports);
+
+/* =========================
+   CRUD
+========================= */
+
+router.post("/", createReport);
+
+router.get("/:id", getReportById);
+
+router.put("/:id", updateReport);
+
+router.delete("/:id", deleteReport);
+
+/* =========================
+   BULK ACTIONS
+========================= */
+
+router.post("/bulk/export", bulkExportReports);
+
+router.post("/bulk/delete", bulkDeleteReports);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getRevenueAnalytics,
+  getMonthlyRevenue,
+  getTopUsers,
+} from "../../controllers/revenue/revenue.controller";
+
+// Optional (Uncomment if your project uses authentication)
+// import { authenticate } from "../../middlewares/auth.middleware";
+// import { authorize } from "../../middlewares/authorize.middleware";
+
+const router = Router();
+
+/* =========================================
+   REVENUE ANALYTICS
+========================================= */
+
+// Dashboard Analytics
+router.get(
+  "/analytics",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  getRevenueAnalytics
+);
+
+// Monthly Revenue
+router.get(
+  "/monthly",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  getMonthlyRevenue
+);
+
+// Top Users
+router.get(
+  "/top-users",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  getTopUsers
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createRole,
+  getRoleById,
+  getAllRoles,
+  updateRole,
+  deleteRole,
+
+  assignRoleToUser,
+  removeRoleFromUser,
+
+  assignMultipleRoles,
+  removeMultipleRoles,
+
+  getUserRoles,
+  getRoleUsers,
+
+  getRolePermissions,
+  assignPermissionToRole,
+  removePermissionFromRole,
+
+  cloneRole,
+
+  activateRole,
+  deactivateRole,
+
+  getAdminRoles,
+  getCustomerRoles,
+  getDsaRoles,
+  getPartnerRoles,
+
+  getSystemRoles,
+  getCustomRoles,
+
+  searchRoles,
+
+  getRoleDashboard,
+  roleAnalytics,
+
+  getRoleHierarchy,
+
+  exportRolesExcel,
+  exportRolesPdf,
+
+  bulkCreateRoles,
+  bulkDeleteRoles,
+  bulkAssignRoles,
+
+  getRoleAuditLogs,
+} from "../../controllers/role/role.controller";
+
+const router = Router();
+
+/* =====================================
+   DASHBOARD & ANALYTICS
+===================================== */
+
+router.get("/dashboard", getRoleDashboard);
+
+router.get("/analytics", roleAnalytics);
+
+router.get("/hierarchy", getRoleHierarchy);
+
+router.get("/audit-logs", getRoleAuditLogs);
+
+/* =====================================
+   ROLE TYPES
+===================================== */
+
+router.get("/system", getSystemRoles);
+
+router.get("/custom", getCustomRoles);
+
+router.get("/admin", getAdminRoles);
+
+router.get("/customer", getCustomerRoles);
+
+router.get("/dsa", getDsaRoles);
+
+router.get("/partner", getPartnerRoles);
+
+/* =====================================
+   ROLE SEARCH
+===================================== */
+
+router.get("/search", searchRoles);
+
+/* =====================================
+   ROLE EXPORT
+===================================== */
+
+router.get("/export/excel", exportRolesExcel);
+
+router.get("/export/pdf", exportRolesPdf);
+
+/* =====================================
+   ROLE CRUD
+===================================== */
+
+router.post("/", createRole);
+
+router.get("/", getAllRoles);
+
+router.get("/:id", getRoleById);
+
+router.put("/:id", updateRole);
+
+router.delete("/:id", deleteRole);
+
+/* =====================================
+   ROLE STATUS
+===================================== */
+
+router.patch("/:id/activate", activateRole);
+
+router.patch("/:id/deactivate", deactivateRole);
+
+router.post("/:id/clone", cloneRole);
+
+/* =====================================
+   USER ROLE MANAGEMENT
+===================================== */
+
+router.post(
+  "/assign/user",
+  assignRoleToUser
+);
+
+router.post(
+  "/remove/user",
+  removeRoleFromUser
+);
+
+router.post(
+  "/assign-multiple/user",
+  assignMultipleRoles
+);
+
+router.post(
+  "/remove-multiple/user",
+  removeMultipleRoles
+);
+
+router.get(
+  "/user/:userId",
+  getUserRoles
+);
+
+router.get(
+  "/users/:roleId",
+  getRoleUsers
+);
+
+/* =====================================
+   PERMISSION MANAGEMENT
+===================================== */
+
+router.get(
+  "/permissions/:roleId",
+  getRolePermissions
+);
+
+router.post(
+  "/permission/assign",
+  assignPermissionToRole
+);
+
+router.post(
+  "/permission/remove",
+  removePermissionFromRole
+);
+
+/* =====================================
+   BULK ACTIONS
+===================================== */
+
+router.post(
+  "/bulk/create",
+  bulkCreateRoles
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteRoles
+);
+
+router.post(
+  "/bulk/assign",
+  bulkAssignRoles
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  assignPermission,
+  bulkAssignPermissions,
+  getRolePermissions,
+  removePermission,
+  removeAllPermissions,
+  rolePermissionAnalytics,
+} from "../../controllers/rolePermission/rolePermission.controller";
+
+const router = Router();
+
+// Assign permission to role
+router.post("/assign", assignPermission);
+
+// Bulk assign permissions
+router.post("/assign/bulk", bulkAssignPermissions);
+
+// Get permissions of a role
+router.get("/:roleId", getRolePermissions);
+
+// Remove one permission from role
+router.delete("/remove", removePermission);
+
+// Remove all permissions from role
+router.delete("/:roleId/remove-all", removeAllPermissions);
+
+// Analytics
+router.get("/analytics/overview", rolePermissionAnalytics);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getAllSessions,
+  getUserSessions,
+  getSessionById,
+  forceLogoutSession,
+  logoutAllUserSessions,
+  sessionAnalytics,
+  cleanupExpiredSessions,
+  deleteSession,
+  userSessionSummary,
+} from "../../controllers/session/session.controller";
+
+// Uncomment according to your project
+// import { authenticate } from "../../middlewares/auth.middleware";
+// import { authorize } from "../../middlewares/role.middleware";
+// import { validate } from "../../middlewares/validate.middleware";
+
+// import {
+//   sessionIdSchema,
+//   userSessionSchema,
+//   sessionQuerySchema,
+//   cleanupSessionSchema,
+// } from "../../dto/session/session.dto";
+
+const router = Router();
+
+/* ==========================================================
+   SESSION MANAGEMENT
+========================================================== */
+
+// Get All Sessions
+router.get(
+  "/",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  // validate(sessionQuerySchema),
+  getAllSessions
+);
+
+// Session Analytics Dashboard
+router.get(
+  "/analytics",
+  // authenticate,
+  // authorize("SUPER_ADMIN"),
+  sessionAnalytics
+);
+
+// Cleanup Expired Sessions
+router.delete(
+  "/cleanup",
+  // authenticate,
+  // authorize("SUPER_ADMIN"),
+  // validate(cleanupSessionSchema),
+  cleanupExpiredSessions
+);
+
+// Get Session By ID
+router.get(
+  "/:id",
+  // authenticate,
+  // validate(sessionIdSchema),
+  getSessionById
+);
+
+// Force Logout Single Session
+router.patch(
+  "/:id/logout",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  // validate(sessionIdSchema),
+  forceLogoutSession
+);
+
+// Delete Session
+router.delete(
+  "/:id",
+  // authenticate,
+  // authorize("SUPER_ADMIN"),
+  // validate(sessionIdSchema),
+  deleteSession
+);
+
+// Get User Sessions
+router.get(
+  "/user/:userId",
+  // authenticate,
+  // validate(userSessionSchema),
+  getUserSessions
+);
+
+// User Session Summary
+router.get(
+  "/user/:userId/summary",
+  // authenticate,
+  // validate(userSessionSchema),
+  userSessionSummary
+);
+
+// Logout All User Sessions
+router.patch(
+  "/user/:userId/logout-all",
+  // authenticate,
+  // authorize("SUPER_ADMIN", "ADMIN"),
+  // validate(userSessionSchema),
+  logoutAllUserSessions
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getAllSettings,
+  getSettingByKey,
+  createSetting,
+  updateSetting,
+  deleteSetting,
+
+  getSystemSettings,
+  updateSystemSettings,
+
+  getCompanySettings,
+  updateCompanySettings,
+
+  getWebsiteSettings,
+  updateWebsiteSettings,
+
+  getSeoSettings,
+  updateSeoSettings,
+
+  getEmailSettings,
+  updateEmailSettings,
+
+  getSmsSettings,
+  updateSmsSettings,
+
+  getWhatsappSettings,
+  updateWhatsappSettings,
+
+  getNotificationSettings,
+  updateNotificationSettings,
+
+  getPaymentGatewaySettings,
+  updatePaymentGatewaySettings,
+
+  getLoanSettings,
+  updateLoanSettings,
+
+  getCommissionSettings,
+  updateCommissionSettings,
+
+  getReferralSettings,
+  updateReferralSettings,
+
+  getKycSettings,
+  updateKycSettings,
+
+  getSecuritySettings,
+  updateSecuritySettings,
+
+  getMaintenanceSettings,
+  updateMaintenanceSettings,
+
+  // Controller me yahi function hai
+  toggleMaintenanceMode,
+
+  
+  restoreSettings,
+
+  resetSettings,
+
+  getSettingAnalytics,
+  getSettingDashboard,
+
+  exportSettingsExcel,
+  exportSettingsPdf,
+
+  searchSettings,
+
+  bulkUpdateSettings,
+  bulkDeleteSettings,
+
+  getAuditLogs,
+} from "../../controllers/settings/settings.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD & ANALYTICS
+======================================== */
+
+router.get("/dashboard", getSettingDashboard);
+router.get("/analytics", getSettingAnalytics);
+router.get("/audit-logs", getAuditLogs);
+
+/* ========================================
+   SYSTEM SETTINGS
+======================================== */
+
+router.get("/system", getSystemSettings);
+router.put("/system", updateSystemSettings);
+
+/* ========================================
+   COMPANY SETTINGS
+======================================== */
+
+router.get("/company", getCompanySettings);
+router.put("/company", updateCompanySettings);
+
+/* ========================================
+   WEBSITE SETTINGS
+======================================== */
+
+router.get("/website", getWebsiteSettings);
+router.put("/website", updateWebsiteSettings);
+
+/* ========================================
+   SEO SETTINGS
+======================================== */
+
+router.get("/seo", getSeoSettings);
+router.put("/seo", updateSeoSettings);
+
+/* ========================================
+   EMAIL SETTINGS
+======================================== */
+
+router.get("/email", getEmailSettings);
+router.put("/email", updateEmailSettings);
+
+/* ========================================
+   SMS SETTINGS
+======================================== */
+
+router.get("/sms", getSmsSettings);
+router.put("/sms", updateSmsSettings);
+
+/* ========================================
+   WHATSAPP SETTINGS
+======================================== */
+
+router.get("/whatsapp", getWhatsappSettings);
+router.put("/whatsapp", updateWhatsappSettings);
+
+/* ========================================
+   NOTIFICATION SETTINGS
+======================================== */
+
+router.get("/notification", getNotificationSettings);
+router.put("/notification", updateNotificationSettings);
+
+/* ========================================
+   PAYMENT GATEWAY SETTINGS
+======================================== */
+
+router.get("/payment-gateway", getPaymentGatewaySettings);
+router.put("/payment-gateway", updatePaymentGatewaySettings);
+
+/* ========================================
+   LOAN SETTINGS
+======================================== */
+
+router.get("/loan", getLoanSettings);
+router.put("/loan", updateLoanSettings);
+
+/* ========================================
+   COMMISSION SETTINGS
+======================================== */
+
+router.get("/commission", getCommissionSettings);
+router.put("/commission", updateCommissionSettings);
+
+/* ========================================
+   REFERRAL SETTINGS
+======================================== */
+
+router.get("/referral", getReferralSettings);
+router.put("/referral", updateReferralSettings);
+
+/* ========================================
+   KYC SETTINGS
+======================================== */
+
+router.get("/kyc", getKycSettings);
+router.put("/kyc", updateKycSettings);
+
+/* ========================================
+   SECURITY SETTINGS
+======================================== */
+
+router.get("/security", getSecuritySettings);
+router.put("/security", updateSecuritySettings);
+
+/* ========================================
+   MAINTENANCE SETTINGS
+======================================== */
+
+router.get("/maintenance", getMaintenanceSettings);
+router.put("/maintenance", updateMaintenanceSettings);
+
+// Enable
+router.patch("/maintenance/enable", (req, res, next) => {
+  req.body.enabled = true;
+  return toggleMaintenanceMode(req, res, next);
+});
+
+// Disable
+router.patch("/maintenance/disable", (req, res, next) => {
+  req.body.enabled = false;
+  return toggleMaintenanceMode(req, res, next);
+});
+
+/* ========================================
+   BACKUP & RESTORE
+======================================== */
+
+router.post("/restore", restoreSettings);
+// router.post("/reset", resetSettings);
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+router.get("/export/excel", exportSettingsExcel);
+router.get("/export/pdf", exportSettingsPdf);
+
+/* ========================================
+   SEARCH
+======================================== */
+
+router.get("/search", searchSettings);
+
+/* ========================================
+   CRUD
+======================================== */
+
+router.post("/", createSetting);
+router.get("/", getAllSettings);
+router.get("/:key", getSettingByKey);
+router.put("/:key", updateSetting);
+router.delete("/:key", deleteSetting);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post("/bulk/update", bulkUpdateSettings);
+router.post("/bulk/delete", bulkDeleteSettings);
+
+export default router;
+import { Router } from "express";
+
+import {
+  getSuperAdminDashboard,
+
+  getSystemAnalytics,
+  getBusinessAnalytics,
+  getRevenueAnalytics,
+  getUserAnalytics,
+  getLoanAnalytics,
+
+  getAllAdmins,
+  createAdmin,
+  updateAdmin,
+  deleteAdmin,
+  blockAdmin,
+  unblockAdmin,
+
+  assignRole,
+  removeRole,
+
+  getSystemSettings,
+  updateSystemSettings,
+
+  getAllUsers,
+  blockUser,
+  unblockUser,
+  deleteUser,
+
+  getAllLoans,
+  approveLoan,
+  rejectLoan,
+  disburseLoan,
+
+  getAllDsa,
+  verifyDsa,
+  blockDsa,
+
+  getAllPartners,
+  verifyPartner,
+  blockPartner,
+
+  getAllTransactions,
+  getAllCommissions,
+  getAllReferrals,
+
+  getAuditLogs,
+  getSystemLogs,
+
+  getServerHealth,
+  getDatabaseHealth,
+
+  backupDatabase,
+  restoreDatabase,
+
+  getReports,
+  exportExcel,
+  exportPdf,
+
+  getRevenueDashboard,
+  getCommissionDashboard,
+
+  bulkBlockUsers,
+  bulkDeleteUsers,
+  bulkApproveLoans,
+
+  getLiveActivities,
+  getNotifications,
+
+  searchSystem,
+  
+} from "../../controllers/superAdmin/superAdmin.controller";
+const router = Router();
+
+/* ====================================
+   DASHBOARD
+==================================== */
+
+router.get(
+  "/dashboard",
+  getSuperAdminDashboard
+);
+
+router.get(
+  "/live-activities",
+  getLiveActivities
+);
+
+router.get(
+  "/notifications",
+  getNotifications
+);
+
+/* ====================================
+   ANALYTICS
+==================================== */
+
+router.get(
+  "/analytics/system",
+  getSystemAnalytics
+);
+
+router.get(
+  "/analytics/business",
+  getBusinessAnalytics
+);
+
+router.get(
+  "/analytics/revenue",
+  getRevenueAnalytics
+);
+
+router.get(
+  "/analytics/users",
+  getUserAnalytics
+);
+
+router.get(
+  "/analytics/loans",
+  getLoanAnalytics
+);
+
+/* ====================================
+   ADMIN MANAGEMENT
+==================================== */
+
+router.get(
+  "/admins",
+  getAllAdmins
+);
+
+router.post(
+  "/admins",
+  createAdmin
+);
+
+router.put(
+  "/admins/:id",
+  updateAdmin
+);
+
+router.delete(
+  "/admins/:id",
+  deleteAdmin
+);
+
+router.patch(
+  "/admins/:id/block",
+  blockAdmin
+);
+
+router.patch(
+  "/admins/:id/unblock",
+  unblockAdmin
+);
+
+/* ====================================
+   ROLE MANAGEMENT
+==================================== */
+
+router.post(
+  "/roles/assign",
+  assignRole
+);
+
+router.post(
+  "/roles/remove",
+  removeRole
+);
+
+/* ====================================
+   USER MANAGEMENT
+==================================== */
+
+router.get(
+  "/users",
+  getAllUsers
+);
+
+router.patch(
+  "/users/:id/block",
+  blockUser
+);
+
+router.patch(
+  "/users/:id/unblock",
+  unblockUser
+);
+
+router.delete(
+  "/users/:id",
+  deleteUser
+);
+
+/* ====================================
+   LOAN MANAGEMENT
+==================================== */
+
+router.get(
+  "/loans",
+  getAllLoans
+);
+
+router.patch(
+  "/loans/:id/approve",
+  approveLoan
+);
+
+router.patch(
+  "/loans/:id/reject",
+  rejectLoan
+);
+
+router.patch(
+  "/loans/:id/disburse",
+  disburseLoan
+);
+
+/* ====================================
+   DSA MANAGEMENT
+==================================== */
+
+router.get(
+  "/dsa",
+  getAllDsa
+);
+
+router.patch(
+  "/dsa/:id/verify",
+  verifyDsa
+);
+
+router.patch(
+  "/dsa/:id/block",
+  blockDsa
+);
+
+/* ====================================
+   PARTNER MANAGEMENT
+==================================== */
+
+router.get(
+  "/partners",
+  getAllPartners
+);
+
+router.patch(
+  "/partners/:id/verify",
+  verifyPartner
+);
+
+router.patch(
+  "/partners/:id/block",
+  blockPartner
+);
+
+/* ====================================
+   SETTINGS
+==================================== */
+
+router.get(
+  "/settings",
+  getSystemSettings
+);
+
+router.put(
+  "/settings",
+  updateSystemSettings
+);
+
+/* ====================================
+   FINANCIAL
+==================================== */
+
+router.get(
+  "/transactions",
+  getAllTransactions
+);
+
+router.get(
+  "/commissions",
+  getAllCommissions
+);
+
+router.get(
+  "/referrals",
+  getAllReferrals
+);
+
+router.get(
+  "/revenue-dashboard",
+  getRevenueDashboard
+);
+
+router.get(
+  "/commission-dashboard",
+  getCommissionDashboard
+);
+
+/* ====================================
+   AUDIT & LOGS
+==================================== */
+
+router.get(
+  "/audit-logs",
+  getAuditLogs
+);
+
+router.get(
+  "/system-logs",
+  getSystemLogs
+);
+
+/* ====================================
+   SYSTEM HEALTH
+==================================== */
+
+router.get(
+  "/health/server",
+  getServerHealth
+);
+
+router.get(
+  "/health/database",
+  getDatabaseHealth
+);
+
+/* ====================================
+   BACKUP
+==================================== */
+
+router.post(
+  "/backup",
+  backupDatabase
+);
+
+router.post(
+  "/restore",
+  restoreDatabase
+);
+
+/* ====================================
+   REPORTS
+==================================== */
+
+router.get(
+  "/reports",
+  getReports
+);
+
+router.get(
+  "/export/excel",
+  exportExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportPdf
+);
+
+/* ====================================
+   SEARCH
+==================================== */
+
+router.get(
+  "/search",
+  searchSystem
+);
+
+/* ====================================
+   BULK ACTIONS
+==================================== */
+
+router.post(
+  "/bulk/block-users",
+  bulkBlockUsers
+);
+
+router.post(
+  "/bulk/delete-users",
+  bulkDeleteUsers
+);
+
+router.post(
+  "/bulk/approve-loans",
+  bulkApproveLoans
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createTicket,
+  getTicketById,
+  getAllTickets,
+  updateTicket,
+  deleteTicket,
+
+  assignTicket,
+  transferTicket,
+
+  closeTicket,
+  reopenTicket,
+  resolveTicket,
+
+  addReply,
+  getTicketReplies,
+
+  getMyTickets,
+  getUserTickets,
+
+  getPendingTickets,
+  getOpenTickets,
+  getResolvedTickets,
+  getClosedTickets,
+  getEscalatedTickets,
+
+  escalateTicket,
+
+  getSupportDashboard,
+  getSupportAnalytics,
+
+  getRecentTickets,
+  getTopAgents,
+
+  getAgentPerformance,
+  getDepartmentPerformance,
+
+  getCustomerSupportHistory,
+
+  searchTickets,
+
+  exportTicketsExcel,
+  exportTicketsPdf,
+
+  getTicketAuditLogs,
+
+  bulkAssignTickets,
+  bulkCloseTickets,
+  bulkDeleteTickets,
+
+  getLiveSupportChats,
+  getChatHistory,
+
+  sendSupportMessage,
+
+  createFaqTicket,
+  convertTicketToFaq,
+
+  getSlaReport,
+  getResponseTimeReport,
+
+  getTicketStatistics,
+} from "../../controllers/support/support.controller";
+
+const router = Router();
+
+/* ========================================
+   DASHBOARD
+======================================== */
+
+router.get("/dashboard", getSupportDashboard);
+
+router.get("/analytics", getSupportAnalytics);
+
+router.get("/statistics", getTicketStatistics);
+
+/* ========================================
+   REPORTS
+======================================== */
+
+router.get("/sla-report", getSlaReport);
+
+router.get(
+  "/response-time-report",
+  getResponseTimeReport
+);
+
+router.get(
+  "/department-performance",
+  getDepartmentPerformance
+);
+
+router.get(
+  "/agent-performance",
+  getAgentPerformance
+);
+
+/* ========================================
+   STATUS
+======================================== */
+
+router.get("/pending", getPendingTickets);
+
+router.get("/open", getOpenTickets);
+
+router.get("/resolved", getResolvedTickets);
+
+router.get("/closed", getClosedTickets);
+
+router.get("/escalated", getEscalatedTickets);
+
+/* ========================================
+   TICKET MANAGEMENT
+======================================== */
+
+router.post("/", createTicket);
+
+router.get("/", getAllTickets);
+
+router.get("/recent", getRecentTickets);
+
+router.get("/:id", getTicketById);
+
+router.put("/:id", updateTicket);
+
+router.delete("/:id", deleteTicket);
+
+/* ========================================
+   TICKET ACTIONS
+======================================== */
+
+router.patch("/:id/assign", assignTicket);
+
+router.patch("/:id/transfer", transferTicket);
+
+router.patch("/:id/resolve", resolveTicket);
+
+router.patch("/:id/close", closeTicket);
+
+router.patch("/:id/reopen", reopenTicket);
+
+router.patch("/:id/escalate", escalateTicket);
+
+/* ========================================
+   REPLIES
+======================================== */
+
+router.post("/:id/reply", addReply);
+
+router.get("/:id/replies", getTicketReplies);
+
+/* ========================================
+   USER SUPPORT
+======================================== */
+
+router.get("/my/tickets", getMyTickets);
+
+router.get("/user/:userId", getUserTickets);
+
+router.get(
+  "/history/:customerId",
+  getCustomerSupportHistory
+);
+
+/* ========================================
+   LIVE CHAT
+======================================== */
+
+router.get("/live-chat", getLiveSupportChats);
+
+router.get(
+  "/chat-history/:chatId",
+  getChatHistory
+);
+
+router.post(
+  "/chat/send-message",
+  sendSupportMessage
+);
+
+/* ========================================
+   FAQ
+======================================== */
+
+router.post(
+  "/faq/create",
+  createFaqTicket
+);
+
+router.post(
+  "/faq/convert/:ticketId",
+  convertTicketToFaq
+);
+
+/* ========================================
+   AGENTS
+======================================== */
+
+router.get("/top-agents", getTopAgents);
+
+/* ========================================
+   AUDIT
+======================================== */
+
+router.get(
+  "/audit-logs",
+  getTicketAuditLogs
+);
+
+/* ========================================
+   SEARCH
+======================================== */
+
+router.get("/search", searchTickets);
+
+/* ========================================
+   EXPORT
+======================================== */
+
+router.get(
+  "/export/excel",
+  exportTicketsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportTicketsPdf
+);
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+router.post(
+  "/bulk/assign",
+  bulkAssignTickets
+);
+
+router.post(
+  "/bulk/close",
+  bulkCloseTickets
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteTickets
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createSystemSetting,
+  getAllSystemSettings,
+  getSystemSettingById,
+  getSystemSettingByKey,
+  updateSystemSetting,
+  deleteSystemSetting,
+  bulkUpdateSystemSettings,
+  toggleSystemSettingStatus,
+  toggleEncryption,
+} from "../../controllers/systemSetting/systemSetting.controller";
+
+const router = Router();
+
+/* ======================================================
+   CREATE
+====================================================== */
+
+router.post("/", createSystemSetting);
+
+/* ======================================================
+   GET ALL
+====================================================== */
+
+router.get("/", getAllSystemSettings);
+
+/* ======================================================
+   GET BY KEY
+====================================================== */
+
+router.get("/key/:key", getSystemSettingByKey);
+
+/* ======================================================
+   GET BY ID
+====================================================== */
+
+router.get("/:id", getSystemSettingById);
+
+/* ======================================================
+   UPDATE
+====================================================== */
+
+router.put("/:id", updateSystemSetting);
+
+/* ======================================================
+   DELETE
+====================================================== */
+
+router.delete("/:id", deleteSystemSetting);
+
+/* ======================================================
+   BULK UPDATE
+====================================================== */
+
+router.put("/bulk/update", bulkUpdateSystemSettings);
+
+/* ======================================================
+   TOGGLE STATUS
+====================================================== */
+
+router.patch("/:id/status", toggleSystemSettingStatus);
+
+/* ======================================================
+   TOGGLE ENCRYPTION
+====================================================== */
+
+router.patch("/:id/encryption", toggleEncryption);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createTransaction,
+  getTransactionById,
+  getAllTransactions,
+  updateTransaction,
+  deleteTransaction,
+
+  getUserTransactions,
+  getCustomerTransactions,
+  getDsaTransactions,
+  getPartnerTransactions,
+
+  getCreditTransactions,
+  getDebitTransactions,
+
+  getPendingTransactions,
+  getSuccessTransactions,
+  getFailedTransactions,
+  getRefundedTransactions,
+
+  processTransaction,
+  verifyTransaction,
+
+  approveTransaction,
+  rejectTransaction,
+
+  refundTransaction,
+
+  getTransactionAnalytics,
+  getTransactionDashboard,
+
+  getDailyTransactions,
+  getWeeklyTransactions,
+  getMonthlyTransactions,
+  getYearlyTransactions,
+
+  getTopTransactions,
+  getTopCustomers,
+  getTopDsa,
+  getTopPartners,
+
+  getRevenueTransactions,
+  getCommissionTransactions,
+  getReferralTransactions,
+  getLoanTransactions,
+  getRechargeTransactions,
+  getInsuranceTransactions,
+  getInvestmentTransactions,
+
+  getTransactionStatistics,
+
+  getLiveTransactions,
+
+  searchTransactions,
+
+  getTransactionAuditLogs,
+
+  exportTransactionsExcel,
+  exportTransactionsPdf,
+  exportTransactionsCsv,
+
+  bulkApproveTransactions,
+  bulkRejectTransactions,
+  bulkRefundTransactions,
+  bulkDeleteTransactions,
+
+} from "../../controllers/transaction/transaction.controller";
+
+const router = Router();
+
+/* =====================================
+   DASHBOARD
+===================================== */
+
+router.get("/dashboard", getTransactionDashboard);
+
+router.get("/analytics", getTransactionAnalytics);
+
+router.get("/statistics", getTransactionStatistics);
+
+router.get("/live", getLiveTransactions);
+
+/* =====================================
+   TIME REPORTS
+===================================== */
+
+router.get("/daily", getDailyTransactions);
+
+router.get("/weekly", getWeeklyTransactions);
+
+router.get("/monthly", getMonthlyTransactions);
+
+router.get("/yearly", getYearlyTransactions);
+
+/* =====================================
+   STATUS
+===================================== */
+
+router.get("/pending", getPendingTransactions);
+
+router.get("/success", getSuccessTransactions);
+
+router.get("/failed", getFailedTransactions);
+
+router.get("/refunded", getRefundedTransactions);
+
+/* =====================================
+   TYPE
+===================================== */
+
+router.get("/credit", getCreditTransactions);
+
+router.get("/debit", getDebitTransactions);
+
+/* =====================================
+   BUSINESS TRANSACTIONS
+===================================== */
+
+router.get("/loan", getLoanTransactions);
+
+router.get("/commission", getCommissionTransactions);
+
+router.get("/referral", getReferralTransactions);
+
+router.get("/recharge", getRechargeTransactions);
+
+router.get("/insurance", getInsuranceTransactions);
+
+router.get("/investment", getInvestmentTransactions);
+
+router.get("/revenue", getRevenueTransactions);
+
+/* =====================================
+   USER BASED
+===================================== */
+
+router.get("/user/:userId", getUserTransactions);
+
+router.get("/customer/:customerId", getCustomerTransactions);
+
+router.get("/dsa/:dsaId", getDsaTransactions);
+
+router.get("/partner/:partnerId", getPartnerTransactions);
+
+/* =====================================
+   LEADERBOARD
+===================================== */
+
+router.get("/top", getTopTransactions);
+
+router.get("/top-customers", getTopCustomers);
+
+router.get("/top-dsa", getTopDsa);
+
+router.get("/top-partners", getTopPartners);
+
+/* =====================================
+   SEARCH
+===================================== */
+
+router.get("/search", searchTransactions);
+
+/* =====================================
+   EXPORT
+===================================== */
+
+router.get("/export/excel", exportTransactionsExcel);
+
+router.get("/export/pdf", exportTransactionsPdf);
+
+router.get("/export/csv", exportTransactionsCsv);
+
+/* =====================================
+   AUDIT
+===================================== */
+
+router.get("/audit-logs", getTransactionAuditLogs);
+
+/* =====================================
+   CRUD
+===================================== */
+
+router.post("/", createTransaction);
+
+router.get("/", getAllTransactions);
+
+router.get("/:id", getTransactionById);
+
+router.put("/:id", updateTransaction);
+
+router.delete("/:id", deleteTransaction);
+
+/* =====================================
+   ACTIONS
+===================================== */
+
+router.patch("/:id/process", processTransaction);
+
+router.patch("/:id/verify", verifyTransaction);
+
+router.patch("/:id/approve", approveTransaction);
+
+router.patch("/:id/reject", rejectTransaction);
+
+router.patch("/:id/refund", refundTransaction);
+
+/* =====================================
+   BULK ACTIONS
+===================================== */
+
+router.post(
+  "/bulk/approve",
+  bulkApproveTransactions
+);
+
+router.post(
+  "/bulk/reject",
+  bulkRejectTransactions
+);
+
+router.post(
+  "/bulk/refund",
+  bulkRefundTransactions
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteTransactions
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  uploadSingleFile,
+  uploadMultipleFiles,
+
+  uploadProfileImage,
+  uploadKycDocument,
+  uploadLoanDocument,
+  uploadBankDocument,
+
+  uploadPanCard,
+  uploadAadhaarCard,
+  uploadPassport,
+  uploadDrivingLicense,
+
+  uploadAgreement,
+  uploadInsuranceDocument,
+
+  getAllUploads,
+  getUploadById,
+
+  getUserUploads,
+  getCustomerUploads,
+  getDsaUploads,
+  getPartnerUploads,
+
+  verifyUploadedDocument,
+  rejectUploadedDocument,
+
+  approveUpload,
+  rejectUpload,
+
+  downloadFile,
+  previewFile,
+
+  deleteFile,
+  restoreFile,
+
+  getPendingUploads,
+  getApprovedUploads,
+  getRejectedUploads,
+  getExpiredUploads,
+
+  getUploadDashboard,
+  getUploadAnalytics,
+
+  getStorageAnalytics,
+  getFileTypeAnalytics,
+
+  searchUploads,
+
+  exportUploadsExcel,
+  exportUploadsPdf,
+
+  getRecentUploads,
+  getLargeFiles,
+
+  bulkApproveUploads,
+  bulkRejectUploads,
+  bulkDeleteUploads,
+
+  getUploadAuditLogs,
+
+  generateUploadUrl,
+  generateDownloadUrl,
+} from "../../controllers/upload/upload.controller";
+
+const router = Router();
+
+/* =====================================
+   DASHBOARD
+===================================== */
+
+router.get(
+  "/dashboard",
+  getUploadDashboard
+);
+
+router.get(
+  "/analytics",
+  getUploadAnalytics
+);
+
+router.get(
+  "/storage-analytics",
+  getStorageAnalytics
+);
+
+router.get(
+  "/file-type-analytics",
+  getFileTypeAnalytics
+);
+
+/* =====================================
+   GENERATE URLS
+===================================== */
+
+router.post(
+  "/generate-upload-url",
+  generateUploadUrl
+);
+
+router.post(
+  "/generate-download-url",
+  generateDownloadUrl
+);
+
+/* =====================================
+   UPLOAD FILES
+===================================== */
+
+router.post(
+  "/single",
+  uploadSingleFile
+);
+
+router.post(
+  "/multiple",
+  uploadMultipleFiles
+);
+
+router.post(
+  "/profile-image",
+  uploadProfileImage
+);
+
+router.post(
+  "/kyc",
+  uploadKycDocument
+);
+
+router.post(
+  "/loan",
+  uploadLoanDocument
+);
+
+router.post(
+  "/bank",
+  uploadBankDocument
+);
+
+/* =====================================
+   ID DOCUMENTS
+===================================== */
+
+router.post(
+  "/pan",
+  uploadPanCard
+);
+
+router.post(
+  "/aadhaar",
+  uploadAadhaarCard
+);
+
+router.post(
+  "/passport",
+  uploadPassport
+);
+
+router.post(
+  "/driving-license",
+  uploadDrivingLicense
+);
+
+/* =====================================
+   BUSINESS DOCUMENTS
+===================================== */
+
+router.post(
+  "/agreement",
+  uploadAgreement
+);
+
+router.post(
+  "/insurance",
+  uploadInsuranceDocument
+);
+
+/* =====================================
+   STATUS
+===================================== */
+
+router.get(
+  "/pending",
+  getPendingUploads
+);
+
+router.get(
+  "/approved",
+  getApprovedUploads
+);
+
+router.get(
+  "/rejected",
+  getRejectedUploads
+);
+
+router.get(
+  "/expired",
+  getExpiredUploads
+);
+
+/* =====================================
+   USER FILES
+===================================== */
+
+router.get(
+  "/user/:userId",
+  getUserUploads
+);
+
+router.get(
+  "/customer/:customerId",
+  getCustomerUploads
+);
+
+router.get(
+  "/dsa/:dsaId",
+  getDsaUploads
+);
+
+router.get(
+  "/partner/:partnerId",
+  getPartnerUploads
+);
+
+/* =====================================
+   FILE ACTIONS
+===================================== */
+
+router.patch(
+  "/:id/verify",
+  verifyUploadedDocument
+);
+
+router.patch(
+  "/:id/reject-document",
+  rejectUploadedDocument
+);
+
+router.patch(
+  "/:id/approve",
+  approveUpload
+);
+
+router.patch(
+  "/:id/reject",
+  rejectUpload
+);
+
+router.patch(
+  "/:id/restore",
+  restoreFile
+);
+
+/* =====================================
+   FILE ACCESS
+===================================== */
+
+router.get(
+  "/:id/download",
+  downloadFile
+);
+
+router.get(
+  "/:id/preview",
+  previewFile
+);
+
+/* =====================================
+   FILE LISTING
+===================================== */
+
+router.get(
+  "/recent",
+  getRecentUploads
+);
+
+router.get(
+  "/large-files",
+  getLargeFiles
+);
+
+router.get(
+  "/search",
+  searchUploads
+);
+
+/* =====================================
+   EXPORTS
+===================================== */
+
+router.get(
+  "/export/excel",
+  exportUploadsExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportUploadsPdf
+);
+
+/* =====================================
+   AUDIT LOGS
+===================================== */
+
+router.get(
+  "/audit-logs",
+  getUploadAuditLogs
+);
+
+/* =====================================
+   CRUD
+===================================== */
+
+router.get(
+  "/",
+  getAllUploads
+);
+
+router.get(
+  "/:id",
+  getUploadById
+);
+
+router.delete(
+  "/:id",
+  deleteFile
+);
+
+/* =====================================
+   BULK ACTIONS
+===================================== */
+
+router.post(
+  "/bulk/approve",
+  bulkApproveUploads
+);
+
+router.post(
+  "/bulk/reject",
+  bulkRejectUploads
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteUploads
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createUser,
+  getUserById,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+
+  getUserProfile,
+  updateProfile,
+
+  verifyUser,
+  blockUser,
+  unblockUser,
+
+  activateUser,
+  deactivateUser,
+
+  getUserDashboard,
+  getUserAnalytics,
+
+  getUserLoans,
+  getUserTransactions,
+  getUserDocuments,
+  getUserKyc,
+
+  getUserWallet,
+  getUserNotifications,
+
+  getUserReferrals,
+  getUserCommissions,
+
+  getUserAchievements,
+  getUserLeaderboardRank,
+
+  uploadProfileImage,
+  removeProfileImage,
+
+  changePassword,
+  resetPassword,
+
+  updateEmail,
+  updatePhone,
+
+  verifyEmail,
+  verifyPhone,
+
+  enableTwoFactorAuth,
+  disableTwoFactorAuth,
+
+  getLoginHistory,
+  getActivityLogs,
+
+  getPendingUsers,
+  getVerifiedUsers,
+  getBlockedUsers,
+  getActiveUsers,
+
+  searchUsers,
+
+  getTopUsers,
+  getNewUsers,
+  getRecentUsers,
+
+  exportUsersExcel,
+  exportUsersPdf,
+
+  getUserAuditLogs,
+
+  bulkVerifyUsers,
+  bulkBlockUsers,
+  bulkUnblockUsers,
+  bulkDeleteUsers,
+} from "../../controllers/user/user.controller";
+
+const router = Router();
+
+/* =====================================
+   DASHBOARD
+===================================== */
+
+router.get("/dashboard", getUserDashboard);
+
+router.get("/analytics", getUserAnalytics);
+
+/* =====================================
+   STATUS
+===================================== */
+
+router.get("/pending", getPendingUsers);
+
+router.get("/verified", getVerifiedUsers);
+
+router.get("/blocked", getBlockedUsers);
+
+router.get("/active", getActiveUsers);
+
+/* =====================================
+   USER LISTS
+===================================== */
+
+router.get("/top-users", getTopUsers);
+
+router.get("/new-users", getNewUsers);
+
+router.get("/recent-users", getRecentUsers);
+
+/* =====================================
+   SEARCH
+===================================== */
+
+router.get("/search", searchUsers);
+
+/* =====================================
+   PROFILE
+===================================== */
+
+router.get("/profile", getUserProfile);
+
+router.put("/profile", updateProfile);
+
+router.post(
+  "/profile/upload-image",
+  uploadProfileImage
+);
+
+router.delete(
+  "/profile/remove-image",
+  removeProfileImage
+);
+
+/* =====================================
+   SECURITY
+===================================== */
+
+router.patch(
+  "/change-password",
+  changePassword
+);
+
+router.patch(
+  "/reset-password",
+  resetPassword
+);
+
+router.patch(
+  "/update-email",
+  updateEmail
+);
+
+router.patch(
+  "/update-phone",
+  updatePhone
+);
+
+router.patch(
+  "/verify-email",
+  verifyEmail
+);
+
+router.patch(
+  "/verify-phone",
+  verifyPhone
+);
+
+router.patch(
+  "/enable-2fa",
+  enableTwoFactorAuth
+);
+
+router.patch(
+  "/disable-2fa",
+  disableTwoFactorAuth
+);
+
+/* =====================================
+   USER RESOURCES
+===================================== */
+
+router.get(
+  "/:userId/loans",
+  getUserLoans
+);
+
+router.get(
+  "/:userId/transactions",
+  getUserTransactions
+);
+
+router.get(
+  "/:userId/documents",
+  getUserDocuments
+);
+
+router.get(
+  "/:userId/kyc",
+  getUserKyc
+);
+
+router.get(
+  "/:userId/wallet",
+  getUserWallet
+);
+
+router.get(
+  "/:userId/notifications",
+  getUserNotifications
+);
+
+router.get(
+  "/:userId/referrals",
+  getUserReferrals
+);
+
+router.get(
+  "/:userId/commissions",
+  getUserCommissions
+);
+
+router.get(
+  "/:userId/achievements",
+  getUserAchievements
+);
+
+router.get(
+  "/:userId/rank",
+  getUserLeaderboardRank
+);
+
+/* =====================================
+   HISTORY
+===================================== */
+
+router.get(
+  "/:userId/login-history",
+  getLoginHistory
+);
+
+router.get(
+  "/:userId/activity-logs",
+  getActivityLogs
+);
+
+/* =====================================
+   USER ACTIONS
+===================================== */
+
+router.patch(
+  "/:id/verify",
+  verifyUser
+);
+
+router.patch(
+  "/:id/block",
+  blockUser
+);
+
+router.patch(
+  "/:id/unblock",
+  unblockUser
+);
+
+router.patch(
+  "/:id/activate",
+  activateUser
+);
+
+router.patch(
+  "/:id/deactivate",
+  deactivateUser
+);
+
+/* =====================================
+   EXPORT
+===================================== */
+
+router.get(
+  "/export/excel",
+  exportUsersExcel
+);
+
+router.get(
+  "/export/pdf",
+  exportUsersPdf
+);
+
+/* =====================================
+   AUDIT
+===================================== */
+
+router.get(
+  "/audit-logs",
+  getUserAuditLogs
+);
+
+/* =====================================
+   CRUD
+===================================== */
+
+router.post("/", createUser);
+
+router.get("/", getAllUsers);
+
+router.get("/:id", getUserById);
+
+router.put("/:id", updateUser);
+
+router.delete("/:id", deleteUser);
+
+/* =====================================
+   BULK ACTIONS
+===================================== */
+
+router.post(
+  "/bulk/verify",
+  bulkVerifyUsers
+);
+
+router.post(
+  "/bulk/block",
+  bulkBlockUsers
+);
+
+router.post(
+  "/bulk/unblock",
+  bulkUnblockUsers
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteUsers
+);
+
+export default router;
+import { Router } from "express";
+
+import {
+  createWallet,
+  getWalletById,
+  getAllWallets,
+  updateWallet,
+  deleteWallet,
+
+  getMyWallet,
+  getWalletBalance,
+
+  creditWallet,
+  debitWallet,
+
+  freezeWallet,
+  unfreezeWallet,
+
+  blockWallet,
+  unblockWallet,
+
+  addMoney,
+  withdrawMoney,
+
+  transferMoney,
+
+  getWalletTransactions,
+  getWalletStatement,
+
+  getPendingWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal,
+
+  getWalletAnalytics,
+  getWalletDashboard,
+
+  getTopWalletUsers,
+  getHighestBalances,
+
+  getDailyWalletReport,
+  getMonthlyWalletReport,
+
+  getWalletRevenue,
+  getWalletCommission,
+
+  getWalletReferrals,
+
+  searchWallets,
+
+  exportWalletExcel,
+  exportWalletPdf,
+
+  getWalletAuditLogs,
+
+  bulkCreditWallets,
+  bulkDebitWallets,
+
+  bulkFreezeWallets,
+  bulkUnfreezeWallets,
+
+  bulkDeleteWallets,
+
+  getLiveWalletActivities,
+
+} from "../../controllers/wallet/wallet.controller";
+
+const router = Router();
+
+/* =====================================
+   DASHBOARD
+===================================== */
+
+router.get("/dashboard", getWalletDashboard);
+
+router.get("/analytics", getWalletAnalytics);
+
+router.get("/live", getLiveWalletActivities);
+
+/* =====================================
+   REPORTS
+===================================== */
+
+router.get("/daily-report", getDailyWalletReport);
+
+router.get("/monthly-report", getMonthlyWalletReport);
+
+router.get("/revenue", getWalletRevenue);
+
+router.get("/commission", getWalletCommission);
+
+router.get("/referrals", getWalletReferrals);
+
+/* =====================================
+   LEADERBOARD
+===================================== */
+
+router.get("/top-users", getTopWalletUsers);
+
+router.get("/highest-balances", getHighestBalances);
+
+/* =====================================
+   MY WALLET
+===================================== */
+
+router.get("/me", getMyWallet);
+
+router.get("/balance", getWalletBalance);
+
+/* =====================================
+   MONEY OPERATIONS
+===================================== */
+
+router.post("/add-money", addMoney);
+
+router.post("/withdraw", withdrawMoney);
+
+router.post("/transfer", transferMoney);
+
+router.patch("/:id/credit", creditWallet);
+
+router.patch("/:id/debit", debitWallet);
+
+/* =====================================
+   WITHDRAWAL
+===================================== */
+
+router.get(
+  "/withdrawals/pending",
+  getPendingWithdrawals
+);
+
+router.patch(
+  "/withdrawals/:id/approve",
+  approveWithdrawal
+);
+
+router.patch(
+  "/withdrawals/:id/reject",
+  rejectWithdrawal
+);
+
+/* =====================================
+   WALLET STATUS
+===================================== */
+
+router.patch("/:id/freeze", freezeWallet);
+
+router.patch("/:id/unfreeze", unfreezeWallet);
+
+router.patch("/:id/block", blockWallet);
+
+router.patch("/:id/unblock", unblockWallet);
+
+/* =====================================
+   TRANSACTIONS
+===================================== */
+
+router.get(
+  "/:walletId/transactions",
+  getWalletTransactions
+);
+
+router.get(
+  "/:walletId/statement",
+  getWalletStatement
+);
+
+/* =====================================
+   SEARCH
+===================================== */
+
+router.get("/search", searchWallets);
+
+/* =====================================
+   EXPORT
+===================================== */
+
+router.get("/export/excel", exportWalletExcel);
+
+router.get("/export/pdf", exportWalletPdf);
+
+/* =====================================
+   AUDIT
+===================================== */
+
+router.get("/audit-logs", getWalletAuditLogs);
+
+/* =====================================
+   CRUD
+===================================== */
+
+router.post("/", createWallet);
+
+router.get("/", getAllWallets);
+
+router.get("/:id", getWalletById);
+
+router.put("/:id", updateWallet);
+
+router.delete("/:id", deleteWallet);
+
+/* =====================================
+   BULK ACTIONS
+===================================== */
+
+router.post(
+  "/bulk/credit",
+  bulkCreditWallets
+);
+
+router.post(
+  "/bulk/debit",
+  bulkDebitWallets
+);
+
+router.post(
+  "/bulk/freeze",
+  bulkFreezeWallets
+);
+
+router.post(
+  "/bulk/unfreeze",
+  bulkUnfreezeWallets
+);
+
+router.post(
+  "/bulk/delete",
+  bulkDeleteWallets
+);
+
+export default router;
+import { Router } from "express";
+
+/* =========================================
+   ROUTES
+========================================= */
+
+import achievementRoutes from "./achievements/achievementRoutes";
+import adminRoutes from "./admin/admin.route";
+import analyticsRoutes from "./analytics/analytics.route";
+import auditRoutes from "./audit/audit.route";
+import authRoutes from "./auth/auth.route";
+import bankRoutes from "./bank/bank.route";
+import bannerRoutes from "./banner/banner.route";
+import blogRoutes from "./blog/blog.route";
+import cmsRoutes from "./cms/cms.route";
+import commissionRoutes from "./commission/commission.route";
+import creditScoreRoutes from "./creditScore/creditScore.route";
+import customerRoutes from "./customer/customer.route";
+import dashboardRoutes from "./dashboard/dashboard.route";
+import documentRoutes from "./document/document.route";
+import dsaRoutes from "./dsa/dsa.route";
+import faqRoutes from "./faq/faq.route";
+import fastagRoutes from "./fastag/fastag.route";
+import insuranceRoutes from "./insurance/insurance.route";
+import investmentRoutes from "./investment/investment.route";
+import kycRoutes from "./kyc/kyc.route";
+import leadRoutes from "./lead/lead.route";
+import leaderboardRoutes from "./leaderboard/leaderboard.route";
+import loanRoutes from "./loan/loan.route";
+import loanStatusHistoryRoutes from "./loanStatusHistory/loanStatusHistory.route";
+import loginHistoryRoutes from "./loginHistory/loginHistory.route";
+import notificationRoutes from "./notification/notification.route";
+import partnerRoutes from "./partner/partner.route";
+import paymentRoutes from "./payment/payment.route";
+import permissionRoutes from "./permission/permission.route";
+import profileRoutes from "./profile/profile.route";
+import rechargeRoutes from "./recharge/recharge.route";
+import referralRoutes from "./referral/referral.route";
+import reportRoutes from "./report/report.route";
+import revenueRoutes from "./revenue/revenue.routes";
+import roleRoutes from "./role/role.route";
+import rolePermissionRoutes from "./rolePermission/rolePermission.route";
+import securityLogRoutes from "./securityLog/securityLog.routes";
+import settingsRoutes from "./settings/settings.route";
+import superAdminRoutes from "./superAdmin/superAdmin.route";
+import supportRoutes from "./support/support.route";
+import systemSettingRoutes from "./systemSetting/systemSetting.routes";
+import transactionRoutes from "./transaction/transaction.route";
+import uploadRoutes from "./upload/upload.route";
+import userRoutes from "./user/user.route";
+import walletRoutes from "./wallet/wallet.route";
+import refreshTokenRoutes from "./refreshToken.routes";
+
+/* =========================================
+   MAIN ROUTER
+========================================= */
+
+const router = Router();
+
+/* =========================================
+   AUTH & USER
+========================================= */
+
+router.use("/auth", authRoutes);
+router.use("/user", userRoutes);
+router.use("/profile", profileRoutes);
+router.use("/refresh-token", refreshTokenRoutes);
+
+/* =========================================
+   LOAN & KYC
+========================================= */
+
+router.use("/loan", loanRoutes);
+router.use("/loan-status-history", loanStatusHistoryRoutes);
+router.use("/kyc", kycRoutes);
+router.use("/document", documentRoutes);
+router.use("/upload", uploadRoutes);
+
+/* =========================================
+   BANKING & PAYMENTS
+========================================= */
+
+router.use("/bank", bankRoutes);
+router.use("/payment", paymentRoutes);
+router.use("/transaction", transactionRoutes);
+router.use("/wallet", walletRoutes);
+router.use("/recharge", rechargeRoutes);
+router.use("/commission", commissionRoutes);
+router.use("/revenue", revenueRoutes);
+
+/* =========================================
+   DSA & PARTNER
+========================================= */
+
+router.use("/dsa", dsaRoutes);
+router.use("/partner", partnerRoutes);
+router.use("/referral", referralRoutes);
+router.use("/lead", leadRoutes);
+
+/* =========================================
+   INSURANCE & INVESTMENT
+========================================= */
+
+router.use("/insurance", insuranceRoutes);
+router.use("/investment", investmentRoutes);
+
+/* =========================================
+   CREDIT & SERVICES
+========================================= */
+
+router.use("/credit-score", creditScoreRoutes);
+router.use("/fastag", fastagRoutes);
+
+/* =========================================
+   NOTIFICATION & SUPPORT
+========================================= */
+
+router.use("/notification", notificationRoutes);
+router.use("/support", supportRoutes);
+router.use("/login-history", loginHistoryRoutes);
+router.use("/security-log", securityLogRoutes);
+
+/* =========================================
+   DASHBOARD & ANALYTICS
+========================================= */
+
+router.use("/dashboard", dashboardRoutes);
+router.use("/analytics", analyticsRoutes);
+router.use("/audit", auditRoutes);
+router.use("/reports", reportRoutes);
+router.use("/leaderboard", leaderboardRoutes);
+
+/* =========================================
+   ADMIN & PERMISSIONS
+========================================= */
+
+router.use("/admin", adminRoutes);
+router.use("/super-admin", superAdminRoutes);
+router.use("/permission", permissionRoutes);
+router.use("/role", roleRoutes);
+router.use("/role-permission", rolePermissionRoutes);
+
+/* =========================================
+   CMS & CONTENT
+========================================= */
+
+router.use("/banner", bannerRoutes);
+router.use("/blog", blogRoutes);
+router.use("/cms", cmsRoutes);
+router.use("/faq", faqRoutes);
+router.use("/settings", settingsRoutes);
+router.use("/system-settings", systemSettingRoutes);
+
+/* =========================================
+   CUSTOMER & ACHIEVEMENTS
+========================================= */
+
+router.use("/customer", customerRoutes);
+router.use("/achievements", achievementRoutes);
+
+export default router;
+import { Router } from "express";
+
+import {
+  refreshAccessToken,
+  revokeRefreshToken,
+  revokeAllTokens,
+  getActiveSessions,
+  refreshTokenAnalytics,
+} from "../controllers/refreshToken/refreshToken.controller";
+
+import authMiddleware from "../middlewares/auth";
+import validation from "../middlewares/validation";
+
+import {
+  rotateRefreshTokenSchema,
+  revokeRefreshTokenSchema,
+} from "../dto/refreshToken/refreshToken.dto";
+
+const router = Router();
+
+/* ============================================================
+   REFRESH TOKEN ROUTES
+   Base URL : /api/refresh-token
+============================================================ */
+
+/**
+ * @route   POST /api/refresh-token/refresh
+ * @desc    Generate new access token using refresh token
+ * @access  Public
+ */
+router.post(
+  "/refresh",
+  validation(rotateRefreshTokenSchema),
+  refreshAccessToken
+);
+
+/**
+ * @route   POST /api/refresh-token/logout
+ * @desc    Logout current device
+ * @access  Private
+ */
+router.post(
+  "/logout",
+  authMiddleware,
+  validation(revokeRefreshTokenSchema),
+  revokeRefreshToken
+);
+
+/**
+ * @route   POST /api/refresh-token/logout-all
+ * @desc    Logout all devices
+ * @access  Private
+ */
+router.post(
+  "/logout-all",
+  authMiddleware,
+  revokeAllTokens
+);
+
+/**
+ * @route   GET /api/refresh-token/sessions
+ * @desc    Get active login sessions
+ * @access  Private
+ */
+router.get(
+  "/sessions",
+  authMiddleware,
+  getActiveSessions
+);
+
+/**
+ * @route   GET /api/refresh-token/analytics
+ * @desc    Get refresh token analytics
+ * @access  Private (Admin check can be added later)
+ */
+router.get(
+  "/analytics",
+  authMiddleware,
+  refreshTokenAnalytics
+);
+
+export default router;

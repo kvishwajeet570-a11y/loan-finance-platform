@@ -1,4 +1,4 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class FaqRepository {
 
@@ -11,10 +11,8 @@ export class FaqRepository {
     answer: string;
     category?: string;
     displayOrder?: number;
-    isFeatured?: boolean;
   }) {
-
-    return prisma.faq.create({
+    return prisma.fAQ.create({
       data
     });
   }
@@ -26,8 +24,7 @@ export class FaqRepository {
   static async getFaqById(
     faqId: string
   ) {
-
-    return prisma.faq.findUnique({
+    return prisma.fAQ.findUnique({
       where: {
         id: faqId
       }
@@ -42,28 +39,24 @@ export class FaqRepository {
     page = 1,
     limit = 20
   ) {
+    const skip = (page - 1) * limit;
 
-    const skip =
-      (page - 1) * limit;
+    const [faqs, total] = await Promise.all([
+      prisma.fAQ.findMany({
+        skip,
+        take: limit,
+        orderBy: [
+          {
+            displayOrder: "asc"
+          },
+          {
+            createdAt: "desc"
+          }
+        ]
+      }),
 
-    const [faqs, total] =
-      await Promise.all([
-
-        prisma.faq.findMany({
-          skip,
-          take: limit,
-          orderBy: [
-            {
-              displayOrder: "asc"
-            },
-            {
-              createdAt: "desc"
-            }
-          ]
-        }),
-
-        prisma.faq.count()
-      ]);
+      prisma.fAQ.count()
+    ]);
 
     return {
       total,
@@ -78,8 +71,7 @@ export class FaqRepository {
   ========================== */
 
   static async getPublishedFaqs() {
-
-    return prisma.faq.findMany({
+    return prisma.fAQ.findMany({
       where: {
         isPublished: true
       },
@@ -96,8 +88,7 @@ export class FaqRepository {
   static async getFaqsByCategory(
     category: string
   ) {
-
-    return prisma.faq.findMany({
+    return prisma.fAQ.findMany({
       where: {
         category,
         isPublished: true
@@ -113,10 +104,8 @@ export class FaqRepository {
   ========================== */
 
   static async getFeaturedFaqs() {
-
-    return prisma.faq.findMany({
+    return prisma.fAQ.findMany({
       where: {
-        isFeatured: true,
         isPublished: true
       }
     });
@@ -129,8 +118,7 @@ export class FaqRepository {
   static async searchFaqs(
     keyword: string
   ) {
-
-    return prisma.faq.findMany({
+    return prisma.fAQ.findMany({
       where: {
         OR: [
           {
@@ -167,11 +155,9 @@ export class FaqRepository {
       answer: string;
       category: string;
       displayOrder: number;
-      isFeatured: boolean;
     }>
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.update({
       where: {
         id: faqId
       },
@@ -186,8 +172,7 @@ export class FaqRepository {
   static async publishFaq(
     faqId: string
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.update({
       where: {
         id: faqId
       },
@@ -204,8 +189,7 @@ export class FaqRepository {
   static async unpublishFaq(
     faqId: string
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.update({
       where: {
         id: faqId
       },
@@ -216,37 +200,25 @@ export class FaqRepository {
   }
 
   /* ==========================
-      FEATURE FAQ
+      FEATURE PLACEHOLDER
   ========================== */
 
   static async markFeatured(
     faqId: string
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.findUnique({
       where: {
         id: faqId
-      },
-      data: {
-        isFeatured: true
       }
     });
   }
 
-  /* ==========================
-      REMOVE FEATURED
-  ========================== */
-
   static async removeFeatured(
     faqId: string
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.findUnique({
       where: {
         id: faqId
-      },
-      data: {
-        isFeatured: false
       }
     });
   }
@@ -258,13 +230,12 @@ export class FaqRepository {
   static async incrementView(
     faqId: string
   ) {
-
-    return prisma.faq.update({
+    return prisma.fAQ.update({
       where: {
         id: faqId
       },
       data: {
-        viewCount: {
+        views: {
           increment: 1
         }
       }
@@ -278,8 +249,7 @@ export class FaqRepository {
   static async deleteFaq(
     faqId: string
   ) {
-
-    return prisma.faq.delete({
+    return prisma.fAQ.delete({
       where: {
         id: faqId
       }
@@ -293,8 +263,7 @@ export class FaqRepository {
   static async bulkDelete(
     faqIds: string[]
   ) {
-
-    return prisma.faq.deleteMany({
+    return prisma.fAQ.deleteMany({
       where: {
         id: {
           in: faqIds
@@ -308,31 +277,22 @@ export class FaqRepository {
   ========================== */
 
   static async getFaqAnalytics() {
-
     const [
       totalFaqs,
       publishedFaqs,
-      featuredFaqs,
       totalViews
     ] = await Promise.all([
+      prisma.fAQ.count(),
 
-      prisma.faq.count(),
-
-      prisma.faq.count({
+      prisma.fAQ.count({
         where: {
           isPublished: true
         }
       }),
 
-      prisma.faq.count({
-        where: {
-          isFeatured: true
-        }
-      }),
-
-      prisma.faq.aggregate({
+      prisma.fAQ.aggregate({
         _sum: {
-          viewCount: true
+          views: true
         }
       })
     ]);
@@ -340,9 +300,8 @@ export class FaqRepository {
     return {
       totalFaqs,
       publishedFaqs,
-      featuredFaqs,
-      totalViews:
-        totalViews._sum.viewCount || 0
+      featuredFaqs: 0,
+      totalViews: totalViews._sum?.views || 0
     };
   }
 
@@ -351,8 +310,7 @@ export class FaqRepository {
   ========================== */
 
   static async getCategories() {
-
-    return prisma.faq.groupBy({
+    return prisma.fAQ.groupBy({
       by: ["category"]
     });
   }

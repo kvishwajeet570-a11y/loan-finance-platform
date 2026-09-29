@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+﻿import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../prisma/prisma";
 
@@ -15,6 +15,7 @@ declare global {
         id: string;
         email: string;
         role: string;
+        permissions: string[];
       };
     }
   }
@@ -53,6 +54,47 @@ const authMiddleware = async (
         role: true,
         isBlocked: true,
         isVerified: true,
+
+        roleRef: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            slug: true,
+            isActive: true,
+            permissions: {
+              where: {
+                permission: {
+                  status: "ACTIVE",
+                },
+              },
+              select: {
+                permission: {
+                  select: {
+                    code: true,
+                    slug: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+
+        userPermissions: {
+          where: {
+            permission: {
+              status: "ACTIVE",
+            },
+          },
+          select: {
+            permission: {
+              select: {
+                code: true,
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -70,10 +112,53 @@ const authMiddleware = async (
       });
     }
 
+    const roleValue = String(
+      user.role || user.roleRef?.code || ""
+    ).toLowerCase();
+
+    /*
+     * Super Admin is the highest authority.
+     * PermissionMiddleware should not accidentally block
+     * Super Admin because of a missing permission record.
+     */
+    if (
+      roleValue === "superadmin" ||
+      roleValue === "super_admin" ||
+      roleValue === "super-admin" ||
+      user.roleRef?.code?.toLowerCase() === "superadmin" ||
+      user.roleRef?.slug?.toLowerCase() === "superadmin"
+    ) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        permissions: ["*"],
+      };
+
+      return next();
+    }
+
+    const rolePermissions =
+      user.roleRef?.permissions?.flatMap((item) => [
+        item.permission.code,
+        ...(item.permission.slug ? [item.permission.slug] : []),
+      ]) || [];
+
+    const userPermissions =
+      user.userPermissions.flatMap((item) => [
+        item.permission.code,
+        ...(item.permission.slug ? [item.permission.slug] : []),
+      ]) || [];
+
+    const permissions = Array.from(
+      new Set([...rolePermissions, ...userPermissions])
+    );
+
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
+      permissions,
     };
 
     next();

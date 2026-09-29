@@ -1,4 +1,4 @@
-import { z } from "zod";
+﻿import { z } from "zod";
 
 /* =========================================
    REGISTER
@@ -95,18 +95,21 @@ export const forgotPasswordSchema = z.object({
 ========================================= */
 
 export const resetPasswordSchema = z.object({
-  token: z.string(),
+  email: z.email(),
+
+  otp: z
+    .string()
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
 
   password: z
     .string()
-    .min(8)
-    .max(50),
+    .min(8, "Password must be at least 8 characters")
+    .max(50, "Password must not exceed 50 characters"),
 
   confirmPassword: z
     .string()
-    .min(8)
-    .max(50),
-
+    .min(8, "Confirm password must be at least 8 characters")
+    .max(50, "Confirm password must not exceed 50 characters"),
 }).refine(
   data => data.password === data.confirmPassword,
   {
@@ -114,20 +117,24 @@ export const resetPasswordSchema = z.object({
     message: "Passwords do not match",
   }
 );
-
 /* =========================================
    CHANGE PASSWORD
 ========================================= */
 
 export const changePasswordSchema = z.object({
-  oldPassword: z.string(),
+  currentPassword: z
+    .string()
+    .min(6, "Current password must be at least 6 characters"),
 
   newPassword: z
     .string()
-    .min(8)
-    .max(50),
+    .min(8, "New password must be at least 8 characters")
+    .max(50, "New password must not exceed 50 characters"),
 
-  confirmPassword: z.string(),
+  confirmPassword: z
+    .string()
+    .min(8, "Confirm password must be at least 8 characters")
+    .max(50, "Confirm password must not exceed 50 characters"),
 }).refine(
   data => data.newPassword === data.confirmPassword,
   {
@@ -141,7 +148,9 @@ export const changePasswordSchema = z.object({
 ========================================= */
 
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(20),
+  refreshToken: z
+    .string()
+    .min(1, "Refresh token is required"),
 });
 
 /* =========================================
@@ -149,37 +158,23 @@ export const refreshTokenSchema = z.object({
 ========================================= */
 
 export const logoutSchema = z.object({
-  refreshToken: z.string(),
+  refreshToken: z
+    .string()
+    .min(1, "Refresh token is required")
+    .optional(),
 });
 
 /* =========================================
-   ACCOUNT VERIFICATION
+   VERIFY ACCOUNT
 ========================================= */
 
 export const verifyAccountSchema = z.object({
-  email: z.email(),
+  email: z.email("Invalid email address"),
 
   otp: z
     .string()
-    .length(6),
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
 });
-
-/* =========================================
-   TYPES
-========================================= */
-
-export type RegisterDto =
-  z.infer<typeof registerSchema>;
-
-export type LoginDto =
-  z.infer<typeof loginSchema>;
-
-export type SendOtpDto =
-  z.infer<typeof sendOtpSchema>;
-
-export type VerifyOtpDto =
-  z.infer<typeof verifyOtpSchema>;
-
 export type ForgotPasswordDto =
   z.infer<typeof forgotPasswordSchema>;
 
@@ -197,3 +192,4 @@ export type LogoutDto =
 
 export type VerifyAccountDto =
   z.infer<typeof verifyAccountSchema>;
+

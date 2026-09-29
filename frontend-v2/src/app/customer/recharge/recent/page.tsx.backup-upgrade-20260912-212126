@@ -1,0 +1,815 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowDownUp,
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  ChevronDown,
+  Clock3,
+  CreditCard,
+  History,
+  LockKeyhole,
+  Menu,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Smartphone,
+  Tv,
+  WalletCards,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import api from "@/lib/api";
+
+type Recharge = {
+  id: string;
+  mobileNumber?: string;
+  operator?: string;
+  amount?: number;
+  rechargeType?: string;
+  status?: string;
+  createdAt?: string;
+  paymentMethod?: string;
+};
+
+type User = {
+  id: string;
+  name?: string;
+  fullName?: string;
+  email?: string;
+};
+
+function unwrap<T = any>(response: any): T {
+  return response?.data?.data ?? response?.data ?? response;
+}
+
+function money(value: number) {
+  return `₹${Number(value || 0).toLocaleString("en-IN")}`;
+}
+
+function dateText(value?: string) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function maskNumber(value?: string) {
+  if (!value) return "—";
+
+  const text = String(value);
+
+  if (text.length <= 4) return text;
+
+  return `${text.slice(0, 2)}••••${text.slice(-4)}`;
+}
+
+function statusKey(value?: string) {
+  return String(value || "").toUpperCase();
+}
+
+function serviceLabel(value?: string) {
+  const type = statusKey(value);
+
+  if (type === "MOBILE") return "Mobile";
+  if (type === "DTH") return "DTH";
+  if (type === "FASTAG") return "FASTag";
+
+  return value || "Recharge";
+}
+
+export default function RechargeHistoryPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [walletBalance, setWalletBalance] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+  const [service, setService] = useState("ALL");
+  const [sortNewest, setSortNewest] = useState(true);
+
+  const [selectedRecharge, setSelectedRecharge] =
+    useState<Recharge | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("loan_finance_user");
+
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  async function loadHistory(showRefresh = false) {
+    try {
+      if (!user?.id) return;
+
+      setError("");
+
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const token = localStorage.getItem("loan_finance_token");
+
+      const config = token
+        ? {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true,
+          }
+        : {
+            withCredentials: true,
+          };
+
+      const [historyResponse, walletResponse] = await Promise.allSettled([
+        api.get(`/recharge/user/${user.id}`, config),
+        api.get("/wallet/balance", config),
+      ]);
+
+      if (historyResponse.status === "fulfilled") {
+        const data = unwrap<Recharge[]>(historyResponse.value);
+
+        setRecharges(Array.isArray(data) ? data : []);
+      } else {
+        setRecharges([]);
+        setError("Unable to load recharge history.");
+      }
+
+      if (walletResponse.status === "fulfilled") {
+        const wallet = unwrap<any>(walletResponse.value);
+
+        setWalletBalance(
+          Number(
+            wallet?.balance ??
+              wallet?.wallet?.balance ??
+              wallet?.data?.balance ??
+              0
+          )
+        );
+      }
+    } catch (err: any) {
+      console.error("Recharge History Error:", err);
+
+      if (err?.response?.status === 401) {
+        setError("Session expired. Please login again.");
+      } else {
+        setError("Unable to load recharge history.");
+      }
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    if (user?.id) {
+      loadHistory();
+    }
+  }, [user?.id]);
+
+  const stats = useMemo(() => {
+    const total = recharges.length;
+
+    const successful = recharges.filter(
+      (item) => statusKey(item.status) === "SUCCESS"
+    ).length;
+
+    const pending = recharges.filter(
+      (item) =>
+        statusKey(item.status) === "PENDING" ||
+        statusKey(item.status) === "PROCESSING"
+    ).length;
+
+    const failed = recharges.filter(
+      (item) =>
+        statusKey(item.status) === "FAILED" ||
+        statusKey(item.status) === "REFUNDED" ||
+        statusKey(item.status) === "CANCELLED"
+    ).length;
+
+    const value = recharges
+      .filter((item) => statusKey(item.status) === "SUCCESS")
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const mobile = recharges.filter(
+      (item) => statusKey(item.rechargeType) === "MOBILE"
+    ).length;
+
+    const dth = recharges.filter(
+      (item) => statusKey(item.rechargeType) === "DTH"
+    ).length;
+
+    const fastag = recharges.filter(
+      (item) => statusKey(item.rechargeType) === "FASTAG"
+    ).length;
+
+    return {
+      total,
+      successful,
+      pending,
+      failed,
+      value,
+      mobile,
+      dth,
+      fastag,
+    };
+  }, [recharges]);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    const list = recharges.filter((item) => {
+      const matchesSearch =
+        !query ||
+        String(item.operator || "").toLowerCase().includes(query) ||
+        String(item.mobileNumber || "").toLowerCase().includes(query) ||
+        String(item.amount || "").includes(query) ||
+        String(item.rechargeType || "").toLowerCase().includes(query);
+
+      const itemStatus = statusKey(item.status);
+      const matchesStatus =
+        status === "ALL" ||
+        (status === "SUCCESS" && itemStatus === "SUCCESS") ||
+        (status === "PENDING" &&
+          (itemStatus === "PENDING" || itemStatus === "PROCESSING")) ||
+        (status === "FAILED" &&
+          ["FAILED", "REFUNDED", "CANCELLED"].includes(itemStatus));
+
+      const itemService = statusKey(item.rechargeType);
+
+      const matchesService =
+        service === "ALL" || itemService === service;
+
+      return matchesSearch && matchesStatus && matchesService;
+    });
+
+    return [...list].sort((a, b) => {
+      const aTime = new Date(a.createdAt || 0).getTime();
+      const bTime = new Date(b.createdAt || 0).getTime();
+
+      return sortNewest ? bTime - aTime : aTime - bTime;
+    });
+  }, [recharges, search, status, service, sortNewest]);
+
+  return (
+    <div className="min-h-screen bg-[#f4f8ff] text-[#10255f]">
+      <main className="mx-auto w-full max-w-[1450px] px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+
+        {/* TOP BAR */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold text-[#7890b8]">
+              <span>Dashboard</span>
+              <span>›</span>
+              <span>Recharge</span>
+              <span>›</span>
+              <span className="text-[#185cff]">Recharge History</span>
+            </div>
+
+            <h1 className="text-2xl font-black tracking-tight text-[#0d2767] sm:text-3xl">
+              Recharge Center
+            </h1>
+
+            <p className="mt-0.5 text-xs text-[#6c82a8]">
+              Manage, search and track all your recharge activity.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/customer/recharge/mobile"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#155dfc] to-[#6935f5] px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5"
+            >
+              <Zap size={14} />
+              New Recharge
+            </Link>
+
+            <button
+              onClick={() => loadHistory(true)}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-xl border border-[#d9e5f6] bg-white px-4 py-2.5 text-xs font-bold text-[#31527f] shadow-sm transition hover:border-[#8db4ff]"
+            >
+              <RefreshCw
+                size={14}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* HERO */}
+        <section className="relative mb-5 overflow-hidden rounded-[28px] border border-[#9cc8ff] bg-gradient-to-br from-[#eef7ff] via-[#dceeff] to-[#eef3ff] p-5 shadow-[0_16px_50px_rgba(45,100,180,.10)] sm:p-7 lg:p-8">
+          <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-blue-300/20 blur-3xl" />
+          <div className="pointer-events-none absolute bottom-[-100px] left-[35%] h-64 w-64 rounded-full bg-cyan-300/15 blur-3xl" />
+
+          <div className="relative grid items-center gap-7 lg:grid-cols-[1fr_390px]">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#c8defa] bg-white/85 px-3 py-1.5 text-[10px] font-black tracking-wide text-[#164ec2] shadow-sm">
+                <ArrowDownUp size={12} />
+                SMART RECHARGE ANALYTICS
+              </div>
+
+              <h2 className="max-w-[700px] text-4xl font-black leading-[.98] tracking-[-1.8px] text-[#0d2d72] sm:text-5xl lg:text-[56px]">
+                Every Recharge.
+                <br />
+                <span className="bg-gradient-to-r from-[#1764ff] via-[#168cff] to-[#7350f5] bg-clip-text text-transparent">
+                  One Smart History.
+                </span>
+              </h2>
+
+              <p className="mt-5 max-w-[650px] text-sm leading-6 text-[#4d668e]">
+                View your complete recharge activity, track status, review
+                spending and quickly repeat your favourite recharge.
+              </p>
+
+              <div className="mt-6 grid max-w-[650px] grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="rounded-2xl border border-[#cfe0f7] bg-white/80 p-3 shadow-sm">
+                  <Zap size={16} className="mb-2 text-[#1d6aff]" />
+                  <div className="text-lg font-black text-[#113578]">
+                    {stats.total}
+                  </div>
+                  <div className="text-[10px] font-bold text-[#7186aa]">
+                    Total
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#cfe0f7] bg-white/80 p-3 shadow-sm">
+                  <CheckCircle2 size={16} className="mb-2 text-emerald-500" />
+                  <div className="text-lg font-black text-[#113578]">
+                    {stats.successful}
+                  </div>
+                  <div className="text-[10px] font-bold text-[#7186aa]">
+                    Successful
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#cfe0f7] bg-white/80 p-3 shadow-sm">
+                  <Clock3 size={16} className="mb-2 text-blue-500" />
+                  <div className="text-lg font-black text-[#113578]">
+                    {stats.pending}
+                  </div>
+                  <div className="text-[10px] font-bold text-[#7186aa]">
+                    Pending
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#cfe0f7] bg-white/80 p-3 shadow-sm">
+                  <span className="mb-2 block text-base font-black text-[#2464e8]">
+                    ₹
+                  </span>
+                  <div className="text-lg font-black text-[#113578]">
+                    {money(stats.value)}
+                  </div>
+                  <div className="text-[10px] font-bold text-[#7186aa]">
+                    Value
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* WALLET HERO CARD */}
+            <div className="rounded-[26px] border border-white/60 bg-gradient-to-br from-[#347cf6] via-[#4969ef] to-[#7334f2] p-5 text-white shadow-[0_18px_45px_rgba(57,91,220,.25)] sm:p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[10px] font-black tracking-wide text-white/75">
+                    WALLET BALANCE
+                  </div>
+
+                  <div className="mt-1 text-3xl font-black">
+                    {money(walletBalance)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <WalletCards size={22} />
+                </div>
+              </div>
+
+              <div className="my-5 h-px bg-white/20" />
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-white/10 p-3 text-center">
+                  <div className="text-lg font-black">{stats.mobile}</div>
+                  <div className="text-[9px] text-white/75">Mobile</div>
+                </div>
+
+                <div className="rounded-xl bg-white/10 p-3 text-center">
+                  <div className="text-lg font-black">{stats.dth}</div>
+                  <div className="text-[9px] text-white/75">DTH</div>
+                </div>
+
+                <div className="rounded-xl bg-white/10 p-3 text-center">
+                  <div className="text-lg font-black">{stats.fastag}</div>
+                  <div className="text-[9px] text-white/75">FASTag</div>
+                </div>
+              </div>
+
+              <Link
+                href="/customer/wallet/balance"
+                className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-[11px] font-black text-[#3154d8] transition hover:bg-blue-50"
+              >
+                Manage Wallet
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* ERROR */}
+        {error && (
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-700">
+            <span>{error}</span>
+
+            <button
+              onClick={() => loadHistory()}
+              className="rounded-lg bg-white px-3 py-1.5 text-[10px] font-black shadow-sm"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* STATS */}
+        <section className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            {
+              title: "TOTAL RECHARGE",
+              value: stats.total,
+              note: "All transactions",
+              icon: <Zap size={17} />,
+              cls: "text-cyan-600 bg-cyan-50 border-cyan-100",
+            },
+            {
+              title: "SUCCESSFUL",
+              value: stats.successful,
+              note: "Completed",
+              icon: <CheckCircle2 size={17} />,
+              cls: "text-emerald-600 bg-emerald-50 border-emerald-100",
+            },
+            {
+              title: "PENDING",
+              value: stats.pending,
+              note: "In progress",
+              icon: <Clock3 size={17} />,
+              cls: "text-amber-600 bg-amber-50 border-amber-100",
+            },
+            {
+              title: "FAILED / REFUND",
+              value: stats.failed,
+              note: "Needs attention",
+              icon: <XCircle size={17} />,
+              cls: "text-red-500 bg-red-50 border-red-100",
+            },
+            {
+              title: "TOTAL VALUE",
+              value: money(stats.value),
+              note: "Successful value",
+              icon: <span className="font-black">₹</span>,
+              cls: "text-violet-600 bg-violet-50 border-violet-100",
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-[22px] border border-[#dce7f5] bg-white p-4 shadow-[0_8px_28px_rgba(47,84,135,.07)]"
+            >
+              <div className="flex items-start justify-between">
+                <div
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl border ${item.cls}`}
+                >
+                  {item.icon}
+                </div>
+
+                <ArrowRight size={13} className="text-[#b2c1d8]" />
+              </div>
+
+              <div className="mt-4 text-[10px] font-black tracking-wide text-[#7085a7]">
+                {item.title}
+              </div>
+
+              <div className="mt-1 text-2xl font-black text-[#102e70]">
+                {item.value}
+              </div>
+
+              <div className="mt-1 text-[10px] text-[#91a2bc]">
+                {item.note}
+              </div>
+            </div>
+          ))}
+        </section>
+
+        {/* FILTERS */}
+        <section className="mb-5 rounded-[24px] border border-[#dce7f5] bg-white p-4 shadow-[0_8px_30px_rgba(47,84,135,.06)] sm:p-5">
+          <div className="mb-4">
+            <div className="text-[10px] font-black tracking-wide text-[#2161e8]">
+              SMART FILTERS
+            </div>
+
+            <h3 className="mt-1 text-xl font-black text-[#102e70]">
+              Find a Recharge
+            </h3>
+          </div>
+
+          <div className="grid gap-3 lg:grid-cols-[1fr_150px_150px_auto]">
+            <div className="relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8da2c0]"
+              />
+
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search operator, number, amount..."
+                className="h-11 w-full rounded-xl border border-[#dbe6f5] bg-[#fbfdff] pl-10 pr-4 text-xs font-semibold text-[#203b70] outline-none transition focus:border-[#6da0ff] focus:ring-4 focus:ring-blue-50"
+              />
+            </div>
+
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="h-11 rounded-xl border border-[#dbe6f5] bg-[#fbfdff] px-3 text-xs font-bold text-[#38557e] outline-none"
+            >
+              <option value="ALL">All Status</option>
+              <option value="SUCCESS">Successful</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed / Refund</option>
+            </select>
+
+            <select
+              value={service}
+              onChange={(e) => setService(e.target.value)}
+              className="h-11 rounded-xl border border-[#dbe6f5] bg-[#fbfdff] px-3 text-xs font-bold text-[#38557e] outline-none"
+            >
+              <option value="ALL">All Services</option>
+              <option value="MOBILE">Mobile</option>
+              <option value="DTH">DTH</option>
+              <option value="FASTAG">FASTag</option>
+            </select>
+
+            <button
+              onClick={() => setSortNewest((value) => !value)}
+              className="flex h-11 items-center justify-center gap-2 rounded-xl border border-[#dbe6f5] bg-[#fbfdff] px-4 text-xs font-black text-[#38557e] transition hover:border-[#7da9ff]"
+            >
+              <ArrowDownUp size={14} />
+              {sortNewest ? "Newest" : "Oldest"}
+            </button>
+          </div>
+        </section>
+
+        {/* HISTORY */}
+        <section className="rounded-[26px] border border-[#dce7f5] bg-white shadow-[0_8px_30px_rgba(47,84,135,.06)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edf2f8] px-5 py-4 sm:px-6">
+            <div>
+              <h3 className="text-lg font-black text-[#102e70]">
+                Recharge History
+              </h3>
+              <p className="text-[10px] text-[#8295b3]">
+                {filtered.length} recharge
+                {filtered.length === 1 ? "" : "s"} found
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] font-bold text-[#7890b2]">
+              <History size={14} />
+              Digital history
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((item) => (
+                <div
+                  key={item}
+                  className="h-28 animate-pulse rounded-2xl bg-[#f0f5fb]"
+                />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex min-h-[300px] flex-col items-center justify-center px-6 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-[#3474ed]">
+                <History size={28} />
+              </div>
+
+              <h4 className="mt-4 text-lg font-black text-[#17366f]">
+                No recharge found
+              </h4>
+
+              <p className="mt-1 max-w-sm text-xs leading-5 text-[#8295b3]">
+                Your recharge activity will appear here after you complete a
+                recharge.
+              </p>
+
+              <Link
+                href="/customer/recharge/mobile"
+                className="mt-5 flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#155dfc] to-[#6b35f4] px-5 py-2.5 text-xs font-black text-white shadow-lg shadow-blue-100"
+              >
+                Start New Recharge
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-[#edf2f8]">
+              {filtered.map((item) => {
+                const currentStatus = statusKey(item.status);
+
+                const success = currentStatus === "SUCCESS";
+                const pending =
+                  currentStatus === "PENDING" ||
+                  currentStatus === "PROCESSING";
+
+                const serviceType = statusKey(item.rechargeType);
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setSelectedRecharge(item)}
+                    className="group flex w-full flex-col gap-4 px-5 py-4 text-left transition hover:bg-[#f8fbff] sm:flex-row sm:items-center sm:px-6"
+                  >
+                    <div
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${
+                        serviceType === "MOBILE"
+                          ? "bg-blue-50 text-blue-600"
+                          : serviceType === "DTH"
+                          ? "bg-violet-50 text-violet-600"
+                          : "bg-emerald-50 text-emerald-600"
+                      }`}
+                    >
+                      {serviceType === "MOBILE" ? (
+                        <Smartphone size={20} />
+                      ) : serviceType === "DTH" ? (
+                        <Tv size={20} />
+                      ) : (
+                        <CreditCard size={20} />
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-black text-[#17366f]">
+                          {item.operator || serviceLabel(item.rechargeType)}
+                        </span>
+
+                        <span className="rounded-full bg-[#eef4ff] px-2 py-1 text-[9px] font-black text-[#4770ad]">
+                          {serviceLabel(item.rechargeType)}
+                        </span>
+                      </div>
+
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-[#8194b1]">
+                        <span>{maskNumber(item.mobileNumber)}</span>
+                        <span>•</span>
+                        <span>{dateText(item.createdAt)}</span>
+                        {item.paymentMethod && (
+                          <>
+                            <span>•</span>
+                            <span>{item.paymentMethod}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-5 sm:justify-end">
+                      <div className="text-right">
+                        <div className="text-base font-black text-[#132f6e]">
+                          {money(Number(item.amount || 0))}
+                        </div>
+
+                        <span
+                          className={`mt-1 inline-flex rounded-full px-2 py-1 text-[9px] font-black ${
+                            success
+                              ? "bg-emerald-50 text-emerald-600"
+                              : pending
+                              ? "bg-amber-50 text-amber-600"
+                              : "bg-red-50 text-red-500"
+                          }`}
+                        >
+                          {success
+                            ? "Success"
+                            : pending
+                            ? "Pending"
+                            : "Failed / Refund"}
+                        </span>
+                      </div>
+
+                      <ArrowRight
+                        size={16}
+                        className="text-[#b3c2d8] transition group-hover:translate-x-1 group-hover:text-[#2865e9]"
+                      />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* FOOTER */}
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-[9px] font-bold text-[#8da0bb]">
+          <span className="flex items-center gap-1.5">
+            <LockKeyhole size={11} />
+            Secure Payments
+          </span>
+
+          <span>•</span>
+
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={11} />
+            Trusted Platform
+          </span>
+
+          <span>•</span>
+
+          <span>Made in India 🇮🇳</span>
+        </div>
+      </main>
+
+      {/* DETAILS MODAL */}
+      {selectedRecharge && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#10285f]/25 p-4 backdrop-blur-sm"
+          onClick={() => setSelectedRecharge(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-[26px] border border-[#dbe7f7] bg-white shadow-[0_30px_100px_rgba(20,50,100,.22)]"
+          >
+            <div className="bg-gradient-to-r from-[#1664f8] to-[#6938ef] p-5 text-white">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="text-[10px] font-black tracking-wide text-white/75">
+                    RECHARGE DETAILS
+                  </div>
+
+                  <div className="mt-1 text-xl font-black">
+                    {money(Number(selectedRecharge.amount || 0))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedRecharge(null)}
+                  className="rounded-xl bg-white/15 p-2 hover:bg-white/25"
+                >
+                  <X size={17} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 p-5">
+              {[
+                ["Service", serviceLabel(selectedRecharge.rechargeType)],
+                ["Operator", selectedRecharge.operator || "—"],
+                ["Number / ID", selectedRecharge.mobileNumber || "—"],
+                ["Amount", money(Number(selectedRecharge.amount || 0))],
+                ["Status", selectedRecharge.status || "—"],
+                ["Payment", selectedRecharge.paymentMethod || "Wallet"],
+                ["Date", dateText(selectedRecharge.createdAt)],
+                ["Transaction ID", selectedRecharge.id],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-4 rounded-xl bg-[#f7faff] px-4 py-3"
+                >
+                  <span className="text-[10px] font-semibold text-[#8093b0]">
+                    {label}
+                  </span>
+
+                  <span className="max-w-[60%] truncate text-right text-[11px] font-black text-[#17366f]">
+                    {value}
+                  </span>
+                </div>
+              ))}
+
+              <button
+                onClick={() => setSelectedRecharge(null)}
+                className="mt-2 w-full rounded-xl bg-gradient-to-r from-[#155dfc] to-[#6935f5] py-3 text-xs font-black text-white"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,297 +1,295 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class PermissionRepository {
+  /* =========================================
+     CREATE
+  ========================================= */
 
-  /* =========================
-      CREATE PERMISSION
-  ========================= */
-
-  static async createPermission(data: {
+  static async create(data: {
     name: string;
     code: string;
     module: string;
+    action: string;
     description?: string;
+    slug?: string;
+    status?: string;
   }) {
-
     return prisma.permission.create({
-      data
-    });
-  }
-
-  /* =========================
-      GET PERMISSION BY ID
-  ========================= */
-
-  static async getPermissionById(
-    id: string
-  ) {
-
-    return prisma.permission.findUnique({
-      where: { id }
-    });
-  }
-
-  /* =========================
-      GET PERMISSION BY CODE
-  ========================= */
-
-  static async getPermissionByCode(
-    code: string
-  ) {
-
-    return prisma.permission.findUnique({
-      where: { code }
-    });
-  }
-
-  /* =========================
-      GET ALL PERMISSIONS
-  ========================= */
-
-  static async getAllPermissions() {
-
-    return prisma.permission.findMany({
-
-      orderBy: {
-        module: "asc"
-      }
-    });
-  }
-
-  /* =========================
-      GET MODULE PERMISSIONS
-  ========================= */
-
-  static async getModulePermissions(
-    module: string
-  ) {
-
-    return prisma.permission.findMany({
-
-      where: {
-        module
-      }
-    });
-  }
-
-  /* =========================
-      UPDATE PERMISSION
-  ========================= */
-
-  static async updatePermission(
-    id: string,
-    data: Partial<{
-      name: string;
-      code: string;
-      module: string;
-      description: string;
-    }>
-  ) {
-
-    return prisma.permission.update({
-
-      where: {
-        id
+      data: {
+        name: data.name,
+        code: data.code,
+        module: data.module,
+        action: data.action,
+        description: data.description,
+        slug: data.slug,
+        status: data.status ?? "ACTIVE",
       },
-
-      data
     });
   }
 
-  /* =========================
-      DELETE PERMISSION
-  ========================= */
+  /* =========================================
+     GET BY ID
+  ========================================= */
 
-  static async deletePermission(
-    id: string
+  static async findById(id: string) {
+    return prisma.permission.findUnique({
+      where: { id },
+      include: {
+        rolePermissions: true,
+        userPermissions: true,
+      },
+    });
+  }
+
+  /* =========================================
+     GET BY CODE
+  ========================================= */
+
+  static async findByCode(code: string) {
+    return prisma.permission.findUnique({
+      where: { code },
+    });
+  }
+
+  /* =========================================
+     GET BY SLUG
+  ========================================= */
+
+  static async findBySlug(slug: string) {
+    return prisma.permission.findUnique({
+      where: { slug },
+    });
+  }
+
+  /* =========================================
+     GET ALL
+  ========================================= */
+
+  static async findAll() {
+    return prisma.permission.findMany({
+      include: {
+        rolePermissions: true,
+        userPermissions: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* =========================================
+     UPDATE
+  ========================================= */
+
+  static async update(
+    id: string,
+    data: {
+      name?: string;
+      code?: string;
+      module?: string;
+      action?: string;
+      description?: string;
+      slug?: string;
+      status?: string;
+    }
   ) {
+    return prisma.permission.update({
+      where: { id },
+      data,
+    });
+  }
+
+  /* =========================================
+     DELETE
+  ========================================= */
+
+  static async delete(id: string) {
+    await prisma.rolePermission.deleteMany({
+      where: {
+        permissionId: id,
+      },
+    });
+
+    await prisma.userPermission.deleteMany({
+      where: {
+        permissionId: id,
+      },
+    });
 
     return prisma.permission.delete({
-      where: { id }
+      where: { id },
     });
   }
 
-  /* =========================
-      ASSIGN ROLE PERMISSION
-  ========================= */
+  /* =========================================
+     SEARCH
+  ========================================= */
+
+  static async search(keyword: string) {
+    return prisma.permission.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: keyword,
+            },
+          },
+          {
+            code: {
+              contains: keyword,
+            },
+          },
+          {
+            module: {
+              contains: keyword,
+            },
+          },
+          {
+            action: {
+              contains: keyword,
+            },
+          },
+        ],
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* =========================================
+     ROLE PERMISSIONS
+  ========================================= */
 
   static async assignPermissionToRole(
     role: string,
     permissionId: string
   ) {
-
     return prisma.rolePermission.create({
-
       data: {
-        role,
-        permissionId
-      }
+        roleId: role,
+        permissionId,
+      },
     });
   }
-
-  /* =========================
-      REMOVE ROLE PERMISSION
-  ========================= */
 
   static async removePermissionFromRole(
     role: string,
     permissionId: string
   ) {
-
     return prisma.rolePermission.deleteMany({
-
       where: {
-        role,
-        permissionId
-      }
-    });
-  }
-
-  /* =========================
-      ROLE PERMISSIONS
-  ========================= */
-
-  static async getRolePermissions(
-    role: string
-  ) {
-
-    return prisma.rolePermission.findMany({
-
-      where: {
-        role
+        roleId: role,
+        permissionId,
       },
-
-      include: {
-        permission: true
-      }
     });
   }
 
-  /* =========================
-      CHECK ROLE PERMISSION
-  ========================= */
-
-  static async hasPermission(
-    role: string,
-    code: string
-  ) {
-
-    const permission =
-      await prisma.rolePermission.findFirst({
-
-        where: {
-
-          role,
-
-          permission: {
-            code
-          }
-        },
-
-        include: {
-          permission: true
-        }
-      });
-
-    return !!permission;
+  static async getRolePermissions(role: string) {
+    return prisma.rolePermission.findMany({
+      where: {
+        roleId: role,
+      },
+      include: {
+        permission: true,
+      },
+    });
   }
 
-  /* =========================
-      BULK ASSIGN
-  ========================= */
+  /* =========================================
+     USER PERMISSIONS
+  ========================================= */
+
+  static async assignPermissionToUser(
+    userId: string,
+    permissionId: string
+  ) {
+    return prisma.userPermission.create({
+      data: {
+        userId,
+        permissionId,
+      },
+    });
+  }
+
+  static async removePermissionFromUser(
+    userId: string,
+    permissionId: string
+  ) {
+    return prisma.userPermission.deleteMany({
+      where: {
+        userId,
+        permissionId,
+      },
+    });
+  }
+
+  static async getUserPermissions(userId: string) {
+    return prisma.userPermission.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        permission: true,
+      },
+    });
+  }
+
+  /* =========================================
+     BULK ASSIGN
+  ========================================= */
 
   static async bulkAssignPermissions(
     role: string,
     permissionIds: string[]
   ) {
-
     return prisma.rolePermission.createMany({
-
-      data:
-        permissionIds.map(id => ({
-          role,
-          permissionId: id
-        })),
-
-      skipDuplicates: true
+      data: permissionIds.map((permissionId) => ({
+        roleId: role,
+        permissionId,
+      })),
+      skipDuplicates: true,
     });
   }
 
-  /* =========================
-      GET ROLES
-  ========================= */
+  /* =========================================
+     MODULE PERMISSIONS
+  ========================================= */
 
-  static async getRoles() {
-
-    return [
-
-      "SUPER_ADMIN",
-      "ADMIN",
-      "EMPLOYEE",
-      "DSA",
-      "PARTNER",
-      "CUSTOMER"
-    ];
-  }
-
-  /* =========================
-      SEARCH PERMISSIONS
-  ========================= */
-
-  static async searchPermissions(
-    keyword: string
+  static async getModulePermissions(
+    module: string
   ) {
-
     return prisma.permission.findMany({
-
       where: {
-
-        OR: [
-
-          {
-            name: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            code: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            module: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      }
+        module,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   }
 
-  /* =========================
-      PERMISSION ANALYTICS
-  ========================= */
+  /* =========================================
+     ANALYTICS
+  ========================================= */
 
   static async getAnalytics() {
-
     const [
       totalPermissions,
-      totalRolePermissions
+      totalRolePermissions,
+      totalUserPermissions,
     ] = await Promise.all([
-
       prisma.permission.count(),
-
-      prisma.rolePermission.count()
+      prisma.rolePermission.count(),
+      prisma.userPermission.count(),
     ]);
 
     return {
       totalPermissions,
-      totalRolePermissions
+      totalRolePermissions,
+      totalUserPermissions,
     };
   }
 }
+
+export default PermissionRepository;

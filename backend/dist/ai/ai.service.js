@@ -1,22 +1,31 @@
 "use strict";
 // src/services/ai/ai.service.ts
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIService = void 0;
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = __importDefault(require("../prisma/prisma"));
 class AIService {
     async getDashboardInsights() {
         const [totalUsers, totalLoans, approvedLoans, rejectedLoans, pendingLoans,] = await Promise.all([
-            prisma.user.count(),
-            prisma.loanApplication.count(),
-            prisma.loanApplication.count({
-                where: { status: "approved" },
+            prisma_1.default.user.count(),
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.APPROVED,
+                },
             }),
-            prisma.loanApplication.count({
-                where: { status: "rejected" },
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.REJECTED,
+                },
             }),
-            prisma.loanApplication.count({
-                where: { status: "pending" },
+            prisma_1.default.loanApplication.count({
+                where: {
+                    status: client_1.LoanStatus.PENDING,
+                },
             }),
         ]);
         const approvalRate = totalLoans > 0
@@ -40,9 +49,11 @@ class AIService {
         };
     }
     async getTopLoanTypes() {
-        const loans = await prisma.loanApplication.groupBy({
+        const loans = await prisma_1.default.loanApplication.groupBy({
             by: ["loanType"],
-            _count: true,
+            _count: {
+                loanType: true,
+            },
             orderBy: {
                 _count: {
                     loanType: "desc",
@@ -52,20 +63,21 @@ class AIService {
         return loans;
     }
     async getRevenuePrediction() {
-        const approved = await prisma.loanApplication.findMany({
+        const approvedLoans = await prisma_1.default.loanApplication.findMany({
             where: {
-                status: "approved",
+                status: client_1.LoanStatus.APPROVED,
             },
             select: {
                 amount: true,
             },
         });
-        const totalAmount = approved.reduce((sum, item) => sum + Number(item.amount), 0);
+        const totalAmount = approvedLoans.reduce((sum, loan) => sum + Number(loan.amount), 0);
         const estimatedRevenue = totalAmount * 0.015;
+        const nextMonthForecast = estimatedRevenue * 1.12;
         return {
             totalDisbursed: totalAmount,
             estimatedRevenue,
-            nextMonthForecast: estimatedRevenue * 1.12,
+            nextMonthForecast,
         };
     }
 }

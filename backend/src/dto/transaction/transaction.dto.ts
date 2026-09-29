@@ -107,9 +107,7 @@ export const createTransactionSchema =
       .min(2)
       .max(1000),
 
-    metadata:
-      z.record(z.any())
-      .optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   });
 
 /* =========================================
@@ -136,16 +134,15 @@ export const updateTransactionStatusSchema =
 
 export const refundTransactionSchema =
   z.object({
-    transactionId:
-      z.string().cuid(),
+    transactionId: z.string().cuid(),
 
-    refundAmount:
-      z.number().positive(),
+    refundAmount: z.number().positive(),
 
-    reason:
+    reason: z.string().min(5).max(1000),
+
+    refundedBy:
       z.string()
-      .min(5)
-      .max(1000),
+      .optional(),
   });
 
 /* =========================================
@@ -174,52 +171,37 @@ export const settlementRequestSchema =
 
 export const transactionFilterSchema =
   z.object({
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
+    userId: z.string().cuid().optional(),
 
-    transactionType:
-      transactionTypeEnum
-      .optional(),
+    type:
+      transactionTypeEnum.optional(),
 
     category:
-      transactionCategoryEnum
-      .optional(),
+      transactionCategoryEnum.optional(),
 
     status:
-      transactionStatusEnum
-      .optional(),
+      transactionStatusEnum.optional(),
 
-    paymentMode:
-      paymentModeEnum
-      .optional(),
+    paymentMethod:
+      paymentModeEnum.optional(),
 
     startDate:
-      z.string()
-      .optional(),
+      z.string().optional(),
 
     endDate:
-      z.string()
-      .optional(),
+      z.string().optional(),
 
     minAmount:
-      z.number()
-      .optional(),
+      z.number().optional(),
 
     maxAmount:
-      z.number()
-      .optional(),
+      z.number().optional(),
 
     page:
-      z.coerce.number()
-      .default(1),
+      z.coerce.number().default(1),
 
     limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
+      z.coerce.number().min(1).max(100).default(20),
   });
 
 /* =========================================
@@ -294,3 +276,46 @@ export type TransactionAnalyticsDto =
   z.infer<
     typeof transactionAnalyticsSchema
   >;
+
+  /* =========================================
+   EXTRA DTO TYPES
+========================================= */
+
+export type UpdateTransactionDto = Partial<CreateTransactionDto>;
+
+export type SearchTransactionDto = TransactionFilterDto;
+
+export interface ApproveTransactionDto {
+  approvedBy: string;
+}
+
+export interface VerifyTransactionDto {
+  verifiedBy: string;
+}
+
+export interface RejectTransactionDto {
+  rejectedBy: string;
+  rejectReason: string;
+}
+
+export interface BulkApproveTransactionDto {
+  ids: string[];
+  approvedBy: string;
+}
+
+export interface BulkRejectTransactionDto {
+  ids: string[];
+  rejectedBy: string;
+  rejectReason: string;
+}
+
+export interface BulkRefundTransactionDto {
+  ids: string[];
+  refundedBy: string;
+  refundAmount?: number;
+  refundReason?: string;
+}
+
+export interface BulkDeleteTransactionDto {
+  ids: string[];
+}

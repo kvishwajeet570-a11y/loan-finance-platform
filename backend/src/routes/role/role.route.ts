@@ -36,7 +36,7 @@ import {
   searchRoles,
 
   getRoleDashboard,
-  getRoleAnalytics,
+  roleAnalytics,
 
   getRoleHierarchy,
 
@@ -58,7 +58,7 @@ const router = Router();
 
 router.get("/dashboard", getRoleDashboard);
 
-router.get("/analytics", getRoleAnalytics);
+router.get("/analytics", roleAnalytics);
 
 router.get("/hierarchy", getRoleHierarchy);
 

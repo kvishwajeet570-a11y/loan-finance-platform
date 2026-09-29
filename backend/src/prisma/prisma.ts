@@ -1,58 +1,21 @@
-import { PrismaClient } from "@prisma/client";
-
-
-/* ========================================
-   GLOBAL PRISMA CLIENT
-======================================== */
+﻿import { PrismaClient } from "@prisma/client";
 
 declare global {
-
-  var prisma:
-    PrismaClient | undefined;
-
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
 }
 
-
-/* ========================================
-   PREVENT MULTIPLE CONNECTIONS
-======================================== */
-
-const prisma =
-  global.prisma ||
-
+const prisma: PrismaClient =
+  global.prisma ??
   new PrismaClient({
-
-    log: [
-
-      "query",
-
-      "info",
-
-      "warn",
-
-      "error",
-
-    ],
-
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "info", "warn", "error"]
+        : ["error"],
   });
 
-
-/* ========================================
-   SAVE GLOBAL INSTANCE
-======================================== */
-
-if (
-  process.env.NODE_ENV !==
-  "production"
-) {
-
+if (process.env.NODE_ENV !== "production") {
   global.prisma = prisma;
-
 }
-
-
-/* ========================================
-   EXPORT
-======================================== */
 
 export default prisma;

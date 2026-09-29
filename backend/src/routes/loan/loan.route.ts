@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 import {
   applyLoan,
@@ -7,20 +7,62 @@ import {
   approveLoan,
   rejectLoan,
   deleteLoan,
+  assignLoan,
+  startLoanApplication,
+  updateLoanApplication,
 } from "../../controllers/loan/loan.controller";
+
+import authMiddleware, { optionalAuthMiddleware } from "../../middlewares/auth";
+import adminMiddleware from "../../middlewares/admin";
 
 const router = Router();
 
+// Customer: Apply Loan
 router.post("/", applyLoan);
 
+// Public / DSA: Start loan application
+router.post("/start", optionalAuthMiddleware, startLoanApplication);
+
+// Existing loan listing/details
 router.get("/", getAllLoans);
+
+// DSA / Customer: Update existing loan application
+router.patch("/:id", updateLoanApplication);
 
 router.get("/:id", getSingleLoan);
 
-router.patch("/:id/approve", approveLoan);
+// Admin: Approve Loan
+router.patch(
+  "/:id/approve",
+  authMiddleware,
+  adminMiddleware,
+  approveLoan
+);
 
-router.patch("/:id/reject", rejectLoan);
+// Admin: Reject Loan
+router.patch(
+  "/:id/reject",
+  authMiddleware,
+  adminMiddleware,
+  rejectLoan
+);
 
-router.delete("/:id", deleteLoan);
+// Admin: Delete Loan
+router.delete(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  deleteLoan
+);
+
+// Admin: Assign Loan to DSA
+router.patch(
+  "/:id/assign",
+  authMiddleware,
+  adminMiddleware,
+  assignLoan
+);
 
 export default router;
+
+

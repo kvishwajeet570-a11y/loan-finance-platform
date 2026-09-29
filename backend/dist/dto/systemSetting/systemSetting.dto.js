@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.systemSettingAnalyticsSchema = exports.systemSettingFilterSchema = exports.apiRateLimitSchema = exports.commissionEngineConfigurationSchema = exports.loanEngineConfigurationSchema = exports.securityConfigurationSchema = exports.authConfigurationSchema = exports.maintenanceConfigurationSchema = exports.systemFeatureFlagSchema = exports.bulkUpdateSystemSettingSchema = exports.updateSystemSettingSchema = exports.createSystemSettingSchema = exports.systemSettingTypeEnum = exports.systemSettingCategoryEnum = void 0;
+exports.systemSettingAnalyticsSchema = exports.systemSettingFilterSchema = exports.apiRateLimitSchema = exports.commissionEngineConfigurationSchema = exports.loanEngineConfigurationSchema = exports.systemSecurityConfigurationSchema = exports.authConfigurationSchema = exports.maintenanceConfigurationSchema = exports.systemFeatureFlagSchema = exports.bulkUpdateSystemSettingSchema = exports.updateSystemSettingSchema = exports.createSystemSettingSchema = exports.systemSettingTypeEnum = exports.systemSettingCategoryEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    SYSTEM SETTING CATEGORY
@@ -35,37 +35,57 @@ exports.systemSettingTypeEnum = zod_1.z.enum([
 ========================================= */
 exports.createSystemSettingSchema = zod_1.z.object({
     category: exports.systemSettingCategoryEnum,
-    key: zod_1.z.string()
-        .min(2)
-        .max(100),
+    key: zod_1.z
+        .string()
+        .min(2, "Key must be at least 2 characters")
+        .max(100, "Key cannot exceed 100 characters"),
     value: zod_1.z.any(),
-    valueType: exports.systemSettingTypeEnum,
-    description: zod_1.z.string()
+    dataType: exports.systemSettingTypeEnum,
+    description: zod_1.z
+        .string()
         .max(1000)
         .optional(),
-    isEditable: zod_1.z.boolean()
+    isEditable: zod_1.z
+        .boolean()
         .default(true),
-    isEncrypted: zod_1.z.boolean()
-        .default(false),
-    requiresRestart: zod_1.z.boolean()
+    isEncrypted: zod_1.z
+        .boolean()
         .default(false),
 });
 /* =========================================
    UPDATE SYSTEM SETTING
 ========================================= */
 exports.updateSystemSettingSchema = zod_1.z.object({
-    settingId: zod_1.z.string().cuid(),
-    value: zod_1.z.any(),
-    description: zod_1.z.string()
+    key: zod_1.z
+        .string()
+        .min(2)
+        .max(100),
+    value: zod_1.z
+        .any()
+        .optional(),
+    description: zod_1.z
+        .string()
         .max(1000)
         .optional(),
+    isEditable: zod_1.z
+        .boolean()
+        .optional(),
+    isEncrypted: zod_1.z
+        .boolean()
+        .optional(),
+    dataType: exports.systemSettingTypeEnum.optional(),
+    category: exports.systemSettingCategoryEnum.optional(),
 });
 /* =========================================
    BULK UPDATE
 ========================================= */
 exports.bulkUpdateSystemSettingSchema = zod_1.z.object({
-    settings: zod_1.z.array(zod_1.z.object({
-        settingId: zod_1.z.string().cuid(),
+    settings: zod_1.z
+        .array(zod_1.z.object({
+        key: zod_1.z
+            .string()
+            .min(2)
+            .max(100),
         value: zod_1.z.any(),
     }))
         .min(1),
@@ -76,7 +96,8 @@ exports.bulkUpdateSystemSettingSchema = zod_1.z.object({
 exports.systemFeatureFlagSchema = zod_1.z.object({
     key: zod_1.z.string(),
     enabled: zod_1.z.boolean(),
-    rolloutPercentage: zod_1.z.number()
+    rolloutPercentage: zod_1.z
+        .number()
         .min(0)
         .max(100)
         .default(100),
@@ -86,12 +107,9 @@ exports.systemFeatureFlagSchema = zod_1.z.object({
 ========================================= */
 exports.maintenanceConfigurationSchema = zod_1.z.object({
     enabled: zod_1.z.boolean(),
-    title: zod_1.z.string()
-        .optional(),
-    message: zod_1.z.string()
-        .optional(),
-    expectedRestoreTime: zod_1.z.string()
-        .optional(),
+    title: zod_1.z.string().optional(),
+    message: zod_1.z.string().optional(),
+    expectedRestoreTime: zod_1.z.string().optional(),
 });
 /* =========================================
    AUTH CONFIG
@@ -107,7 +125,7 @@ exports.authConfigurationSchema = zod_1.z.object({
 /* =========================================
    SECURITY CONFIG
 ========================================= */
-exports.securityConfigurationSchema = zod_1.z.object({
+exports.systemSecurityConfigurationSchema = zod_1.z.object({
     passwordMinLength: zod_1.z.number().positive(),
     passwordRequireUppercase: zod_1.z.boolean(),
     passwordRequireLowercase: zod_1.z.boolean(),
@@ -145,21 +163,16 @@ exports.apiRateLimitSchema = zod_1.z.object({
    FILTER
 ========================================= */
 exports.systemSettingFilterSchema = zod_1.z.object({
-    category: exports.systemSettingCategoryEnum
-        .optional(),
-    key: zod_1.z.string()
-        .optional(),
-    page: zod_1.z.coerce.number()
-        .default(1),
-    limit: zod_1.z.coerce.number()
-        .min(1)
-        .max(100)
-        .default(20),
+    category: exports.systemSettingCategoryEnum.optional(),
+    key: zod_1.z.string().optional(),
+    search: zod_1.z.string().optional(),
+    page: zod_1.z.coerce.number().default(1),
+    limit: zod_1.z.coerce.number().min(1).max(100).default(20),
 });
 /* =========================================
    ANALYTICS
 ========================================= */
 exports.systemSettingAnalyticsSchema = zod_1.z.object({
-    startDate: zod_1.z.string(),
-    endDate: zod_1.z.string(),
+    startDate: zod_1.z.string().optional(),
+    endDate: zod_1.z.string().optional(),
 });

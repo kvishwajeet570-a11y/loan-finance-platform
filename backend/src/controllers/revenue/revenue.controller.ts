@@ -3,8 +3,7 @@ import {
   Response,
 } from "express";
 
-import prisma
-from "../prisma/prisma";
+import prisma from "../../config/database/prisma";
 
 /* ========================================
    GET REVENUE ANALYTICS
@@ -34,7 +33,7 @@ export const getRevenueAnalytics =
         await prisma.loanApplication.count({
 
           where: {
-            status: "approved",
+            status: "APPROVED",
           },
 
         });
@@ -45,7 +44,7 @@ export const getRevenueAnalytics =
         await prisma.loanApplication.count({
 
           where: {
-            status: "pending",
+            status: "PENDING",
           },
 
         });

@@ -1,229 +1,401 @@
 import { z } from "zod";
 
 /* =========================================
-   REFERRAL TYPE
-========================================= */
-
-export const referralTypeEnum = z.enum([
-  "CUSTOMER",
-  "DSA",
-  "PARTNER",
-  "EMPLOYEE",
-  "CAMPAIGN",
-]);
-
-/* =========================================
-   REFERRAL STATUS
+   ENUMS
 ========================================= */
 
 export const referralStatusEnum = z.enum([
-  "INVITED",
-  "REGISTERED",
-  "KYC_COMPLETED",
-  "LOAN_APPLIED",
-  "LOAN_APPROVED",
-  "LOAN_DISBURSED",
-  "REWARDED",
+  "PENDING",
+  "APPROVED",
   "REJECTED",
+  "REWARDED",
+  "PAID",
   "EXPIRED",
+  "FRAUD",
+  "CANCELLED",
+]);
+
+export const sortOrderEnum = z.enum([
+  "asc",
+  "desc",
+]);
+
+export const rewardActionEnum = z.enum([
+  "CREATE",
+  "APPLY",
+  "APPROVE",
+  "REJECT",
+  "REWARD",
+  "PAY",
+  "EXPIRE",
+  "FRAUD",
 ]);
 
 /* =========================================
-   REWARD TYPE
+   COMMON VALIDATORS
 ========================================= */
 
-export const rewardTypeEnum = z.enum([
-  "CASH",
-  "COMMISSION",
-  "CASHBACK",
-  "BONUS",
-  "POINTS",
-]);
+export const cuidSchema = z.string().cuid({
+  message: "Invalid CUID",
+});
+
+export const referralCodeSchema = z
+  .string()
+  .trim()
+  .min(4, "Referral code is too short")
+  .max(30, "Referral code is too long")
+  .regex(
+    /^[A-Z0-9_-]+$/,
+    "Referral code format is invalid"
+  );
+
+export const rewardAmountSchema = z
+  .number()
+  .min(0, {
+    message: "Reward amount must be greater than or equal to 0",
+  });
+
+export const positiveIntegerSchema = z
+  .number()
+  .int()
+  .min(0);
+
+export const optionalStringSchema = z
+  .string()
+  .trim()
+  .max(255)
+  .optional();
+
+export const optionalLongStringSchema = z
+  .string()
+  .trim()
+  .max(1000)
+  .optional();
+
+export const ipAddressSchema = z
+  .string()
+  .max(100)
+  .optional();
+
+export const deviceInfoSchema = z
+  .string()
+  .max(500)
+  .optional();
+
+export const paginationSchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20),
+
+  sortBy: z
+    .string()
+    .default("createdAt"),
+
+  sortOrder:
+    sortOrderEnum.default("desc"),
+});
+
+/* =========================================
+   DATE RANGE
+========================================= */
+
+export const dateRangeSchema = z.object({
+  startDate: z
+    .string()
+    .datetime()
+    .optional(),
+
+  endDate: z
+    .string()
+    .datetime()
+    .optional(),
+});
+
+/* =========================================
+   PART 2 STARTS FROM CREATE SCHEMAS
+========================================= */
 
 /* =========================================
    CREATE REFERRAL
 ========================================= */
 
-export const createReferralSchema =
-  z.object({
-    referrerId: z.string().cuid(),
+export const createReferralSchema = z.object({
+  userId: cuidSchema,
 
-    referralType:
-      referralTypeEnum,
+  source: optionalStringSchema,
 
-    referredName:
-      z.string()
-      .min(2)
-      .max(100),
-
-    referredPhone:
-      z.string()
-      .regex(/^[6-9]\d{9}$/),
-
-    referredEmail:
-      z.string()
-      .email()
-      .optional(),
-
-    remarks:
-      z.string()
-      .max(500)
-      .optional(),
-  });
+  campaign: optionalStringSchema,
+});
 
 /* =========================================
    APPLY REFERRAL CODE
 ========================================= */
 
-export const applyReferralCodeSchema =
-  z.object({
-    referralCode:
-      z.string()
-      .min(4)
-      .max(20),
+export const applyReferralCodeSchema = z.object({
+  userId: cuidSchema,
 
-    userId:
-      z.string().cuid(),
-  });
+  referralCode: referralCodeSchema,
+});
 
 /* =========================================
-   REWARD REFERRAL
+   UPDATE REFERRAL
 ========================================= */
 
-export const rewardReferralSchema =
-  z.object({
-    referralId:
-      z.string().cuid(),
+export const updateReferralSchema = z.object({
+  referralId: cuidSchema,
 
-    rewardType:
-      rewardTypeEnum,
+  status: referralStatusEnum.optional(),
 
-    rewardAmount:
-      z.number()
-      .positive(),
+  rewardAmount: rewardAmountSchema.optional(),
 
-    remarks:
-      z.string()
-      .optional(),
-  });
+  rewardPaidAmount: rewardAmountSchema.optional(),
+
+  totalReferrals: positiveIntegerSchema.optional(),
+
+  successfulReferrals:
+    positiveIntegerSchema.optional(),
+
+  rejectedReferrals:
+    positiveIntegerSchema.optional(),
+
+  pendingReferrals:
+    positiveIntegerSchema.optional(),
+
+  totalEarnings:
+    rewardAmountSchema.optional(),
+
+  rewardTransactionId:
+    optionalStringSchema,
+
+  approvedBy:
+    cuidSchema.optional(),
+
+  approvedAt:
+    z.coerce.date().optional(),
+
+  rejectedBy:
+    cuidSchema.optional(),
+
+  rejectedAt:
+    z.coerce.date().optional(),
+
+  rejectionReason:
+    optionalLongStringSchema,
+
+  paidAt:
+    z.coerce.date().optional(),
+
+  expiresAt:
+    z.coerce.date().optional(),
+
+  isFraud:
+    z.boolean().optional(),
+
+  fraudReason:
+    optionalLongStringSchema,
+
+  source:
+    optionalStringSchema,
+
+  campaign:
+    optionalStringSchema,
+
+  ipAddress:
+    ipAddressSchema,
+
+  deviceInfo:
+    deviceInfoSchema,
+
+  updatedBy:
+    cuidSchema.optional(),
+});
 
 /* =========================================
-   UPDATE REFERRAL STATUS
+   APPROVE REFERRAL
 ========================================= */
 
-export const updateReferralStatusSchema =
-  z.object({
-    referralId:
-      z.string().cuid(),
+export const approveReferralSchema = z.object({
+  referralId: cuidSchema,
 
-    status:
-      referralStatusEnum,
+  approvedBy: cuidSchema,
 
-    remarks:
-      z.string()
-      .optional(),
-  });
+  rewardAmount: rewardAmountSchema,
+
+  rewardTransactionId:
+    optionalStringSchema,
+});
 
 /* =========================================
-   REFERRAL FILTER
+   REJECT REFERRAL
 ========================================= */
 
-export const referralFilterSchema =
-  z.object({
-    referrerId:
-      z.string()
-      .cuid()
-      .optional(),
+export const rejectReferralSchema = z.object({
+  referralId: cuidSchema,
 
-    referralType:
-      referralTypeEnum.optional(),
+  rejectedBy: cuidSchema,
 
-    status:
-      referralStatusEnum.optional(),
-
-    startDate:
-      z.string().optional(),
-
-    endDate:
-      z.string().optional(),
-
-    page:
-      z.coerce.number()
-      .default(1),
-
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  rejectionReason: z
+    .string()
+    .trim()
+    .min(3)
+    .max(500),
+});
 
 /* =========================================
-   REFERRAL ANALYTICS
+   MARK FRAUD
 ========================================= */
 
-export const referralAnalyticsSchema =
-  z.object({
-    referralType:
-      referralTypeEnum.optional(),
+export const markFraudSchema = z.object({
+  referralId: cuidSchema,
 
-    startDate:
-      z.string().optional(),
+  fraudReason: z
+    .string()
+    .trim()
+    .min(5)
+    .max(500),
 
-    endDate:
-      z.string().optional(),
-  });
+  updatedBy: cuidSchema,
+});
 
 /* =========================================
-   REFERRAL LEADERBOARD
+   PART 3 STARTS FROM FILTERS & TYPES
 ========================================= */
 
-export const referralLeaderboardSchema =
-  z.object({
-    startDate:
-      z.string().optional(),
+/* =========================================
+   FILTERS
+========================================= */
 
-    endDate:
-      z.string().optional(),
+export const referralFilterSchema = paginationSchema.extend({
+  userId: cuidSchema.optional(),
 
-    limit:
-      z.coerce.number()
-      .default(10),
-  });
+  referrerId: cuidSchema.optional(),
+
+  referredUserId: cuidSchema.optional(),
+
+  referralCode: referralCodeSchema.optional(),
+
+  status: referralStatusEnum.optional(),
+
+  source: optionalStringSchema,
+
+  campaign: optionalStringSchema,
+
+  isFraud: z.boolean().optional(),
+
+  ...dateRangeSchema.shape,
+});
+
+/* =========================================
+   ANALYTICS
+========================================= */
+
+export const referralAnalyticsSchema = z.object({
+  userId: cuidSchema.optional(),
+
+  status: referralStatusEnum.optional(),
+
+  source: optionalStringSchema,
+
+  campaign: optionalStringSchema,
+
+  ...dateRangeSchema.shape,
+});
+
+/* =========================================
+   LEADERBOARD
+========================================= */
+
+export const referralLeaderboardSchema = z.object({
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100)
+    .default(10),
+
+  ...dateRangeSchema.shape,
+});
+
+/* =========================================
+   SEARCH
+========================================= */
+
+export const searchReferralSchema = z.object({
+  keyword: z.string().trim().min(1),
+
+  page: z.coerce.number().default(1),
+
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100)
+    .default(20),
+});
+
+/* =========================================
+   GET BY ID
+========================================= */
+
+export const referralIdSchema = z.object({
+  referralId: cuidSchema,
+});
+
+/* =========================================
+   GET BY USER
+========================================= */
+
+export const referralUserSchema = z.object({
+  userId: cuidSchema,
+});
 
 /* =========================================
    TYPES
 ========================================= */
 
+export type ReferralStatus =
+  z.infer<typeof referralStatusEnum>;
+
 export type CreateReferralDto =
   z.infer<typeof createReferralSchema>;
 
 export type ApplyReferralCodeDto =
-  z.infer<
-    typeof applyReferralCodeSchema
-  >;
+  z.infer<typeof applyReferralCodeSchema>;
 
-export type RewardReferralDto =
-  z.infer<
-    typeof rewardReferralSchema
-  >;
+export type UpdateReferralDto =
+  z.infer<typeof updateReferralSchema>;
 
-export type UpdateReferralStatusDto =
-  z.infer<
-    typeof updateReferralStatusSchema
-  >;
+export type ApproveReferralDto =
+  z.infer<typeof approveReferralSchema>;
+
+export type RejectReferralDto =
+  z.infer<typeof rejectReferralSchema>;
+
+export type MarkFraudDto =
+  z.infer<typeof markFraudSchema>;
 
 export type ReferralFilterDto =
-  z.infer<
-    typeof referralFilterSchema
-  >;
+  z.infer<typeof referralFilterSchema>;
 
 export type ReferralAnalyticsDto =
-  z.infer<
-    typeof referralAnalyticsSchema
-  >;
+  z.infer<typeof referralAnalyticsSchema>;
 
 export type ReferralLeaderboardDto =
-  z.infer<
-    typeof referralLeaderboardSchema
-  >;
+  z.infer<typeof referralLeaderboardSchema>;
+
+export type SearchReferralDto =
+  z.infer<typeof searchReferralSchema>;
+
+export type ReferralIdDto =
+  z.infer<typeof referralIdSchema>;
+
+export type ReferralUserDto =
+  z.infer<typeof referralUserSchema>;
+

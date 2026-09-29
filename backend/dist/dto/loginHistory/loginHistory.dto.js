@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginAnalyticsSchema = exports.activeSessionSchema = exports.loginHistoryFilterSchema = exports.suspiciousLoginSchema = exports.failedLoginSchema = exports.logoutHistorySchema = exports.createLoginHistorySchema = exports.deviceTypeEnum = exports.loginMethodEnum = exports.loginStatusEnum = void 0;
+exports.loginAnalyticsSchema = exports.loginHistoryActiveSessionSchema = exports.loginHistoryFilterSchema = exports.suspiciousLoginSchema = exports.failedLoginSchema = exports.logoutHistorySchema = exports.createLoginHistorySchema = exports.loginHistoryDeviceTypeEnum = exports.loginMethodEnum = exports.loginStatusEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    LOGIN STATUS
@@ -26,7 +26,7 @@ exports.loginMethodEnum = zod_1.z.enum([
 /* =========================================
    DEVICE TYPE
 ========================================= */
-exports.deviceTypeEnum = zod_1.z.enum([
+exports.loginHistoryDeviceTypeEnum = zod_1.z.enum([
     "WEB",
     "ANDROID",
     "IOS",
@@ -43,7 +43,7 @@ exports.createLoginHistorySchema = zod_1.z.object({
     status: exports.loginStatusEnum,
     ipAddress: zod_1.z.string(),
     userAgent: zod_1.z.string(),
-    deviceType: exports.deviceTypeEnum,
+    deviceType: exports.loginHistoryDeviceTypeEnum,
     deviceName: zod_1.z.string().optional(),
     browser: zod_1.z.string().optional(),
     operatingSystem: zod_1.z.string().optional(),
@@ -86,15 +86,19 @@ exports.suspiciousLoginSchema = zod_1.z.object({
    LOGIN HISTORY FILTER
 ========================================= */
 exports.loginHistoryFilterSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid().optional(),
+    userId: zod_1.z.string()
+        .cuid()
+        .optional(),
     status: exports.loginStatusEnum.optional(),
     loginMethod: exports.loginMethodEnum.optional(),
-    deviceType: exports.deviceTypeEnum.optional(),
+    deviceType: exports.loginHistoryDeviceTypeEnum.optional(),
     startDate: zod_1.z.string().optional(),
     endDate: zod_1.z.string().optional(),
-    page: zod_1.z.coerce.number()
+    page: zod_1.z.coerce
+        .number()
         .default(1),
-    limit: zod_1.z.coerce.number()
+    limit: zod_1.z.coerce
+        .number()
         .min(1)
         .max(100)
         .default(20),
@@ -102,8 +106,10 @@ exports.loginHistoryFilterSchema = zod_1.z.object({
 /* =========================================
    ACTIVE SESSION FILTER
 ========================================= */
-exports.activeSessionSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid().optional(),
+exports.loginHistoryActiveSessionSchema = zod_1.z.object({
+    userId: zod_1.z.string()
+        .cuid()
+        .optional(),
 });
 /* =========================================
    LOGIN ANALYTICS
@@ -111,5 +117,5 @@ exports.activeSessionSchema = zod_1.z.object({
 exports.loginAnalyticsSchema = zod_1.z.object({
     startDate: zod_1.z.string().optional(),
     endDate: zod_1.z.string().optional(),
-    deviceType: exports.deviceTypeEnum.optional(),
+    deviceType: exports.loginHistoryDeviceTypeEnum.optional(),
 });

@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import prisma from "../../config/prisma";
+import prisma from "../../config/database/prisma";
 import { sendEmail } from "../../integrations/email/email";
 
 export const emailJob = () => {
@@ -9,7 +9,7 @@ export const emailJob = () => {
     const pendingLoans =
       await prisma.loanApplication.findMany({
         where: {
-          status: "pending",
+          status: "PENDING",
         },
       });
 

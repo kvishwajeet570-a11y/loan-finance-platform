@@ -4,10 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
-const client_1 = require("@prisma/client");
+const prisma_1 = __importDefault(require("../prisma/prisma"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma = new client_1.PrismaClient();
 class AuthService {
     generateToken(user) {
         return jsonwebtoken_1.default.sign({
@@ -19,7 +18,7 @@ class AuthService {
         });
     }
     async register(data) {
-        const existingUser = await prisma.user.findFirst({
+        const existingUser = await prisma_1.default.user.findFirst({
             where: {
                 OR: [
                     { email: data.email },
@@ -31,7 +30,7 @@ class AuthService {
             throw new Error("User already exists");
         }
         const hashedPassword = await bcryptjs_1.default.hash(data.password, 10);
-        const user = await prisma.user.create({
+        const user = await prisma_1.default.user.create({
             data: {
                 name: data.name,
                 email: data.email,
@@ -48,7 +47,7 @@ class AuthService {
         };
     }
     async login(email, password) {
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.default.user.findUnique({
             where: { email },
         });
         if (!user) {
@@ -66,7 +65,7 @@ class AuthService {
         };
     }
     async getProfile(userId) {
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.default.user.findUnique({
             where: { id: userId },
             select: {
                 id: true,
@@ -83,7 +82,7 @@ class AuthService {
         return user;
     }
     async changePassword(userId, oldPassword, newPassword) {
-        const user = await prisma.user.findUnique({
+        const user = await prisma_1.default.user.findUnique({
             where: { id: userId },
         });
         if (!user) {
@@ -94,7 +93,7 @@ class AuthService {
             throw new Error("Old password incorrect");
         }
         const hashedPassword = await bcryptjs_1.default.hash(newPassword, 10);
-        await prisma.user.update({
+        await prisma_1.default.user.update({
             where: { id: userId },
             data: {
                 password: hashedPassword,

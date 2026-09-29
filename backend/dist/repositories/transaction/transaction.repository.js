@@ -1,260 +1,228 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TransactionRepository = void 0;
-const prisma_1 = require("../../prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class TransactionRepository {
-    /* =========================
-        CREATE TRANSACTION
-    ========================= */
-    static async createTransaction(data) {
-        return prisma_1.prisma.transaction.create({
-            data
-        });
-    }
-    /* =========================
-        GET BY ID
-    ========================= */
-    static async getById(id) {
-        return prisma_1.prisma.transaction.findUnique({
-            where: { id },
+    // ==========================================================
+    // CREATE
+    // ==========================================================
+    async create(data) {
+        return prisma_1.default.transaction.create({
+            data,
             include: {
-                user: true
-            }
-        });
-    }
-    /* =========================
-        GET BY REF
-    ========================= */
-    static async getByReference(transactionRef) {
-        return prisma_1.prisma.transaction.findUnique({
-            where: {
-                transactionRef
-            }
-        });
-    }
-    /* =========================
-        USER TRANSACTIONS
-    ========================= */
-    static async getUserTransactions(userId, page = 1, limit = 20) {
-        return prisma_1.prisma.transaction.findMany({
-            where: {
-                userId
+                user: true,
+                wallet: true,
             },
-            skip: (page - 1) * limit,
-            take: limit,
-            orderBy: {
-                createdAt: "desc"
-            }
         });
     }
-    /* =========================
-        SUCCESS
-    ========================= */
-    static async markSuccess(transactionRef, gatewayTxnId, utrNumber) {
-        return prisma_1.prisma.transaction.update({
-            where: {
-                transactionRef
-            },
-            data: {
-                status: "SUCCESS",
-                gatewayTxnId,
-                utrNumber,
-                processedAt: new Date()
-            }
-        });
-    }
-    /* =========================
-        FAILED
-    ========================= */
-    static async markFailed(transactionRef, remarks) {
-        return prisma_1.prisma.transaction.update({
-            where: {
-                transactionRef
-            },
-            data: {
-                status: "FAILED",
-                remarks,
-                processedAt: new Date()
-            }
-        });
-    }
-    /* =========================
-        CANCEL
-    ========================= */
-    static async cancelTransaction(transactionRef, remarks) {
-        return prisma_1.prisma.transaction.update({
-            where: {
-                transactionRef
-            },
-            data: {
-                status: "CANCELLED",
-                remarks
-            }
-        });
-    }
-    /* =========================
-        REFUND
-    ========================= */
-    static async refundTransaction(transactionRef, remarks) {
-        return prisma_1.prisma.transaction.update({
-            where: {
-                transactionRef
-            },
-            data: {
-                status: "REFUNDED",
-                remarks,
-                processedAt: new Date()
-            }
-        });
-    }
-    /* =========================
-        SEARCH
-    ========================= */
-    static async searchTransactions(keyword) {
-        return prisma_1.prisma.transaction.findMany({
+    // ==========================================================
+    // FIND UNIQUE
+    // ==========================================================
+    async findById(id) {
+        return prisma_1.default.transaction.findFirst({
             where: {
                 OR: [
-                    {
-                        transactionRef: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
-                        gatewayTxnId: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
-                        utrNumber: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
+                    { id },
+                    { transactionId: id },
+                    { referenceId: id },
+                ],
             },
             include: {
-                user: true
-            }
+                user: true,
+                wallet: true,
+            },
         });
     }
-    /* =========================
-        STATUS FILTER
-    ========================= */
-    static async getByStatus(status) {
-        return prisma_1.prisma.transaction.findMany({
+    async findByTransactionId(transactionId) {
+        return prisma_1.default.transaction.findUnique({
             where: {
-                status
+                transactionId,
             },
             include: {
-                user: true
-            }
+                user: true,
+                wallet: true,
+            },
         });
     }
-    /* =========================
-        TYPE FILTER
-    ========================= */
-    static async getByType(transactionType) {
-        return prisma_1.prisma.transaction.findMany({
+    async findByReferenceId(referenceId) {
+        return prisma_1.default.transaction.findUnique({
             where: {
-                transactionType
+                referenceId,
             },
             include: {
-                user: true
-            }
-        });
-    }
-    /* =========================
-        DATE RANGE
-    ========================= */
-    static async getByDateRange(startDate, endDate) {
-        return prisma_1.prisma.transaction.findMany({
-            where: {
-                createdAt: {
-                    gte: startDate,
-                    lte: endDate
-                }
+                user: true,
+                wallet: true,
             },
-            include: {
-                user: true
-            }
         });
     }
-    /* =========================
-        ALL TRANSACTIONS
-    ========================= */
-    static async getAllTransactions(page = 1, limit = 50) {
+    // ==========================================================
+    // FIND MANY
+    // ==========================================================
+    async findMany(where = {}, page = 1, limit = 20) {
         const skip = (page - 1) * limit;
-        const [transactions, total] = await Promise.all([
-            prisma_1.prisma.transaction.findMany({
+        const [data, total] = await prisma_1.default.$transaction([
+            prisma_1.default.transaction.findMany({
+                where,
                 skip,
                 take: limit,
-                include: {
-                    user: true
-                },
                 orderBy: {
-                    createdAt: "desc"
-                }
+                    createdAt: "desc",
+                },
+                include: {
+                    user: true,
+                    wallet: true,
+                },
             }),
-            prisma_1.prisma.transaction.count()
+            prisma_1.default.transaction.count({
+                where,
+            }),
         ]);
         return {
-            transactions,
             total,
             page,
-            limit
+            limit,
+            totalPages: Math.ceil(total / limit),
+            data,
         };
     }
-    /* =========================
-        ANALYTICS
-    ========================= */
-    static async getAnalytics() {
-        const [totalTransactions, successTransactions, failedTransactions, totalAmount] = await Promise.all([
-            prisma_1.prisma.transaction.count(),
-            prisma_1.prisma.transaction.count({
-                where: {
-                    status: "SUCCESS"
-                }
-            }),
-            prisma_1.prisma.transaction.count({
-                where: {
-                    status: "FAILED"
-                }
-            }),
-            prisma_1.prisma.transaction.aggregate({
-                _sum: {
-                    amount: true
-                }
-            })
-        ]);
-        return {
-            totalTransactions,
-            successTransactions,
-            failedTransactions,
-            totalAmount: totalAmount._sum.amount || 0
-        };
+    // ==========================================================
+    // UPDATE
+    // ==========================================================
+    async update(id, data) {
+        return prisma_1.default.transaction.update({
+            where: {
+                id,
+            },
+            data,
+            include: {
+                user: true,
+                wallet: true,
+            },
+        });
     }
-    /* =========================
-        DASHBOARD
-    ========================= */
-    static async getDashboard() {
-        const [analytics, recentTransactions] = await Promise.all([
-            this.getAnalytics(),
-            prisma_1.prisma.transaction.findMany({
-                take: 20,
-                include: {
-                    user: true
+    // ==========================================================
+    // DELETE
+    // ==========================================================
+    async delete(id) {
+        return prisma_1.default.transaction.delete({
+            where: {
+                id,
+            },
+        });
+    }
+    async deleteMany(ids) {
+        return prisma_1.default.transaction.deleteMany({
+            where: {
+                id: {
+                    in: ids,
                 },
+            },
+        });
+    }
+    // ==========================================================
+    // COUNT
+    // ==========================================================
+    async count(where = {}) {
+        return prisma_1.default.transaction.count({
+            where,
+        });
+    }
+    // ==========================================================
+    // AGGREGATE
+    // ==========================================================
+    async aggregate(where = {}) {
+        return prisma_1.default.transaction.aggregate({
+            where,
+            _count: true,
+            _sum: {
+                amount: true,
+                fee: true,
+                gst: true,
+                commission: true,
+                cashback: true,
+            },
+            _avg: {
+                amount: true,
+            },
+            _min: {
+                amount: true,
+            },
+            _max: {
+                amount: true,
+            },
+        });
+    }
+    // ==========================================================
+    // GROUP BY STATUS
+    // ==========================================================
+    async groupByStatus() {
+        return prisma_1.default.transaction.groupBy({
+            by: ["status"],
+            _count: {
+                status: true,
+            },
+            _sum: {
+                amount: true,
+            },
+        });
+    }
+    // ==========================================================
+    // BULK UPDATE
+    // ==========================================================
+    async updateMany(ids, data) {
+        return prisma_1.default.transaction.updateMany({
+            where: {
+                id: {
+                    in: ids,
+                },
+            },
+            data,
+        });
+    }
+    // ==========================================================
+    // DASHBOARD
+    // ==========================================================
+    async dashboard() {
+        return prisma_1.default.$transaction([
+            prisma_1.default.transaction.count(),
+            prisma_1.default.transaction.aggregate({
+                _sum: {
+                    amount: true,
+                },
+            }),
+            prisma_1.default.transaction.count({
+                where: {
+                    status: "pending",
+                },
+            }),
+            prisma_1.default.transaction.count({
+                where: {
+                    status: "success",
+                },
+            }),
+            prisma_1.default.transaction.count({
+                where: {
+                    status: "failed",
+                },
+            }),
+            prisma_1.default.transaction.count({
+                where: {
+                    isRefunded: true,
+                },
+            }),
+            prisma_1.default.transaction.findMany({
+                take: 10,
                 orderBy: {
-                    createdAt: "desc"
-                }
-            })
+                    createdAt: "desc",
+                },
+                include: {
+                    user: true,
+                    wallet: true,
+                },
+            }),
         ]);
-        return {
-            analytics,
-            recentTransactions
-        };
     }
 }
-exports.TransactionRepository = TransactionRepository;
+exports.default = new TransactionRepository();

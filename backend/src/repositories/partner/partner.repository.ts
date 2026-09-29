@@ -1,20 +1,29 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class PartnerRepository {
-
   /* =========================
       CREATE PARTNER
   ========================= */
 
   static async createPartner(data: {
-    userId: string;
-    companyName?: string;
-    partnerCode: string;
-    partnerType: string;
+    companyName: string;
+    email: string;
+    phone?: string;
+    contactPerson?: string;
+    partnerCode?: string;
+    city?: string;
+    state?: string;
   }) {
-
-    return prisma.partnerProfile.create({
-      data
+    return prisma.partner.create({
+      data: {
+        companyName: data.companyName,
+        email: data.email,
+        phone: data.phone,
+        contactPerson: data.contactPerson,
+        partnerCode: data.partnerCode,
+        city: data.city,
+        state: data.state,
+      },
     });
   }
 
@@ -22,37 +31,19 @@ export class PartnerRepository {
       GET BY ID
   ========================= */
 
-  static async getPartnerById(
-    id: string
-  ) {
-
-    return prisma.partnerProfile.findUnique({
-
+  static async getPartnerById(id: string) {
+    return prisma.partner.findUnique({
       where: { id },
-
-      include: {
-        user: true
-      }
     });
   }
 
   /* =========================
-      GET BY USER ID
+      GET BY EMAIL
   ========================= */
 
-  static async getPartnerByUserId(
-    userId: string
-  ) {
-
-    return prisma.partnerProfile.findUnique({
-
-      where: {
-        userId
-      },
-
-      include: {
-        user: true
-      }
+  static async getPartnerByEmail(email: string) {
+    return prisma.partner.findUnique({
+      where: { email },
     });
   }
 
@@ -60,19 +51,9 @@ export class PartnerRepository {
       GET BY CODE
   ========================= */
 
-  static async getPartnerByCode(
-    partnerCode: string
-  ) {
-
-    return prisma.partnerProfile.findUnique({
-
-      where: {
-        partnerCode
-      },
-
-      include: {
-        user: true
-      }
+  static async getPartnerByCode(partnerCode: string) {
+    return prisma.partner.findUnique({
+      where: { partnerCode },
     });
   }
 
@@ -84,38 +65,52 @@ export class PartnerRepository {
     id: string,
     data: Partial<{
       companyName: string;
-      partnerType: string;
+      contactPerson: string;
+      phone: string;
+      city: string;
+      state: string;
+      remarks: string;
       status: string;
     }>
   ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        id
-      },
-
-      data
+    return prisma.partner.update({
+      where: { id },
+      data,
     });
   }
 
   /* =========================
-      ACTIVATE PARTNER
+      APPROVE PARTNER
   ========================= */
 
-  static async activatePartner(
-    id: string
+  static async approvePartner(
+    id: string,
+    approvedBy?: string
   ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        id
-      },
-
+    return prisma.partner.update({
+      where: { id },
       data: {
-        status: "ACTIVE"
-      }
+        status: "APPROVED",
+        approvedBy,
+        approvedAt: new Date(),
+      },
+    });
+  }
+
+  /* =========================
+      REJECT PARTNER
+  ========================= */
+
+  static async rejectPartner(
+    id: string,
+    rejectionReason?: string
+  ) {
+    return prisma.partner.update({
+      where: { id },
+      data: {
+        status: "REJECTED",
+        rejectionReason,
+      },
     });
   }
 
@@ -123,153 +118,41 @@ export class PartnerRepository {
       BLOCK PARTNER
   ========================= */
 
-  static async blockPartner(
-    id: string
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        id
-      },
-
+  static async blockPartner(id: string) {
+    return prisma.partner.update({
+      where: { id },
       data: {
-        status: "BLOCKED"
-      }
+        isBlocked: true,
+      },
     });
   }
 
   /* =========================
-      ADD LEAD
+      UNBLOCK PARTNER
   ========================= */
 
-  static async addLead(
-    userId: string
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        userId
-      },
-
+  static async unblockPartner(id: string) {
+    return prisma.partner.update({
+      where: { id },
       data: {
-        totalLeads: {
-          increment: 1
-        }
-      }
+        isBlocked: false,
+      },
     });
   }
 
   /* =========================
-      ADD CUSTOMER
+      TOGGLE ACTIVE
   ========================= */
 
-  static async addCustomer(
-    userId: string
+  static async togglePartnerStatus(
+    id: string,
+    isActive: boolean
   ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        userId
-      },
-
+    return prisma.partner.update({
+      where: { id },
       data: {
-        totalCustomers: {
-          increment: 1
-        }
-      }
-    });
-  }
-
-  /* =========================
-      ADD LOAN
-  ========================= */
-
-  static async addLoan(
-    userId: string
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        userId
+        isActive,
       },
-
-      data: {
-        totalLoans: {
-          increment: 1
-        }
-      }
-    });
-  }
-
-  /* =========================
-      ADD BUSINESS
-  ========================= */
-
-  static async addBusinessVolume(
-    userId: string,
-    amount: number
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        userId
-      },
-
-      data: {
-        totalBusiness: {
-          increment: amount
-        }
-      }
-    });
-  }
-
-  /* =========================
-      ADD COMMISSION
-  ========================= */
-
-  static async addCommission(
-    userId: string,
-    amount: number
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        userId
-      },
-
-      data: {
-        totalCommission: {
-          increment: amount
-        }
-      }
-    });
-  }
-
-  /* =========================
-      TOP PARTNERS
-  ========================= */
-
-  static async getTopPartners(
-    limit = 10
-  ) {
-
-    return prisma.partnerProfile.findMany({
-
-      take: limit,
-
-      include: {
-        user: true
-      },
-
-      orderBy: {
-        totalBusiness: "desc"
-      }
     });
   }
 
@@ -277,75 +160,70 @@ export class PartnerRepository {
       SEARCH PARTNERS
   ========================= */
 
-  static async searchPartners(
-    keyword: string
-  ) {
-
-    return prisma.partnerProfile.findMany({
-
+  static async searchPartners(keyword: string) {
+    return prisma.partner.findMany({
       where: {
-
         OR: [
-
-          {
-            partnerCode: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
           {
             companyName: {
               contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            email: {
+              contains: keyword,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            phone: {
+              contains: keyword,
+              mode: "insensitive" as const,
+            },
+          },
+          {
+            partnerCode: {
+              contains: keyword,
+              mode: "insensitive" as const,
+            },
+          },
+        ],
       },
-
-      include: {
-        user: true
-      }
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   }
 
   /* =========================
-      ALL PARTNERS
+      GET ALL PARTNERS
   ========================= */
 
   static async getAllPartners(
     page = 1,
     limit = 20
   ) {
+    const skip = (page - 1) * limit;
 
-    const skip =
-      (page - 1) * limit;
+    const [partners, total] = await Promise.all([
+      prisma.partner.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
 
-    const [partners, total] =
-      await Promise.all([
-
-        prisma.partnerProfile.findMany({
-
-          skip,
-          take: limit,
-
-          include: {
-            user: true
-          },
-
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
-
-        prisma.partnerProfile.count()
-      ]);
+      prisma.partner.count(),
+    ]);
 
     return {
       partners,
       total,
       page,
-      limit
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
@@ -353,60 +231,57 @@ export class PartnerRepository {
       DELETE PARTNER
   ========================= */
 
-  static async deletePartner(
-    id: string
-  ) {
-
-    return prisma.partnerProfile.delete({
-      where: { id }
+  static async deletePartner(id: string) {
+    return prisma.partner.delete({
+      where: { id },
     });
   }
 
   /* =========================
-      PARTNER ANALYTICS
+      ANALYTICS
   ========================= */
 
   static async getAnalytics() {
-
     const [
       totalPartners,
       activePartners,
-      totalBusiness,
-      totalCommission
+      blockedPartners,
+      approvedPartners,
+      pendingPartners,
     ] = await Promise.all([
+      prisma.partner.count(),
 
-      prisma.partnerProfile.count(),
-
-      prisma.partnerProfile.count({
+      prisma.partner.count({
         where: {
-          status: "ACTIVE"
-        }
+          isActive: true,
+        },
       }),
 
-      prisma.partnerProfile.aggregate({
-        _sum: {
-          totalBusiness: true
-        }
+      prisma.partner.count({
+        where: {
+          isBlocked: true,
+        },
       }),
 
-      prisma.partnerProfile.aggregate({
-        _sum: {
-          totalCommission: true
-        }
-      })
+      prisma.partner.count({
+        where: {
+          status: "APPROVED",
+        },
+      }),
+
+      prisma.partner.count({
+        where: {
+          status: "PENDING",
+        },
+      }),
     ]);
 
     return {
-
       totalPartners,
-
       activePartners,
-
-      totalBusiness:
-        totalBusiness._sum.totalBusiness || 0,
-
-      totalCommission:
-        totalCommission._sum.totalCommission || 0
+      blockedPartners,
+      approvedPartners,
+      pendingPartners,
     };
   }
 
@@ -414,27 +289,23 @@ export class PartnerRepository {
       DASHBOARD
   ========================= */
 
-  static async getPartnerDashboard(
-    userId: string
-  ) {
-
-    const partner =
-      await prisma.partnerProfile.findUnique({
-        where: {
-          userId
-        }
-      });
+  static async getPartnerDashboard(id: string) {
+    const partner = await prisma.partner.findUnique({
+      where: { id },
+    });
 
     if (!partner) {
       return null;
     }
 
     return {
-      totalLeads: partner.totalLeads,
-      totalCustomers: partner.totalCustomers,
-      totalLoans: partner.totalLoans,
-      totalBusiness: partner.totalBusiness,
-      totalCommission: partner.totalCommission
+      id: partner.id,
+      companyName: partner.companyName,
+      email: partner.email,
+      status: partner.status,
+      isActive: partner.isActive,
+      isBlocked: partner.isBlocked,
+      createdAt: partner.createdAt,
     };
   }
 }

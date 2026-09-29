@@ -1,0 +1,41 @@
+import { Router } from "express";
+
+import {
+  createLead,
+  getLeads,
+  getLeadById,
+  assignLead,
+  updateLeadStatus,
+  deleteLead,
+  getLeadAnalytics,
+} from "../../controllers/lead/lead.controller";
+
+const router = Router();
+
+/* =========================
+   LEAD ANALYTICS
+========================= */
+
+router.get("/analytics", getLeadAnalytics);
+
+/* =========================
+   LEAD CRUD
+========================= */
+
+router.post("/", createLead);
+
+router.get("/", getLeads);
+
+router.get("/:id", getLeadById);
+
+router.delete("/:id", deleteLead);
+
+/* =========================
+   LEAD ACTIONS
+========================= */
+
+router.patch("/:id/assign", assignLead);
+
+router.patch("/:id/status", updateLeadStatus);
+
+export default router;

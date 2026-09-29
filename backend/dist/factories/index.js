@@ -37,32 +37,8 @@ __exportStar(require("./partner.factory"), exports);
 /* ========================================
    KYC FACTORY
 ======================================== */
-__exportStar(require("./kyc.factory"), exports);
-/* ========================================
-   DOCUMENT FACTORY
-======================================== */
-__exportStar(require("./document.factory"), exports);
+// export * from "./kyc.factory";
 /* ========================================
    PAYMENT FACTORY
 ======================================== */
-__exportStar(require("./payment.factory"), exports);
-/* ========================================
-   WALLET FACTORY
-======================================== */
-__exportStar(require("./wallet.factory"), exports);
-/* ========================================
-   COMMISSION FACTORY
-======================================== */
-__exportStar(require("./commission.factory"), exports);
-/* ========================================
-   REFERRAL FACTORY
-======================================== */
-__exportStar(require("./referral.factory"), exports);
-/* ========================================
-   NOTIFICATION FACTORY
-======================================== */
-__exportStar(require("./notification.factory"), exports);
-/* ========================================
-   REPORT FACTORY
-======================================== */
-__exportStar(require("./report.factory"), exports);
+//export * from "./payment.factory";

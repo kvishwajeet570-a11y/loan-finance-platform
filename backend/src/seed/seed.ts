@@ -11,23 +11,83 @@ async function main() {
   ========================================= */
 
   const roles = [
-    "SUPER_ADMIN",
-    "ADMIN",
-    "CUSTOMER",
-    "DSA",
-    "PARTNER",
-    "SUPPORT",
-    "LOAN_MANAGER",
-    "FINANCE_MANAGER",
+    {
+      name: "Super Admin",
+      code: "SUPER_ADMIN",
+      slug: "super-admin",
+      category: "ADMIN" as const,
+      isSystem: true,
+    },
+    {
+      name: "Admin",
+      code: "ADMIN",
+      slug: "admin",
+      category: "ADMIN" as const,
+      isSystem: true,
+    },
+    {
+      name: "Customer",
+      code: "CUSTOMER",
+      slug: "customer",
+      category: "CUSTOMER" as const,
+      isSystem: true,
+    },
+    {
+      name: "DSA",
+      code: "DSA",
+      slug: "dsa",
+      category: "DSA" as const,
+      isSystem: true,
+    },
+    {
+      name: "Partner",
+      code: "PARTNER",
+      slug: "partner",
+      category: "PARTNER" as const,
+      isSystem: true,
+    },
+    {
+      name: "Support",
+      code: "SUPPORT",
+      slug: "support",
+      category: "STAFF" as const,
+      isSystem: true,
+    },
+    {
+      name: "Loan Manager",
+      code: "LOAN_MANAGER",
+      slug: "loan-manager",
+      category: "STAFF" as const,
+      isSystem: true,
+    },
+    {
+      name: "Finance Manager",
+      code: "FINANCE_MANAGER",
+      slug: "finance-manager",
+      category: "STAFF" as const,
+      isSystem: true,
+    },
   ];
 
   for (const role of roles) {
     await prisma.role.upsert({
-      where: { name: role },
-      update: {},
+      where: {
+        code: role.code,
+      },
+      update: {
+        name: role.name,
+        slug: role.slug,
+        category: role.category,
+        isSystem: role.isSystem,
+      },
       create: {
-        name: role,
-        description: `${role} Role`,
+        name: role.name,
+        code: role.code,
+        slug: role.slug,
+        description: `${role.name} Role`,
+        category: role.category,
+        isSystem: role.isSystem,
+        isActive: true,
       },
     });
   }
@@ -35,7 +95,7 @@ async function main() {
   console.log("✅ Roles Seeded");
 
   /* =========================================
-     SUPER ADMIN
+     PASSWORD
   ========================================= */
 
   const hashedPassword = await bcrypt.hash(
@@ -43,30 +103,64 @@ async function main() {
     12
   );
 
-  const superAdminRole =
-    await prisma.role.findUnique({
-      where: {
-        name: "SUPER_ADMIN",
-      },
-    });
+  /* =========================================
+     SUPER ADMIN ROLE
+  ========================================= */
 
-  const superAdmin =
-    await prisma.user.upsert({
-      where: {
-        email: "superadmin@loanfinance.com",
-      },
-      update: {},
-      create: {
-        name: "Super Admin",
-        email: "superadmin@loanfinance.com",
-        phoneNo: "9999999999",
-        password: hashedPassword,
-        role: "SUPER_ADMIN",
-        isVerified: true,
-      },
-    });
+  const superAdminRole = await prisma.role.findUnique({
+    where: {
+      code: "SUPER_ADMIN",
+    },
+  });
+
+  if (!superAdminRole) {
+    throw new Error("SUPER_ADMIN role not found");
+  }
+
+  /* =========================================
+     SUPER ADMIN
+  ========================================= */
+
+  const superAdmin = await prisma.user.upsert({
+    where: {
+      email: "superadmin@loanfinance.com",
+    },
+    update: {
+      role: "SUPER_ADMIN",
+      roleId: superAdminRole.id,
+      isVerified: true,
+      isActive: true,
+    },
+    create: {
+      name: "Super Admin",
+      email: "superadmin@loanfinance.com",
+      phoneNo: "9999999999",
+      password: hashedPassword,
+
+      role: "SUPER_ADMIN",
+      roleId: superAdminRole.id,
+
+      isVerified: true,
+      isActive: true,
+      isBlocked: false,
+    },
+  });
 
   console.log("✅ Super Admin Created");
+
+  /* =========================================
+     ADMIN ROLE
+  ========================================= */
+
+  const adminRole = await prisma.role.findUnique({
+    where: {
+      code: "ADMIN",
+    },
+  });
+
+  if (!adminRole) {
+    throw new Error("ADMIN role not found");
+  }
 
   /* =========================================
      ADMIN
@@ -76,14 +170,24 @@ async function main() {
     where: {
       email: "admin@loanfinance.com",
     },
-    update: {},
+    update: {
+      role: "ADMIN",
+      roleId: adminRole.id,
+      isVerified: true,
+      isActive: true,
+    },
     create: {
       name: "Admin User",
       email: "admin@loanfinance.com",
       phoneNo: "8888888888",
       password: hashedPassword,
+
       role: "ADMIN",
+      roleId: adminRole.id,
+
       isVerified: true,
+      isActive: true,
+      isBlocked: false,
     },
   });
 
@@ -97,22 +201,37 @@ async function main() {
     {
       key: "SITE_NAME",
       value: "India Loan Finance",
+      category: "GENERAL",
+      description: "Website name",
+      isPublic: true,
     },
     {
       key: "SITE_URL",
       value: "https://indialoanfinance.com",
+      category: "GENERAL",
+      description: "Website URL",
+      isPublic: true,
     },
     {
       key: "SUPPORT_EMAIL",
       value: "support@indialoanfinance.com",
+      category: "SUPPORT",
+      description: "Support email address",
+      isPublic: true,
     },
     {
       key: "SUPPORT_PHONE",
       value: "8292908077",
+      category: "SUPPORT",
+      description: "Support phone number",
+      isPublic: true,
     },
     {
       key: "MAINTENANCE_MODE",
-      value: "false",
+      value: false,
+      category: "SYSTEM",
+      description: "Website maintenance mode",
+      isPublic: false,
     },
   ];
 
@@ -121,8 +240,21 @@ async function main() {
       where: {
         key: setting.key,
       },
-      update: {},
-      create: setting,
+      update: {
+        value: setting.value,
+        category: setting.category,
+        description: setting.description,
+        isPublic: setting.isPublic,
+      },
+      create: {
+        key: setting.key,
+        value: setting.value,
+        category: setting.category,
+        description: setting.description,
+        isPublic: setting.isPublic,
+        isActive: true,
+        isEditable: true,
+      },
     });
   }
 
@@ -132,15 +264,20 @@ async function main() {
      WALLET
   ========================================= */
 
-  await prisma.wallet.createMany({
-    data: [
-      {
-        userId: superAdmin.id,
-        balance: 0,
-        status: "ACTIVE",
-      },
-    ],
-    skipDuplicates: true,
+  await prisma.wallet.upsert({
+    where: {
+      userId: superAdmin.id,
+    },
+    update: {},
+    create: {
+      userId: superAdmin.id,
+      balance: 0,
+      cashback: 0,
+      rewardBalance: 0,
+      totalEarnings: 0,
+      isFrozen: false,
+      isBlocked: false,
+    },
   });
 
   console.log("✅ Wallet Created");
@@ -150,31 +287,117 @@ async function main() {
   ========================================= */
 
   const permissions = [
-    "MANAGE_USERS",
-    "MANAGE_LOANS",
-    "MANAGE_KYC",
-    "MANAGE_TRANSACTIONS",
-    "MANAGE_REPORTS",
-    "MANAGE_SETTINGS",
-    "VIEW_ANALYTICS",
-    "FULL_ACCESS",
+    {
+      name: "Manage Users",
+      code: "MANAGE_USERS",
+      module: "USER",
+      action: "MANAGE",
+      slug: "manage-users",
+    },
+    {
+      name: "Manage Loans",
+      code: "MANAGE_LOANS",
+      module: "LOAN",
+      action: "MANAGE",
+      slug: "manage-loans",
+    },
+    {
+      name: "Manage KYC",
+      code: "MANAGE_KYC",
+      module: "KYC",
+      action: "MANAGE",
+      slug: "manage-kyc",
+    },
+    {
+      name: "Manage Transactions",
+      code: "MANAGE_TRANSACTIONS",
+      module: "TRANSACTION",
+      action: "MANAGE",
+      slug: "manage-transactions",
+    },
+    {
+      name: "Manage Reports",
+      code: "MANAGE_REPORTS",
+      module: "REPORT",
+      action: "MANAGE",
+      slug: "manage-reports",
+    },
+    {
+      name: "Manage Settings",
+      code: "MANAGE_SETTINGS",
+      module: "SETTING",
+      action: "MANAGE",
+      slug: "manage-settings",
+    },
+    {
+      name: "View Analytics",
+      code: "VIEW_ANALYTICS",
+      module: "ANALYTICS",
+      action: "VIEW",
+      slug: "view-analytics",
+    },
+    {
+      name: "Full Access",
+      code: "FULL_ACCESS",
+      module: "SYSTEM",
+      action: "ALL",
+      slug: "full-access",
+    },
   ];
 
   for (const permission of permissions) {
     await prisma.permission.upsert({
       where: {
-        name: permission,
+        code: permission.code,
       },
-      update: {},
+      update: {
+        name: permission.name,
+        module: permission.module,
+        action: permission.action,
+        slug: permission.slug,
+      },
       create: {
-        name: permission,
+        name: permission.name,
+        code: permission.code,
+        module: permission.module,
+        action: permission.action,
+        slug: permission.slug,
+        status: "ACTIVE",
       },
     });
   }
 
   console.log("✅ Permissions Seeded");
 
-  console.log("🎉 Database Seed Completed");
+  /* =========================================
+     SUPER ADMIN PERMISSIONS
+  ========================================= */
+
+  const allPermissions = await prisma.permission.findMany();
+
+  for (const permission of allPermissions) {
+    await prisma.rolePermission.upsert({
+      where: {
+        roleId_permissionId: {
+          roleId: superAdminRole.id,
+          permissionId: permission.id,
+        },
+      },
+      update: {},
+      create: {
+        roleId: superAdminRole.id,
+        permissionId: permission.id,
+      },
+    });
+  }
+
+  console.log(" Super Admin Permissions Assigned");
+
+  /* =========================================
+     COMPLETE
+  ========================================= */
+
+  console.log(" Database Seed Completed");
 }
 
 main()
@@ -182,7 +405,7 @@ main()
     await prisma.$disconnect();
   })
   .catch(async (error) => {
-    console.error(error);
+    console.error(" Seed Error:", error);
 
     await prisma.$disconnect();
 

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
 
@@ -931,6 +931,124 @@ export const forgotPassword =
   };
 
 /* ========================================
+   VERIFY FORGOT PASSWORD OTP
+======================================== */
+
+export const verifyForgotOtp =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+
+    try {
+
+      const {
+        email,
+        otp,
+      } = req.body;
+
+      /* VALIDATION */
+
+      const normalizedEmail =
+        String(email || "")
+          .trim()
+          .toLowerCase();
+
+      const normalizedOtp =
+        String(otp || "").trim();
+
+      if (
+        !normalizedEmail ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Please enter a valid email address",
+        });
+
+      }
+
+      if (!/^\d{6}$/.test(normalizedOtp)) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Please enter the 6-digit OTP",
+        });
+
+      }
+
+      /* FIND USER */
+
+      const user =
+        await prisma.user.findUnique({
+          where: {
+            email: normalizedEmail,
+          },
+        });
+
+      if (!user) {
+
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+
+      }
+
+      /* OTP CHECK */
+
+      if (
+        !user.otp ||
+        user.otp !== normalizedOtp
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message: "Invalid OTP",
+        });
+
+      }
+
+      /* OTP EXPIRY CHECK */
+
+      if (
+        !user.otpExpiry ||
+        user.otpExpiry < new Date()
+      ) {
+
+        return res.status(400).json({
+          success: false,
+          message: "OTP expired. Please request a new OTP.",
+        });
+
+      }
+
+      /*
+       * IMPORTANT:
+       * Do NOT clear OTP here.
+       *
+       * resetPassword will validate the same OTP again
+       * before changing the password.
+       */
+
+      return res.status(200).json({
+        success: true,
+        message: "OTP verified successfully",
+      });
+
+    } catch (error) {
+
+      console.log(error);
+
+      return res.status(500).json({
+        success: false,
+        message: "OTP verification failed",
+      });
+
+    }
+  };
+/* ========================================
    RESET PASSWORD
 ======================================== */
 
@@ -1134,3 +1252,4 @@ export const deleteAccount =
     }
 
   };
+

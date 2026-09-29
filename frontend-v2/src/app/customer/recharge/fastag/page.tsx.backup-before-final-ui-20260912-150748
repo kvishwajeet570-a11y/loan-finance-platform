@@ -1,0 +1,1227 @@
+﻿"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Copy,
+  IndianRupee,
+  Loader2,
+  LockKeyhole,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Truck,
+  Wallet,
+  X,
+} from "lucide-react";
+import api from "@/lib/api";
+
+type User = {
+  id: string;
+  name?: string;
+  fullName?: string;
+};
+
+type Provider = {
+  id: string;
+  name: string;
+  short: string;
+  popular?: boolean;
+};
+
+type Recharge = {
+  id: string;
+  mobileNumber?: string;
+  operator?: string;
+  amount?: number;
+  rechargeType?: string;
+  status?: string;
+  createdAt?: string;
+};
+
+const providers: Provider[] = [
+  { id: "ICICI", name: "ICICI Bank FASTag", short: "ICICI", popular: true },
+  { id: "HDFC", name: "HDFC Bank FASTag", short: "HDFC" },
+  { id: "SBI", name: "SBI FASTag", short: "SBI" },
+  { id: "AXIS", name: "Axis Bank FASTag", short: "AXIS" },
+  { id: "IDFC", name: "IDFC FIRST FASTag", short: "IDFC" },
+  { id: "BOB", name: "Bank of Baroda FASTag", short: "BOB" },
+];
+
+const amounts = [
+  { value: 100, label: "Basic" },
+  { value: 200, label: "Standard" },
+  { value: 500, label: "Great Value", popular: true },
+  { value: 1000, label: "Recommended" },
+  { value: 2000, label: "High Value" },
+  { value: 5000, label: "Maximum" },
+];
+
+const money = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+const mask = (value = "") =>
+  value.length > 4
+    ? `${"*".repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`
+    : value;
+
+const formatDate = (value?: string) => {
+  if (!value) return "—";
+
+  const d = new Date(value);
+
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+export default function FastagRechargePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [balance, setBalance] = useState(0);
+
+  const [provider, setProvider] = useState("ICICI");
+  const [vehicle, setVehicle] = useState("");
+  const [amount, setAmount] = useState("500");
+  const [search, setSearch] = useState("");
+
+  const [recent, setRecent] = useState<Recharge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [processing, setProcessing] = useState(false);
+
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("loan_finance_token");
+      const stored = localStorage.getItem("loan_finance_user");
+
+      if (!token || !stored) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const currentUser = JSON.parse(stored) as User;
+      setUser(currentUser);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      };
+
+      const [walletRes, rechargeRes] = await Promise.all([
+        api.get("/wallet/balance", config),
+        api.get(`/recharge/user/${currentUser.id}`, config),
+      ]);
+
+      const walletData =
+        walletRes?.data?.data ||
+        walletRes?.data?.wallet ||
+        walletRes?.data ||
+        {};
+
+      setBalance(Number(walletData?.balance || 0));
+
+      const rechargeData =
+        rechargeRes?.data?.data ||
+        rechargeRes?.data?.recharges ||
+        [];
+
+      setRecent(
+        (Array.isArray(rechargeData) ? rechargeData : [])
+          .filter(
+            (item: Recharge) =>
+              String(item.rechargeType || "").toUpperCase() === "FASTAG"
+          )
+          .slice(0, 5)
+      );
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      setMessage(
+        error?.response?.data?.message ||
+          "Unable to load FASTag information."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const cleanVehicle = useMemo(
+    () =>
+      vehicle
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 12),
+    [vehicle]
+  );
+
+  const vehicleValid = useMemo(
+    () =>
+      /^[A-Z]{2}[0-9]{1,2}[A-Z]{1,3}[0-9]{3,4}$/.test(cleanVehicle),
+    [cleanVehicle]
+  );
+
+  const filteredProviders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    if (!q) return providers;
+
+    return providers.filter(
+      (item) =>
+        item.name.toLowerCase().includes(q) ||
+        item.short.toLowerCase().includes(q)
+    );
+  }, [search]);
+
+  const selectedProvider =
+    providers.find((item) => item.id === provider) || providers[0];
+
+  const numericAmount = Number(amount || 0);
+
+  const handleRecharge = async () => {
+    if (!cleanVehicle) {
+      setMessage("Please enter your vehicle registration number.");
+      return;
+    }
+
+    if (!vehicleValid) {
+      setMessage("Please enter a valid vehicle number, e.g. BR01AB1234.");
+      return;
+    }
+
+    if (!numericAmount || numericAmount < 10) {
+      setMessage("Minimum recharge amount is ₹10.");
+      return;
+    }
+
+    if (numericAmount > balance) {
+      setMessage("Insufficient wallet balance.");
+      return;
+    }
+
+    if (!user?.id) {
+      setMessage("Session expired. Please login again.");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setMessage("");
+
+      const token = localStorage.getItem("loan_finance_token");
+
+      const response = await api.post(
+        "/recharge",
+        {
+          userId: user.id,
+          mobileNumber: cleanVehicle,
+          operator: provider,
+          amount: numericAmount,
+          rechargeType: "FASTAG",
+          paymentMethod: "Wallet",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || "FASTag recharge failed."
+        );
+      }
+
+      setMessage(
+        `FASTag recharge of ${money(
+          numericAmount
+        )} completed successfully.`
+      );
+
+      await loadData();
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      setMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          "FASTag recharge failed."
+      );
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const copyVehicle = async () => {
+    if (!cleanVehicle) return;
+
+    try {
+      await navigator.clipboard.writeText(cleanVehicle);
+      setCopied(true);
+
+      setTimeout(() => setCopied(false), 1400);
+    } catch {}
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#f7f9fc]">
+        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+          <Loader2 size={20} className="animate-spin text-blue-600" />
+          <span className="text-sm font-semibold text-slate-700">
+            Loading FASTag...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f7f9fc] text-[#07163d]">
+      <div className="mx-auto max-w-[1540px] px-4 py-5 md:px-6">
+
+        {/* TOP BAR */}
+        <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500">
+              <Link
+                href="/customer/dashboard"
+                className="transition hover:text-blue-600"
+              >
+                Dashboard
+              </Link>
+
+              <ChevronRight size={13} />
+
+              <Link
+                href="/customer/recharge/mobile"
+                className="transition hover:text-blue-600"
+              >
+                Recharge
+              </Link>
+
+              <ChevronRight size={13} />
+
+              <span className="font-bold text-blue-600">
+                FASTag Recharge
+              </span>
+            </div>
+
+            <h1 className="mt-2 text-3xl font-black tracking-tight">
+              FASTag Recharge
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Recharge your FASTag instantly and keep your journey moving.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 rounded-xl border border-blue-100 bg-white px-4 py-2.5 shadow-sm">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                <Wallet size={17} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                  Wallet Balance
+                </p>
+
+                <p className="text-base font-black">
+                  {money(balance)}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setRefreshing(true);
+                loadData();
+              }}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold text-slate-700 shadow-sm transition hover:border-blue-300 hover:text-blue-600"
+            >
+              <RefreshCw
+                size={14}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* PREMIUM LIGHT HERO */}
+        <section className="relative mt-6 min-h-[275px] overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_35%,rgba(37,99,235,.15),transparent_30%),linear-gradient(110deg,#ffffff_0%,#f0f7ff_55%,#e0edff_100%)]" />
+
+          <div className="absolute right-[-50px] top-[-80px] h-64 w-64 rounded-full bg-blue-100/60 blur-3xl" />
+
+          <div className="absolute bottom-[-80px] right-[25%] h-52 w-52 rounded-full bg-emerald-100/50 blur-3xl" />
+
+          {/* TOLL ILLUSTRATION */}
+          <div className="absolute right-[4%] top-[18%] hidden h-[210px] w-[500px] lg:block">
+
+            <div className="absolute left-8 top-12 h-5 w-[400px] rounded bg-slate-300/80" />
+
+            <div className="absolute left-16 top-[-5px] flex h-14 w-[330px] items-center justify-center rounded-xl border border-blue-200 bg-white/90 shadow-lg">
+              <span className="text-3xl font-black italic text-emerald-500">
+                FASTag
+              </span>
+            </div>
+
+            <div className="absolute left-16 top-20 h-24 w-2 bg-slate-300" />
+
+            <div className="absolute right-20 top-20 h-24 w-2 bg-slate-300" />
+
+            {[0, 1, 2].map((item) => (
+              <div
+                key={item}
+                className="absolute top-[72px] flex h-16 w-20 items-center justify-center rounded-lg border border-slate-200 bg-white shadow-sm"
+                style={{ left: `${95 + item * 105}px` }}
+              >
+                <div className="text-center">
+                  <div className="mx-auto h-5 w-12 rounded bg-emerald-500 text-[8px] font-black leading-5 text-white">
+                    FASTag
+                  </div>
+
+                  <div className="mt-1 text-lg font-black text-blue-600">
+                    ↓
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <div className="absolute bottom-[-5px] left-[210px] h-16 w-28 rounded-[20px_20px_9px_9px] bg-slate-800 shadow-xl">
+              <div className="absolute left-4 top-3 h-7 w-10 rounded bg-sky-200" />
+              <div className="absolute right-4 top-3 h-7 w-10 rounded bg-sky-200" />
+              <div className="absolute -bottom-3 left-3 h-6 w-6 rounded-full bg-slate-950 ring-4 ring-white" />
+              <div className="absolute -bottom-3 right-3 h-6 w-6 rounded-full bg-slate-950 ring-4 ring-white" />
+            </div>
+          </div>
+
+          <div className="relative flex min-h-[275px] items-center p-7 md:p-10">
+            <div className="max-w-[620px]">
+
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-3 py-1.5 text-[9px] font-black text-blue-700 shadow-sm">
+                <Truck size={12} />
+                FASTAG • SMART TRAVEL
+              </div>
+
+              <h2 className="mt-4 text-4xl font-black leading-[1.03] tracking-tight md:text-5xl">
+                Drive Ahead
+                <br />
+                <span className="text-blue-600">
+                  Without Delays
+                </span>
+              </h2>
+
+              <p className="mt-4 max-w-[560px] text-sm leading-6 text-slate-600">
+                Recharge your FASTag instantly and enjoy a seamless,
+                cashless and hassle-free travel experience.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2.5 shadow-sm">
+                  <span className="text-lg">⚡</span>
+                  <span className="text-[9px] font-bold">
+                    Instant
+                    <br />
+                    Recharge
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2.5 shadow-sm">
+                  <ShieldCheck size={18} className="text-emerald-600" />
+                  <span className="text-[9px] font-bold">
+                    100%
+                    <br />
+                    Secure
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2.5 shadow-sm">
+                  <Clock3 size={17} className="text-blue-600" />
+                  <span className="text-[9px] font-bold">
+                    24 × 7
+                    <br />
+                    Available
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-3 py-2.5 shadow-sm">
+                  <span className="text-lg">★</span>
+                  <span className="text-[9px] font-bold">
+                    Trusted by
+                    <br />
+                    Millions
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MAIN */}
+        <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_335px]">
+
+          <div className="space-y-5">
+
+            {/* PROVIDERS */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div>
+                  <h2 className="text-lg font-black">
+                    Select Your FASTag Bank
+                  </h2>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Choose from leading banks and FASTag providers.
+                  </p>
+                </div>
+
+                <div className="relative">
+                  <Search
+                    size={14}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search bank..."
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs outline-none transition focus:border-blue-500 focus:bg-white md:w-56"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+                {filteredProviders.map((item) => {
+                  const active = provider === item.id;
+
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setProvider(item.id)}
+                      className={`relative rounded-xl border p-3.5 text-center transition-all duration-200 ${
+                        active
+                          ? "border-blue-600 bg-blue-50/70 shadow-md ring-1 ring-blue-600"
+                          : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md"
+                      }`}
+                    >
+                      {item.popular && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-violet-600 px-2 py-0.5 text-[7px] font-black text-white">
+                          Popular
+                        </span>
+                      )}
+
+                      {active && (
+                        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check size={11} />
+                        </span>
+                      )}
+
+                      <div className="mx-auto flex h-12 w-20 items-center justify-center rounded-lg border border-slate-200 bg-white text-[10px] font-black text-blue-700 shadow-sm">
+                        {item.short}
+                      </div>
+
+                      <p className="mt-3 text-[10px] font-black text-slate-900">
+                        {item.name}
+                      </p>
+
+                      <p className="mt-1 text-[8px] text-slate-400">
+                        FASTag Provider
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* VEHICLE */}
+            <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div className="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-blue-50/80 to-transparent" />
+
+              <div className="relative">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <Truck size={18} />
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h2 className="text-lg font-black">
+                          Vehicle Registration Number
+                        </h2>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          Enter the vehicle number linked with your FASTag.
+                        </p>
+                      </div>
+
+                      <span className="hidden items-center gap-1 rounded-full bg-emerald-50 px-3 py-1.5 text-[9px] font-black text-emerald-700 sm:flex">
+                        <ShieldCheck size={12} />
+                        SECURE
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_230px]">
+                  <div>
+                    <div className="relative">
+                      <Truck
+                        size={16}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                      />
+
+                      <input
+                        value={vehicle}
+                        onChange={(e) => {
+                          setVehicle(
+                            e.target.value
+                              .toUpperCase()
+                              .replace(/[^A-Z0-9]/g, "")
+                              .slice(0, 12)
+                          );
+                          setMessage("");
+                        }}
+                        placeholder="BR01AB1234"
+                        className={`w-full rounded-lg border bg-white py-3.5 pl-10 pr-12 text-sm font-black tracking-wider outline-none transition ${
+                          vehicle && vehicleValid
+                            ? "border-emerald-500 ring-2 ring-emerald-50"
+                            : "border-slate-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-50"
+                        }`}
+                      />
+
+                      {vehicle && (
+                        <button
+                          onClick={copyVehicle}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-blue-600"
+                        >
+                          {copied ? (
+                            <Check
+                              size={15}
+                              className="text-emerald-600"
+                            />
+                          ) : (
+                            <Copy size={15} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-[9px] font-semibold text-slate-500">
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 size={12} className="text-blue-600" />
+                        Example: BR01AB1234
+                      </span>
+
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 size={12} className="text-blue-600" />
+                        Letters & numbers only
+                      </span>
+
+                      {vehicle && (
+                        <span
+                          className={`flex items-center gap-1 ${
+                            vehicleValid
+                              ? "text-emerald-600"
+                              : "text-amber-600"
+                          }`}
+                        >
+                          <CheckCircle2 size={12} />
+                          {vehicleValid
+                            ? "Vehicle number format valid"
+                            : "Check vehicle number"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white">
+                        <Check size={16} />
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] font-black text-emerald-800">
+                          FASTag Ready
+                        </p>
+
+                        <p className="mt-0.5 text-[9px] text-emerald-700">
+                          Enter your vehicle number
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* AMOUNT */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div>
+                <h2 className="text-lg font-black">
+                  Choose Recharge Amount
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  Quick amounts for a faster experience or enter a custom amount.
+                </p>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                {amounts.map((item) => {
+                  const active = amount === String(item.value);
+
+                  return (
+                    <button
+                      key={item.value}
+                      onClick={() => setAmount(String(item.value))}
+                      className={`relative rounded-xl border px-3 py-4 transition ${
+                        active
+                          ? "border-blue-600 bg-blue-50 text-blue-700 shadow-sm ring-1 ring-blue-600"
+                          : "border-slate-200 bg-white text-slate-800 hover:border-blue-300 hover:shadow-sm"
+                      }`}
+                    >
+                      {item.popular && (
+                        <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-violet-600 px-2 py-0.5 text-[7px] font-black text-white">
+                          Most Popular
+                        </span>
+                      )}
+
+                      <p className="text-base font-black">
+                        {money(item.value)}
+                      </p>
+
+                      <p className="mt-1 text-[9px] font-semibold text-slate-500">
+                        {item.label}
+                      </p>
+
+                      {active && (
+                        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-white">
+                          <Check size={11} />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-col gap-2 md:flex-row">
+                <div className="relative flex-1">
+                  <IndianRupee
+                    size={15}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    value={amount}
+                    onChange={(e) =>
+                      setAmount(
+                        e.target.value.replace(/[^\d.]/g, "")
+                      )
+                    }
+                    inputMode="decimal"
+                    placeholder="Enter custom amount (Min. ₹10)"
+                    className="w-full rounded-lg border border-slate-300 py-3 pl-9 pr-3 text-sm font-bold outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-50"
+                  />
+                </div>
+
+                <button
+                  onClick={() =>
+                    setAmount(String(Math.max(10, numericAmount + 100)))
+                  }
+                  className="rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-black hover:border-blue-300"
+                >
+                  +100
+                </button>
+
+                <button
+                  onClick={() =>
+                    setAmount(String(Math.max(10, numericAmount + 500)))
+                  }
+                  className="rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-black hover:border-blue-300"
+                >
+                  +500
+                </button>
+
+                <button
+                  onClick={() =>
+                    setAmount(String(Math.max(10, numericAmount + 1000)))
+                  }
+                  className="rounded-lg border border-slate-200 bg-white px-5 py-3 text-xs font-black hover:border-blue-300"
+                >
+                  +1,000
+                </button>
+              </div>
+            </section>
+
+            {/* WHY */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <h2 className="text-lg font-black">
+                Why Recharge with Us?
+              </h2>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  {
+                    icon: "⚡",
+                    title: "Fast & Reliable",
+                    text: "Quick recharge processing",
+                  },
+                  {
+                    icon: "🛡",
+                    title: "Secure Transactions",
+                    text: "Bank-level security",
+                  },
+                  {
+                    icon: "🎁",
+                    title: "Exclusive Offers",
+                    text: "Save more on recharges",
+                  },
+                  {
+                    icon: "◉",
+                    title: "24 × 7 Support",
+                    text: "We're always here to help",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-white hover:shadow-sm"
+                  >
+                    <div className="text-2xl">{item.icon}</div>
+
+                    <p className="mt-3 text-[10px] font-black text-slate-900">
+                      {item.title}
+                    </p>
+
+                    <p className="mt-1 text-[9px] leading-4 text-slate-500">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* TRAVEL BANNER */}
+            <section className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-blue-50 to-white p-5 shadow-sm">
+              <div className="absolute right-8 top-0 h-full w-1/2 bg-[radial-gradient(circle_at_center,rgba(59,130,246,.12),transparent_55%)]" />
+
+              <div className="relative flex flex-col items-start justify-between gap-5 md:flex-row md:items-center">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">
+                    More Miles
+                  </p>
+
+                  <h3 className="mt-1 text-2xl font-black">
+                    More Smiles
+                  </h3>
+
+                  <p className="mt-1 max-w-xl text-[10px] text-slate-500">
+                    Keep your FASTag active and enjoy a smoother,
+                    faster and greener journey.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl border border-white bg-white/80 px-5 py-3 shadow-sm">
+                  <Truck size={25} className="text-blue-600" />
+
+                  <div>
+                    <p className="text-[10px] font-black text-slate-900">
+                      Smart Travel
+                    </p>
+
+                    <p className="text-[9px] text-slate-400">
+                      Cashless India
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT SIDEBAR */}
+          <aside>
+            <div className="sticky top-5 space-y-5">
+
+              {/* WALLET */}
+              <section className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-600 via-blue-600 to-violet-600 p-5 text-white shadow-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
+                      <Wallet size={22} />
+                    </div>
+
+                    <div>
+                      <p className="text-[10px] font-semibold text-blue-100">
+                        Wallet Balance
+                      </p>
+
+                      <p className="mt-1 text-2xl font-black">
+                        {money(balance)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between">
+                  <p className="text-[9px] text-blue-100">
+                    Ready for your next journey!
+                  </p>
+
+                  <Link
+                    href="/customer/wallet/balance"
+                    className="rounded-lg bg-white px-3 py-2 text-[9px] font-black text-blue-700 hover:bg-blue-50"
+                  >
+                    Add Money →
+                  </Link>
+                </div>
+
+                <div className="mt-4 flex items-center gap-2 rounded-full bg-emerald-400/20 px-3 py-1.5 text-[9px] font-bold text-emerald-100">
+                  <CheckCircle2 size={12} />
+                  {numericAmount <= balance
+                    ? "Sufficient Balance"
+                    : "Low Balance"}
+                </div>
+              </section>
+
+              {/* SUMMARY */}
+              <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-blue-600">
+                      Recharge Summary
+                    </p>
+
+                    <h2 className="mt-1 text-base font-black">
+                      Review & Recharge
+                    </h2>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setVehicle("");
+                      setAmount("500");
+                    }}
+                    className="text-[9px] font-bold text-blue-600 hover:text-blue-700"
+                  >
+                    Clear All →
+                  </button>
+                </div>
+
+                <div className="p-4">
+                  <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                    <div className="flex items-center justify-between gap-3 px-3 py-3">
+                      <span className="text-[10px] text-slate-500">
+                        Selected Bank
+                      </span>
+
+                      <span className="text-[10px] font-black">
+                        {selectedProvider.name}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-3 py-3">
+                      <span className="text-[10px] text-slate-500">
+                        Vehicle Number
+                      </span>
+
+                      <span className="text-[10px] font-black tracking-wider">
+                        {cleanVehicle
+                          ? mask(cleanVehicle)
+                          : "Not entered"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 px-3 py-3">
+                      <span className="text-[10px] text-slate-500">
+                        Recharge Amount
+                      </span>
+
+                      <span className="text-sm font-black">
+                        {money(numericAmount)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleRecharge}
+                    disabled={processing}
+                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 py-3.5 text-xs font-black text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-base">ϟ</span>
+                        Recharge FASTag
+                        <ArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+
+                  <div className="mt-4 flex items-center justify-center gap-2 text-[9px] font-bold text-slate-400">
+                    <LockKeyhole size={12} />
+                    Secure Wallet Payment
+                  </div>
+                </div>
+              </section>
+
+              {/* RECENT */}
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-black">
+                      Recent FASTag Recharge
+                    </h3>
+
+                    <p className="mt-1 text-[9px] text-slate-400">
+                      Latest recharge activity
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/customer/recharge/recent"
+                    className="text-[9px] font-black text-blue-600"
+                  >
+                    View All →
+                  </Link>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {recent.length ? (
+                    recent.map((item) => (
+                      <div
+                        key={item.id}
+                        className="rounded-xl border border-slate-200 bg-slate-50 p-3 transition hover:border-blue-200 hover:bg-white"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[7px] font-black text-blue-700 shadow-sm">
+                            {item.operator || "FASTag"}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[10px] font-black">
+                              {item.operator || "FASTag"}
+                            </p>
+
+                            <p className="mt-0.5 text-[8px] font-semibold text-slate-400">
+                              {mask(item.mobileNumber)}
+                            </p>
+
+                            <p className="mt-1 text-[7px] text-slate-400">
+                              {formatDate(item.createdAt)}
+                            </p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-[10px] font-black">
+                              {money(Number(item.amount || 0))}
+                            </p>
+
+                            <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-[7px] font-black text-emerald-700">
+                              {String(
+                                item.status || "SUCCESS"
+                              ).toUpperCase()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-7 text-center">
+                      <Truck
+                        size={25}
+                        className="mx-auto text-slate-300"
+                      />
+
+                      <p className="mt-2 text-[10px] font-bold text-slate-500">
+                        No FASTag recharge yet
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              {/* QUICK SERVICES */}
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-black">
+                    Quick Services
+                  </h3>
+
+                  <span className="text-[9px] font-black text-blue-600">
+                    View All →
+                  </span>
+                </div>
+
+                <div className="mt-4 grid grid-cols-4 gap-2">
+                  <Link
+                    href="/customer/recharge/mobile"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition hover:border-blue-200 hover:bg-white"
+                  >
+                    <div className="text-lg">▣</div>
+                    <p className="mt-2 text-[8px] font-black">
+                      Mobile
+                      <br />
+                      Recharge
+                    </p>
+                  </Link>
+
+                  <Link
+                    href="/customer/recharge/dth"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition hover:border-blue-200 hover:bg-white"
+                  >
+                    <div className="text-lg">▤</div>
+                    <p className="mt-2 text-[8px] font-black">
+                      DTH
+                      <br />
+                      Recharge
+                    </p>
+                  </Link>
+
+                  <Link
+                    href="/customer/recharge/recent"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition hover:border-blue-200 hover:bg-white"
+                  >
+                    <div className="text-lg">◷</div>
+                    <p className="mt-2 text-[8px] font-black">
+                      Recharge
+                      <br />
+                      History
+                    </p>
+                  </Link>
+
+                  <Link
+                    href="/customer/wallet/balance"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center transition hover:border-blue-200 hover:bg-white"
+                  >
+                    <div className="text-lg">▰</div>
+                    <p className="mt-2 text-[8px] font-black">
+                      Wallet
+                      <br />
+                      Balance
+                    </p>
+                  </Link>
+                </div>
+              </section>
+
+              {/* TRUST STRIP */}
+              <div className="grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <div className="text-center">
+                  <div className="text-lg">◌</div>
+                  <p className="mt-1 text-[7px] font-black text-slate-600">
+                    FAST
+                    <br />
+                    TRAVEL
+                  </p>
+                </div>
+
+                <div className="border-x border-slate-100 text-center">
+                  <div className="text-lg text-blue-600">◷</div>
+                  <p className="mt-1 text-[7px] font-black text-slate-600">
+                    CASHLESS
+                    <br />
+                    INDIA
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="text-lg text-emerald-600">♧</div>
+                  <p className="mt-1 text-[7px] font-black text-slate-600">
+                    GREENER
+                    <br />
+                    TOMORROW
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        {/* FOOTER */}
+        <div className="flex flex-wrap items-center justify-center gap-4 py-7 text-[9px] font-medium text-slate-400">
+          <span className="flex items-center gap-1.5">
+            <LockKeyhole size={11} />
+            Secure Payments
+          </span>
+
+          <span>•</span>
+
+          <span>Trusted Platform</span>
+
+          <span>•</span>
+
+          <span>Made in India 🇮🇳</span>
+        </div>
+
+        {/* MESSAGE */}
+        {message && (
+          <div className="fixed bottom-5 right-5 z-50 max-w-sm rounded-xl border border-slate-200 bg-white p-4 shadow-2xl">
+            <div className="flex items-start gap-3">
+              {message.toLowerCase().includes("success") ? (
+                <CheckCircle2
+                  size={18}
+                  className="mt-0.5 shrink-0 text-emerald-600"
+                />
+              ) : (
+                <ShieldCheck
+                  size={18}
+                  className="mt-0.5 shrink-0 text-amber-600"
+                />
+              )}
+
+              <p className="flex-1 text-xs font-semibold leading-5 text-slate-700">
+                {message}
+              </p>
+
+              <button
+                onClick={() => setMessage("")}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

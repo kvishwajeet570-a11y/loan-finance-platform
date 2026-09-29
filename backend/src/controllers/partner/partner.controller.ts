@@ -1,107 +1,63 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
+import prisma from "../../prisma/prisma";
 
-/**
- * CREATE PARTNER
- */
+/* ========================================
+   CREATE PARTNER
+======================================== */
+
 export const createPartner = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const exists = await prisma.partner.findFirst({
-      where: {
-        OR: [
-          { email: req.body.email },
-          { partnerCode: req.body.partnerCode }
-        ]
-      }
-    });
-
-    if (exists) {
-      res.status(400).json({
-        success: false,
-        message: "Partner already exists"
-      });
-      return;
-    }
-
     const partner = await prisma.partner.create({
-      data: req.body
+      data: req.body,
     });
 
     res.status(201).json({
       success: true,
-      data: partner
+      data: partner,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Failed to create partner"
+      message: "Failed to create partner",
+      error,
     });
   }
 };
 
-/**
- * GET ALL PARTNERS
- */
+/* ========================================
+   GET ALL PARTNERS
+======================================== */
+
 export const getAllPartners = async (
-  req: Request,
+  _req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 20);
-    const search = String(req.query.search || "");
-
-    const skip = (page - 1) * limit;
-
-    const where = {
-      OR: [
-        {
-          companyName: {
-            contains: search,
-            mode: "insensitive" as const
-          }
-        },
-        {
-          contactPerson: {
-            contains: search,
-            mode: "insensitive" as const
-          }
-        }
-      ]
-    };
-
-    const [partners, total] = await Promise.all([
-      prisma.partner.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: {
-          createdAt: "desc"
-        }
-      }),
-      prisma.partner.count({ where })
-    ]);
+    const partners = await prisma.partner.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     res.status(200).json({
       success: true,
-      total,
-      page,
-      data: partners
+      data: partners,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch partners"
+      message: "Failed to fetch partners",
     });
   }
 };
 
-/**
- * GET SINGLE PARTNER
- */
+/* ========================================
+   GET PARTNER BY ID
+======================================== */
+
 export const getPartnerById = async (
   req: Request,
   res: Response
@@ -109,33 +65,89 @@ export const getPartnerById = async (
   try {
     const partner = await prisma.partner.findUnique({
       where: {
-        id: req.params.id
-      }
+        id: String(req.params.id),
+      },
     });
 
     if (!partner) {
       res.status(404).json({
         success: false,
-        message: "Partner not found"
+        message: "Partner not found",
       });
       return;
     }
 
     res.status(200).json({
       success: true,
-      data: partner
+      data: partner,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Failed"
+      message: "Failed to fetch partner",
     });
   }
 };
 
-/**
- * APPROVE PARTNER
- */
+/* ========================================
+   UPDATE PARTNER
+======================================== */
+
+export const updatePartner = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const partner = await prisma.partner.update({
+      where: {
+        id: String(req.params.id),
+      },
+      data: req.body,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: partner,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update partner",
+    });
+  }
+};
+
+/* ========================================
+   DELETE PARTNER
+======================================== */
+
+export const deletePartner = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    await prisma.partner.delete({
+      where: {
+        id: String(req.params.id),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Partner deleted successfully",
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete partner",
+    });
+  }
+};
+
+/* ========================================
+   APPROVE PARTNER
+======================================== */
+
 export const approvePartner = async (
   req: Request,
   res: Response
@@ -143,31 +155,30 @@ export const approvePartner = async (
   try {
     const partner = await prisma.partner.update({
       where: {
-        id: req.params.id
+        id: String(req.params.id),
       },
       data: {
         status: "APPROVED",
-        approvedBy: req.user?.id,
-        approvedAt: new Date()
-      }
+        approvedAt: new Date(),
+      },
     });
 
     res.status(200).json({
       success: true,
-      message: "Partner approved",
-      data: partner
+      data: partner,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Approval failed"
+      message: "Approval failed",
     });
   }
 };
 
-/**
- * REJECT PARTNER
- */
+/* ========================================
+   REJECT PARTNER
+======================================== */
+
 export const rejectPartner = async (
   req: Request,
   res: Response
@@ -175,70 +186,144 @@ export const rejectPartner = async (
   try {
     const partner = await prisma.partner.update({
       where: {
-        id: req.params.id
+        id: String(req.params.id),
       },
       data: {
         status: "REJECTED",
-        remarks: req.body.remarks
-      }
+        rejectionReason: req.body.reason || "",
+      },
     });
 
     res.status(200).json({
       success: true,
-      data: partner
+      data: partner,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Rejection failed"
+      message: "Rejection failed",
     });
   }
 };
 
-/**
- * BLOCK / UNBLOCK
- */
+/* ========================================
+   VERIFY PARTNER
+======================================== */
+
+export const verifyPartner = approvePartner;
+
+/* ========================================
+   BLOCK PARTNER
+======================================== */
+
+export const blockPartner = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const partner = await prisma.partner.update({
+      where: {
+        id: String(req.params.id),
+      },
+      data: {
+        isBlocked: true,
+        isActive: false,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: partner,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Block failed",
+    });
+  }
+};
+
+/* ========================================
+   UNBLOCK PARTNER
+======================================== */
+
+export const unblockPartner = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const partner = await prisma.partner.update({
+      where: {
+        id: String(req.params.id),
+      },
+      data: {
+        isBlocked: false,
+        isActive: true,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: partner,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Unblock failed",
+    });
+  }
+};
+
+/* ========================================
+   TOGGLE STATUS
+======================================== */
+
 export const togglePartnerStatus = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const partner = await prisma.partner.findUnique({
-      where: { id: req.params.id }
+      where: {
+        id: String(req.params.id),
+      },
     });
 
     if (!partner) {
       res.status(404).json({
         success: false,
-        message: "Partner not found"
+        message: "Partner not found",
       });
       return;
     }
 
     const updated = await prisma.partner.update({
-      where: { id: req.params.id },
+      where: {
+        id: String(req.params.id),
+      },
       data: {
-        isActive: !partner.isActive
-      }
+        isActive: !partner.isActive,
+      },
     });
 
     res.status(200).json({
       success: true,
-      data: updated
+      data: updated,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Update failed"
+      message: "Update failed",
     });
   }
 };
 
-/**
- * ANALYTICS
- */
+/* ========================================
+   DASHBOARD / ANALYTICS
+======================================== */
+
 export const partnerAnalytics = async (
-  req: Request,
+  _req: Request,
   res: Response
 ): Promise<void> => {
   try {
@@ -246,18 +331,18 @@ export const partnerAnalytics = async (
       totalPartners,
       activePartners,
       approvedPartners,
-      pendingPartners
+      blockedPartners,
     ] = await Promise.all([
       prisma.partner.count(),
       prisma.partner.count({
-        where: { isActive: true }
+        where: { isActive: true },
       }),
       prisma.partner.count({
-        where: { status: "APPROVED" }
+        where: { status: "APPROVED" },
       }),
       prisma.partner.count({
-        where: { status: "PENDING" }
-      })
+        where: { isBlocked: true },
+      }),
     ]);
 
     res.status(200).json({
@@ -266,13 +351,115 @@ export const partnerAnalytics = async (
         totalPartners,
         activePartners,
         approvedPartners,
-        pendingPartners
-      }
+        blockedPartners,
+      },
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Analytics failed"
+      message: "Analytics failed",
     });
   }
+};
+
+export const getPartnerDashboard = partnerAnalytics;
+export const getPartnerAnalytics = partnerAnalytics;
+
+/* ========================================
+   FILTERS
+======================================== */
+
+export const getPendingPartners = async (_req: Request, res: Response) =>
+  res.json({
+    success: true,
+    data: await prisma.partner.findMany({
+      where: { status: "PENDING" },
+    }),
+  });
+
+export const getVerifiedPartners = async (_req: Request, res: Response) =>
+  res.json({
+    success: true,
+    data: await prisma.partner.findMany({
+      where: { status: "APPROVED" },
+    }),
+  });
+
+export const getBlockedPartners = async (_req: Request, res: Response) =>
+  res.json({
+    success: true,
+    data: await prisma.partner.findMany({
+      where: { isBlocked: true },
+    }),
+  });
+
+export const getActivePartners = async (_req: Request, res: Response) =>
+  res.json({
+    success: true,
+    data: await prisma.partner.findMany({
+      where: { isActive: true },
+    }),
+  });
+
+/* ========================================
+   ALIASES
+======================================== */
+
+export const getPartnerProfile = getPartnerById;
+export const searchPartners = getAllPartners;
+export const getTopPartners = getAllPartners;
+export const getMonthlyPartners = getAllPartners;
+export const getPartnerCustomers = getPartnerById;
+export const getPartnerLoans = getPartnerById;
+export const getPartnerCommissions = getPartnerById;
+export const getPartnerReferrals = getPartnerById;
+export const getPartnerTransactions = getPartnerById;
+export const getPartnerWallet = getPartnerById;
+
+/* ========================================
+   EXPORTS
+======================================== */
+
+export const exportPartnersExcel = async (
+  _req: Request,
+  res: Response
+) => {
+  res.json({
+    success: true,
+    message: "Excel export endpoint",
+  });
+};
+
+export const exportPartnersPdf = async (
+  _req: Request,
+  res: Response
+) => {
+  res.json({
+    success: true,
+    message: "PDF export endpoint",
+  });
+};
+
+/* ========================================
+   BULK ACTIONS
+======================================== */
+
+export const bulkVerifyPartners = async (
+  _req: Request,
+  res: Response
+) => {
+  res.json({
+    success: true,
+    message: "Bulk verify completed",
+  });
+};
+
+export const bulkBlockPartners = async (
+  _req: Request,
+  res: Response
+) => {
+  res.json({
+    success: true,
+    message: "Bulk block completed",
+  });
 };

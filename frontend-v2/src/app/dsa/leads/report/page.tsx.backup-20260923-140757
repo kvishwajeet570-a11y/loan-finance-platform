@@ -1,0 +1,56 @@
+﻿"use client";
+
+import DsaShell from "@/components/dsa/DsaShell";
+
+export default function LeadsReportPage() {
+  return (
+    <DsaShell>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900">
+            Leads Report & Filter
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Analyze, filter and export your lead records.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-4">
+            <input
+              placeholder="Search lead..."
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+            />
+
+            <select className="rounded-xl border border-slate-200 px-4 py-3 outline-none">
+              <option>All Status</option>
+              <option>NEW</option>
+              <option>FOLLOW UP</option>
+              <option>CONVERTED</option>
+              <option>REJECTED</option>
+              <option>DISBURSED</option>
+            </select>
+
+            <input
+              type="date"
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none"
+            />
+
+            <button className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 font-bold text-white">
+              Apply Filter
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <h2 className="text-lg font-bold text-slate-800">
+            Lead Report
+          </h2>
+          <p className="mt-2 text-sm text-slate-500">
+            Filtered lead records will appear here.
+          </p>
+        </div>
+      </div>
+    </DsaShell>
+  );
+}

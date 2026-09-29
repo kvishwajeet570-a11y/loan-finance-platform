@@ -1,21 +1,26 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SupportRepository = void 0;
-const prisma_1 = require("../../prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class SupportRepository {
-    /* =========================
-        CREATE TICKET
-    ========================= */
     static async createTicket(data) {
-        return prisma_1.prisma.supportTicket.create({
-            data
+        return prisma_1.default.supportTicket.create({
+            data: {
+                ticketNumber: `TKT-${Date.now()}`,
+                ...data,
+                priority: data.priority ?? "medium",
+                status: "open",
+            },
         });
     }
     /* =========================
         GET TICKET
     ========================= */
     static async getTicketById(id) {
-        return prisma_1.prisma.supportTicket.findUnique({
+        return prisma_1.default.supportTicket.findUnique({
             where: { id },
             include: {
                 user: true
@@ -26,7 +31,7 @@ class SupportRepository {
         GET BY TICKET NUMBER
     ========================= */
     static async getByTicketNumber(ticketNumber) {
-        return prisma_1.prisma.supportTicket.findUnique({
+        return prisma_1.default.supportTicket.findUnique({
             where: {
                 ticketNumber
             },
@@ -39,7 +44,7 @@ class SupportRepository {
         USER TICKETS
     ========================= */
     static async getUserTickets(userId) {
-        return prisma_1.prisma.supportTicket.findMany({
+        return prisma_1.default.supportTicket.findMany({
             where: {
                 userId
             },
@@ -52,7 +57,7 @@ class SupportRepository {
         ASSIGN TICKET
     ========================= */
     static async assignTicket(ticketId, assignedTo) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
@@ -66,7 +71,7 @@ class SupportRepository {
         IN PROGRESS
     ========================= */
     static async markInProgress(ticketId) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
@@ -79,13 +84,13 @@ class SupportRepository {
         RESOLVE TICKET
     ========================= */
     static async resolveTicket(ticketId, resolution) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
             data: {
                 status: "RESOLVED",
-                resolution,
+                adminReply: resolution,
                 resolvedAt: new Date()
             }
         });
@@ -94,13 +99,12 @@ class SupportRepository {
         CLOSE TICKET
     ========================= */
     static async closeTicket(ticketId) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
             data: {
-                status: "CLOSED",
-                closedAt: new Date()
+                status: "CLOSED"
             }
         });
     }
@@ -108,14 +112,13 @@ class SupportRepository {
         REOPEN TICKET
     ========================= */
     static async reopenTicket(ticketId) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
             data: {
                 status: "OPEN",
-                resolvedAt: null,
-                closedAt: null
+                resolvedAt: null
             }
         });
     }
@@ -123,7 +126,7 @@ class SupportRepository {
         UPDATE PRIORITY
     ========================= */
     static async updatePriority(ticketId, priority) {
-        return prisma_1.prisma.supportTicket.update({
+        return prisma_1.default.supportTicket.update({
             where: {
                 id: ticketId
             },
@@ -136,15 +139,9 @@ class SupportRepository {
         SEARCH TICKETS
     ========================= */
     static async searchTickets(keyword) {
-        return prisma_1.prisma.supportTicket.findMany({
+        return prisma_1.default.supportTicket.findMany({
             where: {
                 OR: [
-                    {
-                        ticketNumber: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
                     {
                         subject: {
                             contains: keyword,
@@ -153,6 +150,12 @@ class SupportRepository {
                     },
                     {
                         description: {
+                            contains: keyword,
+                            mode: "insensitive"
+                        }
+                    },
+                    {
+                        message: {
                             contains: keyword,
                             mode: "insensitive"
                         }
@@ -168,7 +171,7 @@ class SupportRepository {
         GET BY STATUS
     ========================= */
     static async getByStatus(status) {
-        return prisma_1.prisma.supportTicket.findMany({
+        return prisma_1.default.supportTicket.findMany({
             where: {
                 status
             },
@@ -184,7 +187,7 @@ class SupportRepository {
         GET BY PRIORITY
     ========================= */
     static async getByPriority(priority) {
-        return prisma_1.prisma.supportTicket.findMany({
+        return prisma_1.default.supportTicket.findMany({
             where: {
                 priority
             },
@@ -199,7 +202,7 @@ class SupportRepository {
     static async getAllTickets(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [tickets, total] = await Promise.all([
-            prisma_1.prisma.supportTicket.findMany({
+            prisma_1.default.supportTicket.findMany({
                 skip,
                 take: limit,
                 include: {
@@ -209,7 +212,7 @@ class SupportRepository {
                     createdAt: "desc"
                 }
             }),
-            prisma_1.prisma.supportTicket.count()
+            prisma_1.default.supportTicket.count()
         ]);
         return {
             tickets,
@@ -223,23 +226,23 @@ class SupportRepository {
     ========================= */
     static async getAnalytics() {
         const [totalTickets, openTickets, resolvedTickets, closedTickets, highPriority] = await Promise.all([
-            prisma_1.prisma.supportTicket.count(),
-            prisma_1.prisma.supportTicket.count({
+            prisma_1.default.supportTicket.count(),
+            prisma_1.default.supportTicket.count({
                 where: {
                     status: "OPEN"
                 }
             }),
-            prisma_1.prisma.supportTicket.count({
+            prisma_1.default.supportTicket.count({
                 where: {
                     status: "RESOLVED"
                 }
             }),
-            prisma_1.prisma.supportTicket.count({
+            prisma_1.default.supportTicket.count({
                 where: {
                     status: "CLOSED"
                 }
             }),
-            prisma_1.prisma.supportTicket.count({
+            prisma_1.default.supportTicket.count({
                 where: {
                     priority: "HIGH"
                 }
@@ -259,7 +262,7 @@ class SupportRepository {
     static async getDashboard() {
         const [analytics, recentTickets] = await Promise.all([
             this.getAnalytics(),
-            prisma_1.prisma.supportTicket.findMany({
+            prisma_1.default.supportTicket.findMany({
                 take: 10,
                 include: {
                     user: true

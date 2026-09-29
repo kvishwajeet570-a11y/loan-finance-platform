@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
+import prisma from "../../prisma/prisma";
 
 /**
  * GET ALL SECURITY LOGS
@@ -65,8 +65,8 @@ export const getUserSecurityLogs = async (
     const logs =
       await prisma.securityLog.findMany({
         where: {
-          userId: req.params.userId,
-        },
+  userId: String(req.params.userId),
+},
         orderBy: {
           createdAt: "desc",
         },

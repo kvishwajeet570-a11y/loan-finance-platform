@@ -1,140 +1,122 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCustomerAnalytics = exports.unblockCustomer = exports.blockCustomer = exports.updateCustomer = exports.createCustomer = exports.getCustomerById = exports.getCustomers = void 0;
-const customer_service_1 = __importDefault(require("../../services/customer/customer.service"));
-const getCustomers = async (req, res) => {
-    try {
-        const page = Number(req.query.page || 1);
-        const limit = Number(req.query.limit || 10);
-        const search = String(req.query.search || "");
-        const status = String(req.query.status || "");
-        const result = await customer_service_1.default.getCustomers({
-            page,
-            limit,
-            search,
-            status,
-        });
-        res.status(200).json({
-            success: true,
-            ...result,
-        });
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch customers",
-        });
-    }
+exports.exportCustomersPdf = exports.exportCustomersExcel = exports.getCustomerAnalytics = exports.getCustomerProfile = exports.getCustomerDashboard = exports.getMonthlyCustomers = exports.getTopCustomers = exports.getInactiveCustomers = exports.getActiveCustomers = exports.verifyCustomer = exports.getCustomerKyc = exports.getCustomerDocuments = exports.getCustomerTransactions = exports.getCustomerLoans = exports.searchCustomers = exports.unblockCustomer = exports.blockCustomer = exports.deleteCustomer = exports.updateCustomer = exports.createCustomer = exports.getCustomerByUserId = exports.getCustomerById = exports.getAllCustomers = void 0;
+const customer_service_1 = require("../../services/customer/customer.service");
+const getAllCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomers(req.query);
+    res.json(data);
 };
-exports.getCustomers = getCustomers;
+exports.getAllCustomers = getAllCustomers;
 const getCustomerById = async (req, res) => {
-    try {
-        const customer = await customer_service_1.default.getCustomerById(req.params.id);
-        if (!customer) {
-            res.status(404).json({
-                success: false,
-                message: "Customer not found",
-            });
-            return;
-        }
-        res.status(200).json({
-            success: true,
-            data: customer,
-        });
-    }
-    catch {
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch customer",
-        });
-    }
+    const data = await customer_service_1.customerService.getCustomerById(String(req.params.id));
+    res.json(data);
 };
 exports.getCustomerById = getCustomerById;
+const getCustomerByUserId = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerByUserId(String(req.params.userId));
+    res.json(data);
+};
+exports.getCustomerByUserId = getCustomerByUserId;
 const createCustomer = async (req, res) => {
-    try {
-        const customer = await customer_service_1.default.createCustomer(req.body);
-        res.status(201).json({
-            success: true,
-            message: "Customer created successfully",
-            data: customer,
-        });
-    }
-    catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
-    }
+    const data = await customer_service_1.customerService.createCustomer(req.body);
+    res.status(201).json(data);
 };
 exports.createCustomer = createCustomer;
 const updateCustomer = async (req, res) => {
-    try {
-        const customer = await customer_service_1.default.updateCustomer(req.params.id, req.body);
-        res.status(200).json({
-            success: true,
-            message: "Customer updated successfully",
-            data: customer,
-        });
-    }
-    catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message,
-        });
-    }
+    const data = await customer_service_1.customerService.updateCustomer(String(req.params.id), req.body);
+    res.json(data);
 };
 exports.updateCustomer = updateCustomer;
+const deleteCustomer = async (req, res) => {
+    await customer_service_1.customerService.deleteCustomer(String(req.params.id));
+    res.json({
+        success: true,
+        message: "Customer deleted successfully",
+    });
+};
+exports.deleteCustomer = deleteCustomer;
 const blockCustomer = async (req, res) => {
-    try {
-        const customer = await customer_service_1.default.blockCustomer(req.params.id);
-        res.status(200).json({
-            success: true,
-            message: "Customer blocked successfully",
-            data: customer,
-        });
-    }
-    catch {
-        res.status(500).json({
-            success: false,
-            message: "Failed to block customer",
-        });
-    }
+    const data = await customer_service_1.customerService.blockCustomer(String(req.params.id));
+    res.json(data);
 };
 exports.blockCustomer = blockCustomer;
 const unblockCustomer = async (req, res) => {
-    try {
-        const customer = await customer_service_1.default.unblockCustomer(req.params.id);
-        res.status(200).json({
-            success: true,
-            message: "Customer unblocked successfully",
-            data: customer,
-        });
-    }
-    catch {
-        res.status(500).json({
-            success: false,
-            message: "Failed to unblock customer",
-        });
-    }
+    const data = await customer_service_1.customerService.unblockCustomer(String(req.params.id));
+    res.json(data);
 };
 exports.unblockCustomer = unblockCustomer;
+const searchCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.searchCustomers(String(req.query.search || ""));
+    res.json(data);
+};
+exports.searchCustomers = searchCustomers;
+const getCustomerLoans = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerLoans(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerLoans = getCustomerLoans;
+const getCustomerTransactions = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerTransactions(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerTransactions = getCustomerTransactions;
+const getCustomerDocuments = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerDocuments(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerDocuments = getCustomerDocuments;
+const getCustomerKyc = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerKyc(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerKyc = getCustomerKyc;
+const verifyCustomer = async (req, res) => {
+    const data = await customer_service_1.customerService.verifyCustomer(String(req.params.id));
+    res.json(data);
+};
+exports.verifyCustomer = verifyCustomer;
+const getActiveCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.getActiveCustomers();
+    res.json(data);
+};
+exports.getActiveCustomers = getActiveCustomers;
+const getInactiveCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.getInactiveCustomers();
+    res.json(data);
+};
+exports.getInactiveCustomers = getInactiveCustomers;
+const getTopCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.getTopCustomers();
+    res.json(data);
+};
+exports.getTopCustomers = getTopCustomers;
+const getMonthlyCustomers = async (req, res) => {
+    const data = await customer_service_1.customerService.getMonthlyCustomers();
+    res.json(data);
+};
+exports.getMonthlyCustomers = getMonthlyCustomers;
+const getCustomerDashboard = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerDashboard(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerDashboard = getCustomerDashboard;
+const getCustomerProfile = async (req, res) => {
+    const data = await customer_service_1.customerService.getCustomerProfile(String(req.params.id));
+    res.json(data);
+};
+exports.getCustomerProfile = getCustomerProfile;
 const getCustomerAnalytics = async (req, res) => {
-    try {
-        const analytics = await customer_service_1.default.getCustomerAnalytics();
-        res.status(200).json({
-            success: true,
-            data: analytics,
-        });
-    }
-    catch {
-        res.status(500).json({
-            success: false,
-            message: "Failed to fetch analytics",
-        });
-    }
+    const data = await customer_service_1.customerService.getCustomerAnalytics();
+    res.json(data);
 };
 exports.getCustomerAnalytics = getCustomerAnalytics;
+const exportCustomersExcel = async (req, res) => {
+    const data = await customer_service_1.customerService.exportCustomersExcel();
+    res.json(data);
+};
+exports.exportCustomersExcel = exportCustomersExcel;
+const exportCustomersPdf = async (req, res) => {
+    const data = await customer_service_1.customerService.exportCustomersPdf();
+    res.json(data);
+};
+exports.exportCustomersPdf = exportCustomersPdf;

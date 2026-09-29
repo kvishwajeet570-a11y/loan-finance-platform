@@ -52,10 +52,10 @@ import {
   getMaintenanceSettings,
   updateMaintenanceSettings,
 
-  enableMaintenanceMode,
-  disableMaintenanceMode,
+  // Controller me yahi function hai
+  toggleMaintenanceMode,
 
-  backupSettings,
+  
   restoreSettings,
 
   resetSettings,
@@ -72,7 +72,7 @@ import {
   bulkDeleteSettings,
 
   getAuditLogs,
-} from "../../controllers/setting/setting.controller";
+} from "../../controllers/settings/settings.controller";
 
 const router = Router();
 
@@ -81,9 +81,7 @@ const router = Router();
 ======================================== */
 
 router.get("/dashboard", getSettingDashboard);
-
 router.get("/analytics", getSettingAnalytics);
-
 router.get("/audit-logs", getAuditLogs);
 
 /* ========================================
@@ -91,7 +89,6 @@ router.get("/audit-logs", getAuditLogs);
 ======================================== */
 
 router.get("/system", getSystemSettings);
-
 router.put("/system", updateSystemSettings);
 
 /* ========================================
@@ -99,7 +96,6 @@ router.put("/system", updateSystemSettings);
 ======================================== */
 
 router.get("/company", getCompanySettings);
-
 router.put("/company", updateCompanySettings);
 
 /* ========================================
@@ -107,7 +103,6 @@ router.put("/company", updateCompanySettings);
 ======================================== */
 
 router.get("/website", getWebsiteSettings);
-
 router.put("/website", updateWebsiteSettings);
 
 /* ========================================
@@ -115,7 +110,6 @@ router.put("/website", updateWebsiteSettings);
 ======================================== */
 
 router.get("/seo", getSeoSettings);
-
 router.put("/seo", updateSeoSettings);
 
 /* ========================================
@@ -123,7 +117,6 @@ router.put("/seo", updateSeoSettings);
 ======================================== */
 
 router.get("/email", getEmailSettings);
-
 router.put("/email", updateEmailSettings);
 
 /* ========================================
@@ -131,7 +124,6 @@ router.put("/email", updateEmailSettings);
 ======================================== */
 
 router.get("/sms", getSmsSettings);
-
 router.put("/sms", updateSmsSettings);
 
 /* ========================================
@@ -139,7 +131,6 @@ router.put("/sms", updateSmsSettings);
 ======================================== */
 
 router.get("/whatsapp", getWhatsappSettings);
-
 router.put("/whatsapp", updateWhatsappSettings);
 
 /* ========================================
@@ -147,7 +138,6 @@ router.put("/whatsapp", updateWhatsappSettings);
 ======================================== */
 
 router.get("/notification", getNotificationSettings);
-
 router.put("/notification", updateNotificationSettings);
 
 /* ========================================
@@ -155,7 +145,6 @@ router.put("/notification", updateNotificationSettings);
 ======================================== */
 
 router.get("/payment-gateway", getPaymentGatewaySettings);
-
 router.put("/payment-gateway", updatePaymentGatewaySettings);
 
 /* ========================================
@@ -163,7 +152,6 @@ router.put("/payment-gateway", updatePaymentGatewaySettings);
 ======================================== */
 
 router.get("/loan", getLoanSettings);
-
 router.put("/loan", updateLoanSettings);
 
 /* ========================================
@@ -171,7 +159,6 @@ router.put("/loan", updateLoanSettings);
 ======================================== */
 
 router.get("/commission", getCommissionSettings);
-
 router.put("/commission", updateCommissionSettings);
 
 /* ========================================
@@ -179,7 +166,6 @@ router.put("/commission", updateCommissionSettings);
 ======================================== */
 
 router.get("/referral", getReferralSettings);
-
 router.put("/referral", updateReferralSettings);
 
 /* ========================================
@@ -187,7 +173,6 @@ router.put("/referral", updateReferralSettings);
 ======================================== */
 
 router.get("/kyc", getKycSettings);
-
 router.put("/kyc", updateKycSettings);
 
 /* ========================================
@@ -195,7 +180,6 @@ router.put("/kyc", updateKycSettings);
 ======================================== */
 
 router.get("/security", getSecuritySettings);
-
 router.put("/security", updateSecuritySettings);
 
 /* ========================================
@@ -203,33 +187,32 @@ router.put("/security", updateSecuritySettings);
 ======================================== */
 
 router.get("/maintenance", getMaintenanceSettings);
+router.put("/maintenance", updateMaintenanceSettings);
 
-router.patch(
-  "/maintenance/enable",
-  enableMaintenanceMode
-);
+// Enable
+router.patch("/maintenance/enable", (req, res, next) => {
+  req.body.enabled = true;
+  return toggleMaintenanceMode(req, res, next);
+});
 
-router.patch(
-  "/maintenance/disable",
-  disableMaintenanceMode
-);
+// Disable
+router.patch("/maintenance/disable", (req, res, next) => {
+  req.body.enabled = false;
+  return toggleMaintenanceMode(req, res, next);
+});
 
 /* ========================================
    BACKUP & RESTORE
 ======================================== */
 
-router.post("/backup", backupSettings);
-
 router.post("/restore", restoreSettings);
-
-router.post("/reset", resetSettings);
+// router.post("/reset", resetSettings);
 
 /* ========================================
    EXPORTS
 ======================================== */
 
 router.get("/export/excel", exportSettingsExcel);
-
 router.get("/export/pdf", exportSettingsPdf);
 
 /* ========================================
@@ -243,27 +226,16 @@ router.get("/search", searchSettings);
 ======================================== */
 
 router.post("/", createSetting);
-
 router.get("/", getAllSettings);
-
 router.get("/:key", getSettingByKey);
-
 router.put("/:key", updateSetting);
-
 router.delete("/:key", deleteSetting);
 
 /* ========================================
    BULK ACTIONS
 ======================================== */
 
-router.post(
-  "/bulk/update",
-  bulkUpdateSettings
-);
-
-router.post(
-  "/bulk/delete",
-  bulkDeleteSettings
-);
+router.post("/bulk/update", bulkUpdateSettings);
+router.post("/bulk/delete", bulkDeleteSettings);
 
 export default router;

@@ -1,4 +1,5 @@
 import prisma from "../../prisma/prisma";
+import { RechargeType } from "@prisma/client";
 
 interface RechargeDTO {
   userId: string;
@@ -9,193 +10,70 @@ interface RechargeDTO {
 }
 
 class RechargeService {
-  /**
-   * Create Recharge Request
-   */
-  async createRecharge(
-    data: RechargeDTO
-  ) {
-    const recharge =
-      await prisma.recharge.create({
-        data: {
-          userId: data.userId,
-          operator: data.operator,
-          number: data.number,
-          amount: data.amount,
-          serviceType:
-            data.serviceType,
-          status: "PENDING",
-        },
-      });
-
-    return recharge;
+  async createRecharge(data: RechargeDTO) {
+    return prisma.recharge.create({
+      data: {
+        userId: data.userId,
+        operator: data.operator,
+        mobileNumber: data.number,
+        amount: data.amount,
+        rechargeType: data.serviceType as RechargeType,
+        status: "PENDING",
+      },
+    });
   }
 
-  /**
-   * Success Recharge
-   */
   async markSuccess(
-    rechargeId: string,
+    id: string,
     operatorTxnId: string
   ) {
-    const recharge =
-      await prisma.recharge.update({
-        where: {
-          id: rechargeId,
-        },
-
-        data: {
-          status: "SUCCESS",
-          operatorTxnId,
-          completedAt:
-            new Date(),
-        },
-      });
-
-    return recharge;
+    return prisma.recharge.update({
+      where: {
+        id: id,
+      },
+      data: {
+        status: "SUCCESS",
+        operatorTxnId,
+        completedAt: new Date(),
+      },
+    });
   }
 
-  /**
-   * Failed Recharge
-   */
   async markFailed(
-    rechargeId: string,
+    id: string,
     reason: string
   ) {
     return prisma.recharge.update({
       where: {
-        id: rechargeId,
+        id: id,
       },
-
       data: {
         status: "FAILED",
-        failureReason:
-          reason,
+        failureReason: reason,
       },
     });
   }
 
-  /**
-   * Wallet Recharge
-   */
-  async walletRecharge(
-    userId: string,
-    amount: number
-  ) {
-    await prisma.wallet.update({
-      where: {
-        userId,
-      },
-
-      data: {
-        balance: {
-          increment:
-            amount,
-        },
-      },
-    });
-
-    await prisma.transaction.create({
-      data: {
-        userId,
-        amount,
-        type: "CREDIT",
-        remark:
-          "Wallet Recharge",
-      },
-    });
-
-    return {
-      success: true,
-      amount,
-    };
-  }
-
-  /**
-   * Debit Wallet
-   */
-  async debitWallet(
-    userId: string,
-    amount: number
-  ) {
-    const wallet =
-      await prisma.wallet.findUnique({
-        where: {
-          userId,
-        },
-      });
-
-    if (!wallet) {
-      throw new Error(
-        "Wallet not found"
-      );
-    }
-
-    if (
-      wallet.balance < amount
-    ) {
-      throw new Error(
-        "Insufficient balance"
-      );
-    }
-
-    await prisma.wallet.update({
-      where: {
-        userId,
-      },
-
-      data: {
-        balance: {
-          decrement:
-            amount,
-        },
-      },
-    });
-
-    await prisma.transaction.create({
-      data: {
-        userId,
-        amount,
-        type: "DEBIT",
-        remark:
-          "Recharge Payment",
-      },
-    });
-
-    return true;
-  }
-
-  /**
-   * Recharge History
-   */
   async getRechargeHistory(
     userId: string,
     page = 1,
     limit = 20
   ) {
-    const skip =
-      (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [recharges, total] =
       await Promise.all([
         prisma.recharge.findMany({
-          where: {
-            userId,
-          },
-
+          where: { userId },
           skip,
           take: limit,
-
           orderBy: {
-            createdAt:
-              "desc",
+            createdAt: "desc",
           },
         }),
 
         prisma.recharge.count({
-          where: {
-            userId,
-          },
+          where: { userId },
         }),
       ]);
 
@@ -203,15 +81,10 @@ class RechargeService {
       recharges,
       total,
       page,
-      pages: Math.ceil(
-        total / limit
-      ),
+      pages: Math.ceil(total / limit),
     };
   }
 
-  /**
-   * Recharge Details
-   */
   async getRechargeById(
     rechargeId: string
   ) {
@@ -219,24 +92,20 @@ class RechargeService {
       where: {
         id: rechargeId,
       },
-
       include: {
         user: true,
       },
     });
   }
 
-  /**
-   * Commission Distribution
-   */
   async distributeCommission(
-    rechargeId: string,
+    id: string,
     commissionAmount: number
   ) {
     const recharge =
       await prisma.recharge.findUnique({
         where: {
-          id: rechargeId,
+          id: id,
         },
       });
 
@@ -248,23 +117,18 @@ class RechargeService {
 
     return prisma.commission.create({
       data: {
-        userId:
-          recharge.userId,
+        userId: recharge.userId,
+        amount: commissionAmount,
         commissionAmount,
-        source:
-          "RECHARGE",
-        status:
-          "APPROVED",
+        loanAmount: 0,
+        source: "RECHARGE",
+        status: "APPROVED",
       },
     });
   }
 
-  /**
-   * Today's Recharge
-   */
   async todayRechargeReport() {
-    const today =
-      new Date();
+    const today = new Date();
 
     today.setHours(
       0,
@@ -278,23 +142,17 @@ class RechargeService {
         createdAt: {
           gte: today,
         },
-
         status: "SUCCESS",
       },
-
       _sum: {
         amount: true,
       },
-
       _count: {
         id: true,
       },
     });
   }
 
-  /**
-   * Monthly Recharge Report
-   */
   async monthlyRechargeReport() {
     const year =
       new Date().getFullYear();
@@ -311,35 +169,24 @@ class RechargeService {
     `;
   }
 
-  /**
-   * Top Recharge Users
-   */
   async topRechargeUsers() {
     return prisma.recharge.groupBy({
       by: ["userId"],
-
       where: {
         status: "SUCCESS",
       },
-
       _sum: {
         amount: true,
       },
-
       orderBy: {
         _sum: {
-          amount:
-            "desc",
+          amount: "desc",
         },
       },
-
       take: 10,
     });
   }
 
-  /**
-   * Recharge Analytics
-   */
   async getRechargeStats() {
     const [
       totalRecharge,
@@ -351,15 +198,13 @@ class RechargeService {
 
       prisma.recharge.count({
         where: {
-          status:
-            "SUCCESS",
+          status: "SUCCESS",
         },
       }),
 
       prisma.recharge.count({
         where: {
-          status:
-            "FAILED",
+          status: "FAILED",
         },
       }),
 
@@ -374,10 +219,8 @@ class RechargeService {
       totalRecharge,
       successRecharge,
       failedRecharge,
-
       totalBusiness:
-        totalBusiness._sum
-          .amount || 0,
+        totalBusiness._sum.amount || 0,
     };
   }
 }

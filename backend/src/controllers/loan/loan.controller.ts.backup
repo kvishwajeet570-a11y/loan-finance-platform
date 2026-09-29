@@ -1,0 +1,404 @@
+﻿import {
+  Request,
+  Response,
+} from "express";
+
+import prisma from "../../prisma/prisma";
+
+/* ========================================
+   APPLY LOAN
+======================================== */
+
+export const applyLoan = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    console.log("REQ BODY =>", req.body);
+
+    const {
+      fullName,
+      panNo,
+      phone,
+      loanType,
+    } = req.body;
+
+    if (!fullName || !panNo || !phone || !loanType) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, PAN card number, mobile number and loan type are mandatory.",
+      });
+    }
+
+    const normalizedName = String(fullName).trim();
+
+    const normalizedPhone = String(phone)
+      .trim()
+      .replace(/\s+/g, "");
+
+    const normalizedPan = String(panNo)
+      .trim()
+      .toUpperCase();
+
+    if (normalizedName.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid name.",
+      });
+    }
+
+    if (!/^[6-9][0-9]{9}$/.test(normalizedPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid mobile number.",
+      });
+    }
+
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalizedPan)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid PAN card number.",
+      });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        phoneNo: normalizedPhone,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNo: true,
+        isBlocked: true,
+      },
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "No registered customer account found with this mobile number. Please login/register first.",
+      });
+    }
+
+    if (existingUser.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Your customer account is blocked.",
+      });
+    }
+
+    const existingLoan =
+      await prisma.loanApplication.findFirst({
+        where: {
+          userId: existingUser.id,
+          status: "PENDING",
+        },
+      });
+
+    if (existingLoan) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "You already have a pending loan application.",
+        data: {
+          loanId: existingLoan.id,
+        },
+      });
+    }
+
+    const loan =
+      await prisma.loanApplication.create({
+        data: {
+          userId: existingUser.id,
+          fullName: normalizedName,
+          email: existingUser.email,
+          phone: normalizedPhone,
+          loanType: String(loanType).trim(),
+          amount: 0,
+          panNo: normalizedPan,
+
+          dob: null,
+          aadhaarNo: null,
+          monthlyIncome: null,
+          employmentType: null,
+          purpose: null,
+          address: null,
+          city: null,
+          state: null,
+          zipCode: null,
+
+          status: "PENDING",
+        },
+      });
+
+    console.log(
+      "REAL LOAN CREATED =>",
+      loan.id,
+      "USER =>",
+      existingUser.id
+    );
+
+    return res.status(201).json({
+      success: true,
+      message:
+        "Loan application submitted successfully.",
+      data: loan,
+    });
+  } catch (error) {
+    console.error("APPLY LOAN ERROR =>", error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to submit loan application.",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error
+          : undefined,
+    });
+  }
+};
+
+
+/* ========================================
+   GET ALL LOANS
+======================================== */
+
+export const getAllLoans = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const loans =
+      await prisma.loanApplication.findMany({
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      count: loans.length,
+      data: loans,
+    });
+  } catch (error) {
+    console.error("GET ALL LOANS ERROR =>", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch loans.",
+    });
+  }
+};
+
+
+/* ========================================
+   GET SINGLE LOAN
+======================================== */
+
+export const getSingleLoan = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const loanId = String(req.params.id);
+
+    const loan =
+      await prisma.loanApplication.findUnique({
+        where: {
+          id: loanId,
+        },
+      });
+
+    if (!loan) {
+      return res.status(404).json({
+        success: false,
+        message: "Loan application not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: loan,
+    });
+  } catch (error) {
+    console.error(
+      "GET SINGLE LOAN ERROR =>",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to fetch loan application.",
+    });
+  }
+};
+
+
+/* ========================================
+   APPROVE LOAN
+======================================== */
+
+export const approveLoan = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const loanId = String(req.params.id);
+
+    const existingLoan =
+      await prisma.loanApplication.findUnique({
+        where: {
+          id: loanId,
+        },
+      });
+
+    if (!existingLoan) {
+      return res.status(404).json({
+        success: false,
+        message: "Loan application not found.",
+      });
+    }
+
+    const loan =
+      await prisma.loanApplication.update({
+        where: {
+          id: loanId,
+        },
+        data: {
+          status: "APPROVED",
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Loan application approved successfully.",
+      data: loan,
+    });
+  } catch (error) {
+    console.error(
+      "APPROVE LOAN ERROR =>",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to approve loan application.",
+    });
+  }
+};
+
+
+/* ========================================
+   REJECT LOAN
+======================================== */
+
+export const rejectLoan = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const loanId = String(req.params.id);
+
+    const existingLoan =
+      await prisma.loanApplication.findUnique({
+        where: {
+          id: loanId,
+        },
+      });
+
+    if (!existingLoan) {
+      return res.status(404).json({
+        success: false,
+        message: "Loan application not found.",
+      });
+    }
+
+    const loan =
+      await prisma.loanApplication.update({
+        where: {
+          id: loanId,
+        },
+        data: {
+          status: "REJECTED",
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Loan application rejected successfully.",
+      data: loan,
+    });
+  } catch (error) {
+    console.error(
+      "REJECT LOAN ERROR =>",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to reject loan application.",
+    });
+  }
+};
+
+
+/* ========================================
+   DELETE LOAN
+======================================== */
+
+export const deleteLoan = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const loanId = String(req.params.id);
+
+    const existingLoan =
+      await prisma.loanApplication.findUnique({
+        where: {
+          id: loanId,
+        },
+      });
+
+    if (!existingLoan) {
+      return res.status(404).json({
+        success: false,
+        message: "Loan application not found.",
+      });
+    }
+
+    await prisma.loanApplication.delete({
+      where: {
+        id: loanId,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Loan application deleted successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "DELETE LOAN ERROR =>",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to delete loan application.",
+    });
+  }
+};
+
+
+

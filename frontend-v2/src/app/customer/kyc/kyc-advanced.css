@@ -1,0 +1,179 @@
+﻿/* ===== INDIA LOAN FINANCE — ADVANCED KYC UI ===== */
+
+.kyc-advanced-ui {
+  background:
+    radial-gradient(circle at 10% 5%, rgba(59,130,246,.08), transparent 28%),
+    radial-gradient(circle at 90% 12%, rgba(124,58,237,.08), transparent 28%),
+    linear-gradient(180deg,#f8fbff 0%,#f5f7ff 48%,#f8fafc 100%);
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+/* Content sections */
+.kyc-advanced-ui > section:not(:first-child),
+.kyc-advanced-ui > div:not(:first-child) {
+  position: relative;
+}
+
+/* Premium cards */
+.kyc-advanced-ui [class*="bg-white"] {
+  background: rgba(255,255,255,.96);
+  border-color: rgba(226,232,240,.85);
+}
+
+.kyc-advanced-ui [class*="rounded-3xl"],
+.kyc-advanced-ui [class*="rounded-2xl"] {
+  border: 1px solid rgba(226,232,240,.9);
+  box-shadow:
+    0 12px 35px rgba(15,23,42,.055),
+    0 2px 8px rgba(37,99,235,.025);
+  backdrop-filter: blur(12px);
+}
+
+/* Section headers */
+.kyc-advanced-ui h2 {
+  letter-spacing: -.025em;
+}
+
+.kyc-advanced-ui h3 {
+  letter-spacing: -.018em;
+}
+
+/* Cards hover */
+.kyc-advanced-ui [class*="rounded-xl"] {
+  transition:
+    transform .22s ease,
+    box-shadow .22s ease,
+    border-color .22s ease;
+}
+
+.kyc-advanced-ui [class*="rounded-xl"]:hover {
+  border-color: rgba(96,165,250,.38);
+  box-shadow: 0 12px 28px rgba(37,99,235,.08);
+}
+
+/* Inputs */
+.kyc-advanced-ui input,
+.kyc-advanced-ui textarea,
+.kyc-advanced-ui select {
+  border: 1px solid #dbe4f0;
+  background: #f8fafc;
+  border-radius: 12px;
+  min-height: 44px;
+  transition: all .2s ease;
+}
+
+.kyc-advanced-ui input:hover,
+.kyc-advanced-ui textarea:hover,
+.kyc-advanced-ui select:hover {
+  background: #fff;
+  border-color: #bfdbfe;
+}
+
+.kyc-advanced-ui input:focus,
+.kyc-advanced-ui textarea:focus,
+.kyc-advanced-ui select:focus {
+  background: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59,130,246,.10);
+  outline: none;
+}
+
+/* Primary buttons */
+.kyc-advanced-ui button[class*="bg-blue-600"],
+.kyc-advanced-ui button[class*="bg-blue-500"] {
+  background: linear-gradient(135deg,#2563eb,#4f46e5) !important;
+  border: 0;
+  box-shadow: 0 9px 22px rgba(37,99,235,.22);
+}
+
+.kyc-advanced-ui button[class*="bg-blue-600"]:hover,
+.kyc-advanced-ui button[class*="bg-blue-500"]:hover {
+  background: linear-gradient(135deg,#1d4ed8,#4338ca) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 13px 28px rgba(37,99,235,.28);
+}
+
+/* Status badges */
+.kyc-advanced-ui [class*="bg-green-"],
+.kyc-advanced-ui [class*="bg-emerald-"] {
+  border: 1px solid rgba(16,185,129,.16);
+}
+
+/* Icons */
+.kyc-advanced-ui svg {
+  flex-shrink: 0;
+}
+
+/* Tab navigation */
+.kyc-advanced-ui [role="tablist"] {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.kyc-advanced-ui [role="tab"] {
+  transition: all .2s ease;
+}
+
+/* Verification / progress emphasis */
+.kyc-advanced-ui [class*="progress"],
+.kyc-advanced-ui [class*="Progress"] {
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+/* Action area */
+.kyc-advanced-ui button {
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    background .2s ease,
+    border-color .2s ease;
+}
+
+.kyc-advanced-ui button:active:not(:disabled) {
+  transform: scale(.98);
+}
+
+/* Make bottom action area premium */
+.kyc-advanced-ui button:last-child {
+  font-weight: 700;
+}
+
+/* Floating visual accent */
+.kyc-advanced-ui::after {
+  content: "";
+  position: fixed;
+  width: 320px;
+  height: 320px;
+  right: -170px;
+  bottom: 40px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(99,102,241,.08),
+    transparent 68%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Mobile */
+@media (max-width: 1024px) {
+  .kyc-advanced-ui {
+    padding-bottom: 110px;
+  }
+}
+
+@media (max-width: 640px) {
+  .kyc-advanced-ui {
+    padding-bottom: 120px;
+  }
+
+  .kyc-advanced-ui [class*="p-6"] {
+    padding: 16px;
+  }
+
+  .kyc-advanced-ui [class*="gap-6"] {
+    gap: 16px;
+  }
+}

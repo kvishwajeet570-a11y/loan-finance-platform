@@ -1,217 +1,86 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const prisma_1 = __importDefault(require("../../prisma/prisma"));
+exports.BlogService = void 0;
+const blog_repository_1 = require("../../repositories/blog/blog.repository");
 class BlogService {
-    /**
-     * Create Blog
-     */
+    // ========================================
+    // CREATE BLOG
+    // ========================================
     async createBlog(data) {
-        const existing = await prisma_1.default.blog.findUnique({
-            where: {
-                slug: data.slug,
-            },
-        });
-        if (existing) {
-            throw new Error("Blog slug already exists");
-        }
-        return prisma_1.default.blog.create({
-            data: {
-                ...data,
-                views: 0,
-                likes: 0,
-            },
-        });
+        return blog_repository_1.BlogRepository.createBlog(data);
     }
-    /**
-     * Update Blog
-     */
-    async updateBlog(blogId, data) {
-        return prisma_1.default.blog.update({
-            where: { id: blogId },
-            data,
-        });
+    // ========================================
+    // GET BLOG BY ID
+    // ========================================
+    async getBlogById(blogId) {
+        return blog_repository_1.BlogRepository.getBlogById(blogId);
     }
-    /**
-     * Delete Blog
-     */
-    async deleteBlog(blogId) {
-        return prisma_1.default.blog.delete({
-            where: {
-                id: blogId,
-            },
-        });
-    }
-    /**
-     * Publish Blog
-     */
-    async publishBlog(blogId) {
-        return prisma_1.default.blog.update({
-            where: { id: blogId },
-            data: {
-                isPublished: true,
-                publishedAt: new Date(),
-            },
-        });
-    }
-    /**
-     * Unpublish Blog
-     */
-    async unpublishBlog(blogId) {
-        return prisma_1.default.blog.update({
-            where: { id: blogId },
-            data: {
-                isPublished: false,
-            },
-        });
-    }
-    /**
-     * Blog Details
-     */
+    // ========================================
+    // GET BLOG BY SLUG
+    // ========================================
     async getBlogBySlug(slug) {
-        const blog = await prisma_1.default.blog.findUnique({
-            where: { slug },
-            include: {
-                author: true,
-            },
-        });
-        if (!blog) {
-            throw new Error("Blog not found");
-        }
-        await prisma_1.default.blog.update({
-            where: { id: blog.id },
-            data: {
-                views: {
-                    increment: 1,
-                },
-            },
-        });
-        return blog;
+        return blog_repository_1.BlogRepository.getBlogBySlug(slug);
     }
-    /**
-     * Get Blogs
-     */
-    async getBlogs(filters) {
-        const { page = 1, limit = 10, search, category, status, } = filters;
-        const skip = (page - 1) * limit;
-        const where = {};
-        if (search) {
-            where.OR = [
-                {
-                    title: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-                {
-                    content: {
-                        contains: search,
-                        mode: "insensitive",
-                    },
-                },
-            ];
-        }
-        if (category) {
-            where.category = category;
-        }
-        if (status === "published") {
-            where.isPublished = true;
-        }
-        if (status === "draft") {
-            where.isPublished = false;
-        }
-        const [blogs, total] = await Promise.all([
-            prisma_1.default.blog.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: {
-                    createdAt: "desc",
-                },
-            }),
-            prisma_1.default.blog.count({ where }),
-        ]);
-        return {
-            blogs,
-            total,
-            page,
-            pages: Math.ceil(total / limit),
-        };
+    // ========================================
+    // GET ALL BLOGS
+    // ========================================
+    async getAllBlogs(page = 1, limit = 10) {
+        return blog_repository_1.BlogRepository.getAllBlogs(page, limit);
     }
-    /**
-     * Featured Blogs
-     */
-    async getFeaturedBlogs(limit = 5) {
-        return prisma_1.default.blog.findMany({
-            where: {
-                isPublished: true,
-            },
-            orderBy: {
-                views: "desc",
-            },
-            take: limit,
-        });
+    // ========================================
+    // GET PUBLISHED BLOGS
+    // ========================================
+    async getPublishedBlogs(page = 1, limit = 10) {
+        return blog_repository_1.BlogRepository.getPublishedBlogs(page, limit);
     }
-    /**
-     * Related Blogs
-     */
-    async getRelatedBlogs(category, currentBlogId) {
-        return prisma_1.default.blog.findMany({
-            where: {
-                category,
-                id: {
-                    not: currentBlogId,
-                },
-                isPublished: true,
-            },
-            take: 4,
-        });
+    // ========================================
+    // GET BLOGS BY CATEGORY
+    // ========================================
+    async getBlogsByCategory(category, page = 1, limit = 10) {
+        return blog_repository_1.BlogRepository.getBlogsByCategory(category, page, limit);
     }
-    /**
-     * Like Blog
-     */
-    async likeBlog(blogId) {
-        return prisma_1.default.blog.update({
-            where: {
-                id: blogId,
-            },
-            data: {
-                likes: {
-                    increment: 1,
-                },
-            },
-        });
+    // ========================================
+    // SEARCH BLOGS
+    // ========================================
+    async searchBlogs(search, page = 1, limit = 10) {
+        return blog_repository_1.BlogRepository.searchBlogs(search, page, limit);
     }
-    /**
-     * Blog Dashboard Stats
-     */
-    async getBlogStats() {
-        const [totalBlogs, publishedBlogs, draftBlogs, totalViews,] = await Promise.all([
-            prisma_1.default.blog.count(),
-            prisma_1.default.blog.count({
-                where: {
-                    isPublished: true,
-                },
-            }),
-            prisma_1.default.blog.count({
-                where: {
-                    isPublished: false,
-                },
-            }),
-            prisma_1.default.blog.aggregate({
-                _sum: {
-                    views: true,
-                },
-            }),
-        ]);
-        return {
-            totalBlogs,
-            publishedBlogs,
-            draftBlogs,
-            totalViews: totalViews._sum.views || 0,
-        };
+    // ========================================
+    // UPDATE BLOG
+    // ========================================
+    async updateBlog(blogId, data) {
+        return blog_repository_1.BlogRepository.updateBlog(blogId, data);
+    }
+    // ========================================
+    // PUBLISH BLOG
+    // ========================================
+    async publishBlog(blogId) {
+        return blog_repository_1.BlogRepository.publishBlog(blogId);
+    }
+    // ========================================
+    // UNPUBLISH BLOG
+    // ========================================
+    async unpublishBlog(blogId) {
+        return blog_repository_1.BlogRepository.unpublishBlog(blogId);
+    }
+    // ========================================
+    // INCREMENT BLOG VIEW
+    // ========================================
+    async incrementView(blogId) {
+        return blog_repository_1.BlogRepository.incrementView(blogId);
+    }
+    // ========================================
+    // DELETE BLOG
+    // ========================================
+    async deleteBlog(blogId) {
+        return blog_repository_1.BlogRepository.deleteBlog(blogId);
+    }
+    // ========================================
+    // BLOG ANALYTICS
+    // ========================================
+    async getBlogAnalytics() {
+        return blog_repository_1.BlogRepository.getBlogAnalytics();
     }
 }
+exports.BlogService = BlogService;
 exports.default = new BlogService();

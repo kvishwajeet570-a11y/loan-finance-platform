@@ -41,6 +41,13 @@ import {
   bulkRefundPayments,
 } from "../../controllers/payment/payment.controller";
 
+import {
+  createRazorpayWalletOrder,
+  verifyRazorpayPayment,
+} from "../../controllers/payment/razorpay.controller";
+
+import authMiddleware from "../../middlewares/auth";
+
 const router = Router();
 
 /* ========================================
@@ -117,6 +124,22 @@ router.post(
 router.post(
   "/verify",
   verifyPayment
+);
+
+/* ========================================
+   RAZORPAY WALLET
+======================================== */
+
+router.post(
+  "/razorpay/wallet/order",
+  authMiddleware,
+  createRazorpayWalletOrder
+);
+
+router.post(
+  "/razorpay/wallet/verify",
+  authMiddleware,
+  verifyRazorpayPayment
 );
 
 router.post(

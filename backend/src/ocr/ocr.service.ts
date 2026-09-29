@@ -1,40 +1,60 @@
 import fs from "fs";
 import path from "path";
 import Tesseract from "tesseract.js";
-import pdfParse from "pdf-parse";
-import { prisma } from "../../prisma/prisma";
+import { PDFParse } from "pdf-parse";
+import prisma from "../prisma/prisma";
 
 export class OcrService {
-
+  /**
+   * EXTRACT TEXT FROM IMAGE
+   */
   static async extractTextFromImage(
     filePath: string
   ) {
-    const result = await Tesseract.recognize(
-      filePath,
-      "eng"
-    );
+    const result =
+      await Tesseract.recognize(
+        filePath,
+        "eng"
+      );
 
     return {
       text: result.data.text,
-      confidence: result.data.confidence,
+      confidence:
+        result.data.confidence,
     };
   }
 
+  /**
+   * EXTRACT TEXT FROM PDF
+   */
   static async extractTextFromPdf(
     filePath: string
   ) {
     const dataBuffer =
       fs.readFileSync(filePath);
 
-    const pdf =
-      await pdfParse(dataBuffer);
+    const parser =
+      new PDFParse({
+        data: dataBuffer,
+      });
 
-    return {
-      text: pdf.text,
-      pages: pdf.numpages,
-    };
+    try {
+      const result =
+        await parser.getText();
+
+      return {
+        text: result.text,
+        pages:
+          result.total,
+      };
+    } finally {
+      await parser.destroy();
+    }
   }
 
+  /**
+   * CLASSIFY DOCUMENT
+   */
   static classifyDocument(
     text: string
   ) {
@@ -71,6 +91,9 @@ export class OcrService {
     return "UNKNOWN";
   }
 
+  /**
+   * EXTRACT PAN DETAILS
+   */
   static extractPanDetails(
     text: string
   ) {
@@ -85,6 +108,9 @@ export class OcrService {
     };
   }
 
+  /**
+   * EXTRACT AADHAAR DETAILS
+   */
   static extractAadhaarDetails(
     text: string
   ) {
@@ -99,6 +125,9 @@ export class OcrService {
     };
   }
 
+  /**
+   * EXTRACT BANK DETAILS
+   */
   static extractBankDetails(
     text: string
   ) {
@@ -115,16 +144,19 @@ export class OcrService {
     return {
       accountNumber:
         accountNo?.[0] || null,
+
       ifsc:
         ifsc?.[0] || null,
     };
   }
 
+  /**
+   * PROCESS DOCUMENT
+   */
   static async processDocument(
     filePath: string,
     userId: string
   ) {
-
     const extension =
       path.extname(
         filePath
@@ -133,7 +165,6 @@ export class OcrService {
     let extractedText = "";
 
     if (extension === ".pdf") {
-
       const pdf =
         await this.extractTextFromPdf(
           filePath
@@ -141,9 +172,7 @@ export class OcrService {
 
       extractedText =
         pdf.text;
-
     } else {
-
       const image =
         await this.extractTextFromImage(
           filePath
@@ -158,12 +187,12 @@ export class OcrService {
         extractedText
       );
 
-    let extractedData = {};
+    let extractedData: Record<
+      string,
+      string | null
+    > = {};
 
-    switch (
-      documentType
-    ) {
-
+    switch (documentType) {
       case "PAN":
         extractedData =
           this.extractPanDetails(
@@ -183,6 +212,10 @@ export class OcrService {
           this.extractBankDetails(
             extractedText
           );
+        break;
+
+      default:
+        extractedData = {};
         break;
     }
 

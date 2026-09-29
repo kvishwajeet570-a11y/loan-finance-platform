@@ -16,16 +16,17 @@ class SupportService {
     data: CreateTicketDTO
   ) {
     return prisma.supportTicket.create({
-      data: {
-        userId: data.userId,
-        subject: data.subject,
-        description: data.description,
-        category: data.category,
-        priority:
-          data.priority || "MEDIUM",
-        status: "OPEN",
-      },
-    });
+  data: {
+    ticketNumber: `TKT-${Date.now()}`,
+    userId: data.userId,
+    subject: data.subject,
+    message: data.description, // या DTO में अलग message field जोड़ो
+    description: data.description,
+    category: data.category,
+    priority: data.priority || "medium",
+    status: "open",
+  },
+});
   }
 
   /**

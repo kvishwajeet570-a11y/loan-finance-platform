@@ -45,180 +45,89 @@ export const revenueTypeEnum = z.enum([
    CREATE REVENUE
 ========================================= */
 
-export const createRevenueSchema =
-  z.object({
-    source:
-      revenueSourceEnum,
+export const createRevenueSchema = z.object({
+  source: revenueSourceEnum,
+  revenueType: revenueTypeEnum,
 
-    revenueType:
-      revenueTypeEnum,
+  amount: z.number().positive(),
 
-    amount:
-      z.number()
-      .positive(),
+  userId: z.string().cuid().optional(),
+  loanId: z.string().cuid().optional(),
+  partnerId: z.string().cuid().optional(),
+  paymentId: z.string().cuid().optional(),
 
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
+  transactionReference: z.string().optional(),
 
-    loanId:
-      z.string()
-      .cuid()
-      .optional(),
+  description: z.string().max(1000).optional(),
 
-    partnerId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    paymentId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    transactionReference:
-      z.string()
-      .optional(),
-
-    description:
-      z.string()
-      .max(1000)
-      .optional(),
-
-    revenueDate:
-      z.string(),
-  });
+  revenueDate: z.string(),
+});
 
 /* =========================================
    UPDATE REVENUE STATUS
 ========================================= */
 
-export const updateRevenueStatusSchema =
-  z.object({
-    revenueId:
-      z.string().cuid(),
+export const updateRevenueStatusSchema = z.object({
+  revenueId: z.string().cuid(),
 
-    status:
-      revenueStatusEnum,
+  status: revenueStatusEnum,
 
-    remarks:
-      z.string()
-      .optional(),
-  });
+  remarks: z.string().optional(),
+});
 
 /* =========================================
    REVENUE SETTLEMENT
 ========================================= */
 
-export const revenueSettlementSchema =
-  z.object({
-    revenueId:
-      z.string().cuid(),
+export const revenueSettlementSchema = z.object({
+  revenueId: z.string().cuid(),
 
-    settlementDate:
-      z.string(),
+  settlementDate: z.string(),
 
-    settlementReference:
-      z.string(),
+  settlementReference: z.string(),
 
-    remarks:
-      z.string()
-      .optional(),
-  });
+  remarks: z.string().optional(),
+});
 
 /* =========================================
    REVENUE FILTER
 ========================================= */
 
-export const revenueFilterSchema =
-  z.object({
-    source:
-      revenueSourceEnum.optional(),
+export const revenueFilterSchema = z.object({
+  source: revenueSourceEnum.optional(),
 
-    revenueType:
-      revenueTypeEnum.optional(),
+  revenueType: revenueTypeEnum.optional(),
 
-    status:
-      revenueStatusEnum.optional(),
+  status: revenueStatusEnum.optional(),
 
-    startDate:
-      z.string().optional(),
+  startDate: z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+  endDate: z.string().optional(),
 
-    minAmount:
-      z.number().optional(),
+  minAmount: z.number().optional(),
 
-    maxAmount:
-      z.number().optional(),
+  maxAmount: z.number().optional(),
 
-    page:
-      z.coerce.number()
-      .default(1),
+  page: z.coerce.number().default(1),
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  limit: z.coerce.number().min(1).max(100).default(20),
+});
 
 /* =========================================
    REVENUE REPORT
 ========================================= */
 
-export const revenueReportSchema =
-  z.object({
-    startDate:
-      z.string(),
+export const revenueReportSchema = z.object({
+  startDate: z.string(),
 
-    endDate:
-      z.string(),
+  endDate: z.string(),
 
-    source:
-      revenueSourceEnum.optional(),
+  source: revenueSourceEnum.optional(),
 
-    exportFormat:
-      z.enum([
-        "PDF",
-        "EXCEL",
-        "CSV",
-      ]).optional(),
-  });
-
-/* =========================================
-   REVENUE ANALYTICS
-========================================= */
-
-export const revenueAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string().optional(),
-
-    endDate:
-      z.string().optional(),
-
-    source:
-      revenueSourceEnum.optional(),
-
-    revenueType:
-      revenueTypeEnum.optional(),
-  });
-
-/* =========================================
-   PROFIT ANALYTICS
-========================================= */
-
-export const profitAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string(),
-
-    endDate:
-      z.string(),
-  });
+  exportFormat: z
+    .enum(["PDF", "EXCEL", "CSV"])
+    .optional(),
+});
 
 /* =========================================
    TYPES
@@ -228,31 +137,13 @@ export type CreateRevenueDto =
   z.infer<typeof createRevenueSchema>;
 
 export type UpdateRevenueStatusDto =
-  z.infer<
-    typeof updateRevenueStatusSchema
-  >;
+  z.infer<typeof updateRevenueStatusSchema>;
 
 export type RevenueSettlementDto =
-  z.infer<
-    typeof revenueSettlementSchema
-  >;
+  z.infer<typeof revenueSettlementSchema>;
 
 export type RevenueFilterDto =
-  z.infer<
-    typeof revenueFilterSchema
-  >;
+  z.infer<typeof revenueFilterSchema>;
 
 export type RevenueReportDto =
-  z.infer<
-    typeof revenueReportSchema
-  >;
-
-export type RevenueAnalyticsDto =
-  z.infer<
-    typeof revenueAnalyticsSchema
-  >;
-
-export type ProfitAnalyticsDto =
-  z.infer<
-    typeof profitAnalyticsSchema
-  >;
+  z.infer<typeof revenueReportSchema>;

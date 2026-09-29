@@ -1,221 +1,189 @@
 import prisma from "../../prisma/prisma";
-import { Prisma } from "@prisma/client";
 
-interface CreateFastTagDto {
-  name: string;
-  slug: string;
-  description?: string;
-  color?: string;
-  icon?: string;
-  isActive?: boolean;
+export interface CreateFastagPayload {
+  customerId: string;
+  vehicleNumber: string;
+  vehicleType: string;
+  mobileNumber?: string;
+  amount: number;
 }
 
-interface FastTagFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  isActive?: boolean;
-}
-
-class FastTagService {
-  /**
-   * Create Fast Tag
-   */
-  async createFastTag(
-    data: CreateFastTagDto
+export class FastagService {
+  /* ========================================
+     CREATE FASTAG
+  ======================================== */
+  static async createFastag(
+    payload: CreateFastagPayload
   ) {
-    const existing =
-      await prisma.fastTag.findUnique({
-        where: {
-          slug: data.slug,
-        },
-      });
-
-    if (existing) {
-      throw new Error(
-        "Fast tag already exists"
-      );
-    }
-
     return prisma.fastTag.create({
-      data,
+      data: {
+        userId: payload.customerId,
+        vehicleNo: payload.vehicleNumber,
+        provider: payload.vehicleType,
+        amount: payload.amount,
+        status: "ACTIVE",
+      },
     });
   }
 
-  /**
-   * Update Fast Tag
-   */
-  async updateFastTag(
-    id: string,
-    data: Partial<CreateFastTagDto>
-  ) {
-    return prisma.fastTag.update({
-      where: { id },
-      data,
-    });
-  }
-
-  /**
-   * Delete Fast Tag
-   */
-  async deleteFastTag(id: string) {
-    return prisma.fastTag.delete({
-      where: { id },
-    });
-  }
-
-  /**
-   * Get Tag By ID
-   */
-  async getFastTagById(id: string) {
+  /* ========================================
+     GET FASTAG BY ID
+  ======================================== */
+  static async getFastagById(id: string) {
     return prisma.fastTag.findUnique({
       where: { id },
     });
   }
 
-  /**
-   * Get Tag By Slug
-   */
-  async getFastTagBySlug(
-    slug: string
+  /* ========================================
+     GET CUSTOMER FASTAGS
+  ======================================== */
+  static async getCustomerFastags(
+    customerId: string
   ) {
-    return prisma.fastTag.findUnique({
-      where: { slug },
-    });
-  }
-
-  /**
-   * Get All Tags
-   */
-  async getFastTags(
-    filters: FastTagFilters
-  ) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      isActive,
-    } = filters;
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.FastTagWhereInput =
-      {};
-
-    if (search) {
-      where.OR = [
-        {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-        {
-          description: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-      ];
-    }
-
-    if (
-      typeof isActive === "boolean"
-    ) {
-      where.isActive = isActive;
-    }
-
-    const [tags, total] =
-      await Promise.all([
-        prisma.fastTag.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc",
-          },
-        }),
-        prisma.fastTag.count({
-          where,
-        }),
-      ]);
-
-    return {
-      tags,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-    };
-  }
-
-  /**
-   * Active Tags
-   */
-  async getActiveTags() {
     return prisma.fastTag.findMany({
       where: {
-        isActive: true,
+        userId: customerId,
       },
       orderBy: {
-        name: "asc",
+        createdAt: "desc",
       },
     });
   }
 
-  /**
-   * Enable Tag
-   */
-  async activateTag(id: string) {
+  /* ========================================
+     RECHARGE FASTAG
+  ======================================== */
+  static async rechargeFastag(
+    fastagId: string,
+    amount: number
+  ) {
+    const fastag = await prisma.fastTag.findUnique({
+      where: { id: fastagId },
+    });
+
+    if (!fastag) {
+      throw new Error("FASTag not found");
+    }
+
+    return prisma.fastTag.update({
+      where: {
+        id: fastagId,
+      },
+      data: {
+        amount: fastag.amount + amount,
+      },
+    });
+  }
+
+  /* ========================================
+     ACTIVATE FASTAG
+  ======================================== */
+  static async activateFastag(id: string) {
     return prisma.fastTag.update({
       where: { id },
       data: {
         isActive: true,
+        status: "ACTIVE",
       },
     });
   }
 
-  /**
-   * Disable Tag
-   */
-  async deactivateTag(id: string) {
+  /* ========================================
+     DEACTIVATE FASTAG
+  ======================================== */
+  static async deactivateFastag(id: string) {
     return prisma.fastTag.update({
       where: { id },
       data: {
         isActive: false,
+        status: "INACTIVE",
       },
     });
   }
 
-  /**
-   * Dashboard Stats
-   */
-  async getFastTagStats() {
-    const [
-      totalTags,
-      activeTags,
-      inactiveTags,
-    ] = await Promise.all([
-      prisma.fastTag.count(),
-
-      prisma.fastTag.count({
-        where: {
-          isActive: true,
-        },
-      }),
-
-      prisma.fastTag.count({
-        where: {
-          isActive: false,
-        },
-      }),
-    ]);
+  /* ========================================
+     GET ALL FASTAGS
+  ======================================== */
+  static async getAllFastags() {
+    const data = await prisma.fastTag.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     return {
-      totalTags,
-      activeTags,
-      inactiveTags,
+      data,
+      total: data.length,
+      page: 1,
+      limit: data.length,
+      totalPages: 1,
     };
+  }
+
+  /* ========================================
+     FASTAG STATS
+  ======================================== */
+  static async getStats() {
+    const total = await prisma.fastTag.count();
+
+    const active = await prisma.fastTag.count({
+      where: {
+        isActive: true,
+      },
+    });
+
+    const inactive = await prisma.fastTag.count({
+      where: {
+        isActive: false,
+      },
+    });
+
+    return {
+      total,
+      active,
+      inactive,
+    };
+  }
+
+  /* ========================================
+     TRANSACTIONS (TEMP)
+  ======================================== */
+  static async getTransactions(
+    fastagId: string
+  ) {
+    return [];
+  }
+
+  /* ========================================
+     CONTROLLER COMPATIBILITY METHODS
+  ======================================== */
+
+  static async getFastTags(params?: any) {
+    return this.getAllFastags();
+  }
+
+  static async getFastTagById(id: string) {
+    return this.getFastagById(id);
+  }
+
+  static async createFastTag(
+    payload: CreateFastagPayload
+  ) {
+    return this.createFastag(payload);
+  }
+
+  static async activateTag(id: string) {
+    return this.activateFastag(id);
+  }
+
+  static async deactivateTag(id: string) {
+    return this.deactivateFastag(id);
+  }
+
+  static async getFastTagStats() {
+    return this.getStats();
   }
 }
 
-export default new FastTagService();
+export default FastagService;

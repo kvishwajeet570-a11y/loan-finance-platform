@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.webhookAnalytics = exports.getWebhookLogs = exports.whatsappWebhook = exports.cashfreeWebhook = exports.razorpayWebhook = void 0;
-const prisma_1 = __importDefault(require("../../config/prisma"));
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 /**
  * RAZORPAY WEBHOOK
  */

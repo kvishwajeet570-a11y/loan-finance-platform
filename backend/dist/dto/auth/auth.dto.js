@@ -74,15 +74,18 @@ exports.forgotPasswordSchema = zod_1.z.object({
    RESET PASSWORD
 ========================================= */
 exports.resetPasswordSchema = zod_1.z.object({
-    token: zod_1.z.string(),
+    email: zod_1.z.email(),
+    otp: zod_1.z
+        .string()
+        .regex(/^\d{6}$/, "OTP must be 6 digits"),
     password: zod_1.z
         .string()
-        .min(8)
-        .max(50),
+        .min(8, "Password must be at least 8 characters")
+        .max(50, "Password must not exceed 50 characters"),
     confirmPassword: zod_1.z
         .string()
-        .min(8)
-        .max(50),
+        .min(8, "Confirm password must be at least 8 characters")
+        .max(50, "Confirm password must not exceed 50 characters"),
 }).refine(data => data.password === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords do not match",
@@ -91,12 +94,17 @@ exports.resetPasswordSchema = zod_1.z.object({
    CHANGE PASSWORD
 ========================================= */
 exports.changePasswordSchema = zod_1.z.object({
-    oldPassword: zod_1.z.string(),
+    currentPassword: zod_1.z
+        .string()
+        .min(6, "Current password must be at least 6 characters"),
     newPassword: zod_1.z
         .string()
-        .min(8)
-        .max(50),
-    confirmPassword: zod_1.z.string(),
+        .min(8, "New password must be at least 8 characters")
+        .max(50, "New password must not exceed 50 characters"),
+    confirmPassword: zod_1.z
+        .string()
+        .min(8, "Confirm password must be at least 8 characters")
+        .max(50, "Confirm password must not exceed 50 characters"),
 }).refine(data => data.newPassword === data.confirmPassword, {
     path: ["confirmPassword"],
     message: "Passwords do not match",
@@ -105,20 +113,25 @@ exports.changePasswordSchema = zod_1.z.object({
    REFRESH TOKEN
 ========================================= */
 exports.refreshTokenSchema = zod_1.z.object({
-    refreshToken: zod_1.z.string().min(20),
+    refreshToken: zod_1.z
+        .string()
+        .min(1, "Refresh token is required"),
 });
 /* =========================================
    LOGOUT
 ========================================= */
 exports.logoutSchema = zod_1.z.object({
-    refreshToken: zod_1.z.string(),
+    refreshToken: zod_1.z
+        .string()
+        .min(1, "Refresh token is required")
+        .optional(),
 });
 /* =========================================
-   ACCOUNT VERIFICATION
+   VERIFY ACCOUNT
 ========================================= */
 exports.verifyAccountSchema = zod_1.z.object({
-    email: zod_1.z.email(),
+    email: zod_1.z.email("Invalid email address"),
     otp: zod_1.z
         .string()
-        .length(6),
+        .regex(/^\d{6}$/, "OTP must be 6 digits"),
 });

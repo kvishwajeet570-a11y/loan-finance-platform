@@ -1,65 +1,173 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyAadhaar = void 0;
-const AadhaarService = __importStar(require("./aadhaar.service"));
+exports.deleteAadhaar = exports.updateAadhaar = exports.getAadhaarStatus = exports.verifyAadhaar = void 0;
+const aadhaar_service_1 = require("./aadhaar.service");
+/**
+ * EXPRESS PARAM HELPER
+ */
+const getParam = (value) => {
+    if (Array.isArray(value)) {
+        return value[0] ?? "";
+    }
+    return value ?? "";
+};
+/**
+ * VERIFY AADHAAR
+ */
 const verifyAadhaar = async (req, res) => {
     try {
-        const { aadhaarNo, fullName, dob } = req.body;
-        if (!aadhaarNo || !fullName || !dob) {
+        const { userId, aadhaarNo, fullName, dob, } = req.body;
+        if (!userId ||
+            !aadhaarNo ||
+            !fullName ||
+            !dob) {
             res.status(400).json({
                 success: false,
                 message: "Required fields missing",
             });
             return;
         }
-        const result = await AadhaarService.verifyAadhaar({
-            aadhaarNo,
-            fullName,
-            dob,
+        const aadhaarNumber = String(aadhaarNo).replace(/\s+/g, "");
+        if (!/^\d{12}$/.test(aadhaarNumber)) {
+            res.status(400).json({
+                success: false,
+                message: "Aadhaar number must contain exactly 12 digits",
+            });
+            return;
+        }
+        const result = await aadhaar_service_1.AadhaarService.verifyAadhaar({
+            userId: String(userId),
+            aadhaarNo: aadhaarNumber,
+            fullName: String(fullName),
+            dob: String(dob),
         });
         res.status(200).json({
             success: true,
+            message: "Aadhaar submitted successfully",
             data: result,
         });
     }
     catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message,
+            message: error?.message ||
+                "Aadhaar verification failed",
         });
     }
 };
 exports.verifyAadhaar = verifyAadhaar;
+/**
+ * GET AADHAAR STATUS
+ */
+const getAadhaarStatus = async (req, res) => {
+    try {
+        const userId = getParam(req.params.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: "User ID is required",
+            });
+            return;
+        }
+        const result = await aadhaar_service_1.AadhaarService.getAadhaarStatus(userId);
+        res.status(200).json({
+            success: true,
+            data: result,
+        });
+    }
+    catch (error) {
+        res.status(404).json({
+            success: false,
+            message: error?.message ||
+                "Aadhaar record not found",
+        });
+    }
+};
+exports.getAadhaarStatus = getAadhaarStatus;
+/**
+ * UPDATE AADHAAR
+ */
+const updateAadhaar = async (req, res) => {
+    try {
+        const userId = getParam(req.params.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: "User ID is required",
+            });
+            return;
+        }
+        const { aadhaarNo, fullName, dob, } = req.body;
+        const updateData = {};
+        if (aadhaarNo !== undefined) {
+            const aadhaarNumber = String(aadhaarNo).replace(/\s+/g, "");
+            if (!/^\d{12}$/.test(aadhaarNumber)) {
+                res.status(400).json({
+                    success: false,
+                    message: "Aadhaar number must contain exactly 12 digits",
+                });
+                return;
+            }
+            updateData.maskedAadhaar =
+                "XXXXXXXX" +
+                    aadhaarNumber.slice(-4);
+        }
+        if (fullName !== undefined) {
+            updateData.fullName =
+                String(fullName);
+        }
+        if (dob !== undefined) {
+            updateData.dob =
+                String(dob);
+        }
+        if (Object.keys(updateData).length === 0) {
+            res.status(400).json({
+                success: false,
+                message: "No Aadhaar fields provided for update",
+            });
+            return;
+        }
+        const result = await aadhaar_service_1.AadhaarService.updateAadhaar(userId, updateData);
+        res.status(200).json({
+            success: true,
+            message: "Aadhaar details updated successfully",
+            data: result,
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error?.message ||
+                "Failed to update Aadhaar details",
+        });
+    }
+};
+exports.updateAadhaar = updateAadhaar;
+/**
+ * DELETE AADHAAR
+ */
+const deleteAadhaar = async (req, res) => {
+    try {
+        const userId = getParam(req.params.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: "User ID is required",
+            });
+            return;
+        }
+        await aadhaar_service_1.AadhaarService.deleteAadhaar(userId);
+        res.status(200).json({
+            success: true,
+            message: "Aadhaar record deleted successfully",
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error?.message ||
+                "Failed to delete Aadhaar record",
+        });
+    }
+};
+exports.deleteAadhaar = deleteAadhaar;

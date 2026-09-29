@@ -1,37 +1,38 @@
-import { prisma } from "../../prisma";
+import prisma from "../../prisma/prisma";
 
 export class SuperAdminRepository {
-
   /* =========================
       DASHBOARD OVERVIEW
   ========================= */
 
   static async getDashboardOverview() {
-
     const [
       totalUsers,
       totalLoans,
       totalPartners,
       totalDsa,
-      totalRevenue
+      totalRevenue,
     ] = await Promise.all([
-
       prisma.user.count(),
 
       prisma.loanApplication.count(),
 
-      prisma.partnerProfile.count(),
+      prisma.partner.count(),
 
-      prisma.dsaProfile.count(),
+      prisma.user.count({
+        where: {
+          role: "DSA",
+        },
+      }),
 
       prisma.payment.aggregate({
         where: {
-          status: "SUCCESS"
+          status: "SUCCESS",
         },
         _sum: {
-          amount: true
-        }
-      })
+          amount: true,
+        },
+      }),
     ]);
 
     return {
@@ -39,29 +40,52 @@ export class SuperAdminRepository {
       totalLoans,
       totalPartners,
       totalDsa,
-      totalRevenue:
-        totalRevenue._sum.amount || 0
+      totalRevenue: totalRevenue._sum.amount || 0,
     };
   }
 
-  /* =========================
-      CREATE ACTION LOG
-  ========================= */
+/* =========================
+   CREATE ACTION LOG
+========================= */
 
-  static async createActionLog(data: {
-    adminId: string;
-    actionType: string;
-    module: string;
-    targetId?: string;
-    description?: string;
-    metadata?: any;
-    ipAddress?: string;
-  }) {
+static async createActionLog(data: {
+  adminId: string;
+  actionType: string;
+  module: string;
+  targetId?: string;
+  description?: string;
+  metadata?: any;
+  ipAddress?: string;
+  role?: string;
+  userAgent?: string;
+  requestId?: string;
+}) {
+  return prisma.auditLog.create({
+    data: {
+      action: data.actionType,
+      module: data.module,
 
-    return prisma.superAdminAction.create({
-      data
-    });
-  }
+      performedBy: data.adminId,
+
+      entityId: data.targetId ?? null,
+
+      ipAddress: data.ipAddress ?? null,
+
+      role: data.role ?? null,
+
+      userAgent: data.userAgent ?? null,
+
+      requestId: data.requestId ?? null,
+
+      metadata: {
+        ...(data.metadata ?? {}),
+        ...(data.description
+          ? { description: data.description }
+          : {}),
+      },
+    },
+  });
+}
 
   /* =========================
       GET ACTION LOGS
@@ -71,22 +95,15 @@ export class SuperAdminRepository {
     page = 1,
     limit = 20
   ) {
+    const skip = (page - 1) * limit;
 
-    const skip =
-      (page - 1) * limit;
-
-    return prisma.superAdminAction.findMany({
-
+    return prisma.auditLog.findMany({
       skip,
       take: limit,
 
-      include: {
-        admin: true
-      },
-
       orderBy: {
-        createdAt: "desc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 
@@ -97,16 +114,14 @@ export class SuperAdminRepository {
   static async blockUser(
     userId: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        isBlocked: true
-      }
+        isBlocked: true,
+      },
     });
   }
 
@@ -117,16 +132,14 @@ export class SuperAdminRepository {
   static async unblockUser(
     userId: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        isBlocked: false
-      }
+        isBlocked: false,
+      },
     });
   }
 
@@ -137,16 +150,14 @@ export class SuperAdminRepository {
   static async verifyUser(
     userId: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        isVerified: true
-      }
+        isVerified: true,
+      },
     });
   }
 
@@ -158,16 +169,14 @@ export class SuperAdminRepository {
     userId: string,
     role: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        role
-      }
+        role,
+      },
     });
   }
 
@@ -179,31 +188,27 @@ export class SuperAdminRepository {
     page = 1,
     limit = 50
   ) {
-
-    const skip =
-      (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [users, total] =
       await Promise.all([
-
         prisma.user.findMany({
-
           skip,
           take: limit,
 
           orderBy: {
-            createdAt: "desc"
-          }
+            createdAt: "desc",
+          },
         }),
 
-        prisma.user.count()
+        prisma.user.count(),
       ]);
 
     return {
       users,
       total,
       page,
-      limit
+      limit,
     };
   }
 
@@ -212,11 +217,10 @@ export class SuperAdminRepository {
   ========================= */
 
   static async getSystemSettings() {
-
     return prisma.setting.findMany({
       orderBy: {
-        category: "asc"
-      }
+        category: "asc",
+      },
     });
   }
 
@@ -228,16 +232,14 @@ export class SuperAdminRepository {
     settingKey: string,
     value: any
   ) {
-
     return prisma.setting.update({
-
       where: {
-        settingKey
+        key: settingKey,
       },
 
       data: {
-        settingValue: value
-      }
+        value,
+      },
     });
   }
 
@@ -246,21 +248,19 @@ export class SuperAdminRepository {
   ========================= */
 
   static async getSystemHealth() {
-
     const [
       users,
       loans,
       payments,
-      notifications
+      notifications,
     ] = await Promise.all([
-
       prisma.user.count(),
 
       prisma.loanApplication.count(),
 
       prisma.payment.count(),
 
-      prisma.notification.count()
+      prisma.notification.count(),
     ]);
 
     return {
@@ -268,7 +268,7 @@ export class SuperAdminRepository {
       loans,
       payments,
       notifications,
-      serverStatus: "HEALTHY"
+      serverStatus: "HEALTHY",
     };
   }
 
@@ -277,36 +277,43 @@ export class SuperAdminRepository {
   ========================= */
 
   static async getPlatformAnalytics() {
-
     const [
       userCount,
       loanCount,
       approvedLoans,
-      disbursedLoans,
       partnerCount,
-      dsaCount
+      dsaCount,
     ] = await Promise.all([
-
       prisma.user.count(),
 
       prisma.loanApplication.count(),
 
       prisma.loanApplication.count({
         where: {
-          status: "APPROVED"
-        }
+          status: "APPROVED",
+        },
       }),
 
-      prisma.loanApplication.count({
+      prisma.partner.count(),
+
+      prisma.user.count({
         where: {
-          status: "DISBURSED"
-        }
+          role: "DSA",
+        },
       }),
-
-      prisma.partnerProfile.count(),
-
-      prisma.dsaProfile.count()
     ]);
+
+    /*
+      Current LoanStatus enum contains:
+      PENDING
+      APPROVED
+      REJECTED
+
+      Therefore DISBURSED cannot be queried
+      until it is added to the Prisma enum.
+    */
+
+    const disbursedLoans = 0;
 
     return {
       userCount,
@@ -314,7 +321,7 @@ export class SuperAdminRepository {
       approvedLoans,
       disbursedLoans,
       partnerCount,
-      dsaCount
+      dsaCount,
     };
   }
 
@@ -323,18 +330,12 @@ export class SuperAdminRepository {
   ========================= */
 
   static async getRecentActivities() {
-
-    return prisma.superAdminAction.findMany({
-
+    return prisma.auditLog.findMany({
       take: 20,
 
-      include: {
-        admin: true
-      },
-
       orderBy: {
-        createdAt: "desc"
-      }
+        createdAt: "desc",
+      },
     });
   }
 }

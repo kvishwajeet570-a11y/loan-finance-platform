@@ -1,300 +1,389 @@
-import { prisma } from "../../prisma";
+import { Prisma, RechargeStatus, RechargeType } from "@prisma/client";
+import prisma from "../../prisma/prisma";
 
-export class RechargeRepository {
+/* ===========================================
+   CREATE
+=========================================== */
 
-  static async createRecharge(data: {
-    userId: string;
-    rechargeNumber: string;
-    operatorName: string;
-    rechargeType: string;
-    amount: number;
-  }) {
+export const createRechargeRepo = (
+  data: Prisma.RechargeCreateInput
+) => {
+  return prisma.recharge.create({
+    data,
+    include: {
+      user: true,
+    },
+  });
+};
 
-    return prisma.recharge.create({
-      data
-    });
-  }
+/* ===========================================
+   FIND
+=========================================== */
 
-  static async getById(id: string) {
+export const findRechargeByIdRepo = (
+  id: string
+) => {
+  return prisma.recharge.findUnique({
+    where: { id },
+    include: {
+      user: true,
+    },
+  });
+};
 
-    return prisma.recharge.findUnique({
-      where: { id },
-      include: {
-        user: true
-      }
-    });
-  }
+export const findRechargeByTxnRefRepo = (
+  transactionRef: string
+) => {
+  return prisma.recharge.findUnique({
+    where: {
+      transactionRef,
+    },
+  });
+};
 
-  static async getByTransactionId(
-    transactionId: string
-  ) {
+export const getAllRechargeRepo = () => {
+  return prisma.recharge.findMany({
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-    return prisma.recharge.findUnique({
-      where: {
-        transactionId
-      }
-    });
-  }
+/* ===========================================
+   UPDATE
+=========================================== */
 
-  static async getUserRecharges(
-    userId: string
-  ) {
+export const updateRechargeRepo = (
+  id: string,
+  data: Prisma.RechargeUpdateInput
+) => {
+  return prisma.recharge.update({
+    where: { id },
+    data,
+  });
+};
 
-    return prisma.recharge.findMany({
+export const deleteRechargeRepo = (
+  id: string
+) => {
+  return prisma.recharge.delete({
+    where: { id },
+  });
+};
 
-      where: {
-        userId
-      },
+/* ===========================================
+   STATUS
+=========================================== */
 
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  }
+export const updateRechargeStatusRepo = (
+  id: string,
+  status: RechargeStatus,
+  failureReason?: string
+) => {
+  return prisma.recharge.update({
+    where: { id },
+    data: {
+      status,
+      failureReason,
+      processedAt: new Date(),
+      completedAt:
+        status === RechargeStatus.SUCCESS
+          ? new Date()
+          : undefined,
+    },
+  });
+};
 
-  static async markSuccess(
-    id: string,
-    transactionId: string,
-    commissionAmount = 0
-  ) {
+export const refundRechargeRepo = (
+  id: string,
+  refundedBy: string
+) => {
+  return prisma.recharge.update({
+    where: { id },
+    data: {
+      status: RechargeStatus.REFUNDED,
+      refundedAt: new Date(),
+      refundedBy,
+    },
+  });
+};
 
-    return prisma.recharge.update({
+/* ===========================================
+   USER
+=========================================== */
 
-      where: {
-        id
-      },
+export const getUserRechargeRepo = (
+  userId: string
+) => {
+  return prisma.recharge.findMany({
+    where: {
+      userId,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-      data: {
-        status: "SUCCESS",
-        transactionId,
-        commissionAmount
-      }
-    });
-  }
+/* ===========================================
+   MOBILE
+=========================================== */
 
-  static async markFailed(
-    id: string,
-    remarks?: string
-  ) {
+export const getMobileRechargeRepo = () => {
+  return prisma.recharge.findMany({
+    where: {
+      rechargeType: RechargeType.MOBILE,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-    return prisma.recharge.update({
+export const getDthRechargeRepo = () => {
+  return prisma.recharge.findMany({
+    where: {
+      rechargeType: RechargeType.DTH,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-      where: {
-        id
-      },
+export const getFastagRechargeRepo = () => {
+  return prisma.recharge.findMany({
+    where: {
+      rechargeType: RechargeType.FASTAG,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-      data: {
-        status: "FAILED",
-        remarks
-      }
-    });
-  }
+/* ===========================================
+   STATUS FILTER
+=========================================== */
 
-  static async markPending(
-    id: string
-  ) {
+export const getRechargeByStatusRepo = (
+  status: RechargeStatus
+) => {
+  return prisma.recharge.findMany({
+    where: {
+      status,
+    },
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-    return prisma.recharge.update({
+/* ===========================================
+   SEARCH
+=========================================== */
 
-      where: {
-        id
-      },
-
-      data: {
-        status: "PENDING"
-      }
-    });
-  }
-
-  static async processRefund(
-    id: string
-  ) {
-
-    return prisma.recharge.update({
-
-      where: {
-        id
-      },
-
-      data: {
-        refunded: true,
-        refundedAt: new Date(),
-        status: "REFUNDED"
-      }
-    });
-  }
-
-  static async searchRecharges(
-    keyword: string
-  ) {
-
-    return prisma.recharge.findMany({
-
-      where: {
-
-        OR: [
-
-          {
-            rechargeNumber: {
-              contains: keyword,
-              mode: "insensitive"
-            }
+export const searchRechargeRepo = (
+  keyword: string
+) => {
+  return prisma.recharge.findMany({
+    where: {
+      OR: [
+        {
+          mobileNumber: {
+            contains: keyword,
+            mode: "insensitive",
           },
-
-          {
-            operatorName: {
-              contains: keyword,
-              mode: "insensitive"
-            }
+        },
+        {
+          operator: {
+            contains: keyword,
+            mode: "insensitive",
           },
-
-          {
-            transactionId: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  static async getByStatus(
-    status: string
-  ) {
-
-    return prisma.recharge.findMany({
-
-      where: {
-        status
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  static async getByType(
-    rechargeType: string
-  ) {
-
-    return prisma.recharge.findMany({
-
-      where: {
-        rechargeType
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  static async getAllRecharges(
-    page = 1,
-    limit = 20
-  ) {
-
-    const skip = (page - 1) * limit;
-
-    const [recharges, total] =
-      await Promise.all([
-
-        prisma.recharge.findMany({
-          skip,
-          take: limit,
-          include: {
-            user: true
+        },
+        {
+          transactionRef: {
+            contains: keyword,
+            mode: "insensitive",
           },
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
+        },
+      ],
+    },
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+};
 
-        prisma.recharge.count()
-      ]);
+/* ===========================================
+   ANALYTICS
+=========================================== */
 
-    return {
-      recharges,
-      total,
-      page,
-      limit
-    };
-  }
-
-  static async getAnalytics() {
-
+export const rechargeAnalyticsRepo =
+  async () => {
     const [
-      totalRecharges,
-      successRecharges,
-      failedRecharges,
-      pendingRecharges,
+      total,
+      pending,
+      success,
+      failed,
+      refunded,
       totalAmount,
-      totalCommission
+      totalCommission,
     ] = await Promise.all([
-
       prisma.recharge.count(),
 
       prisma.recharge.count({
         where: {
-          status: "SUCCESS"
-        }
+          status: RechargeStatus.PENDING,
+        },
       }),
 
       prisma.recharge.count({
         where: {
-          status: "FAILED"
-        }
+          status: RechargeStatus.SUCCESS,
+        },
       }),
 
       prisma.recharge.count({
         where: {
-          status: "PENDING"
-        }
+          status: RechargeStatus.FAILED,
+        },
+      }),
+
+      prisma.recharge.count({
+        where: {
+          status: RechargeStatus.REFUNDED,
+        },
       }),
 
       prisma.recharge.aggregate({
         _sum: {
-          amount: true
-        }
+          amount: true,
+        },
       }),
 
       prisma.recharge.aggregate({
         _sum: {
-          commissionAmount: true
-        }
-      })
+          commissionAmount: true,
+        },
+      }),
     ]);
 
     return {
-      totalRecharges,
-      successRecharges,
-      failedRecharges,
-      pendingRecharges,
+      total,
+      pending,
+      success,
+      failed,
+      refunded,
       totalAmount:
-        totalAmount._sum.amount || 0,
+        totalAmount._sum.amount ?? 0,
       totalCommission:
-        totalCommission._sum.commissionAmount || 0
+        totalCommission._sum
+          .commissionAmount ?? 0,
     };
-  }
+  };
 
-  static async getOperatorAnalytics() {
+/* ===========================================
+   TOP USERS
+=========================================== */
 
+export const topRechargeUsersRepo =
+  () => {
     return prisma.recharge.groupBy({
-
-      by: ["operatorName"],
-
-      _count: true,
-
+      by: ["userId"],
+      _count: {
+        id: true,
+      },
       _sum: {
         amount: true,
-        commissionAmount: true
-      }
+      },
+      orderBy: {
+        _sum: {
+          amount: "desc",
+        },
+      },
+      take: 10,
     });
-  }
-}
+  };
+
+/* ===========================================
+   MONTHLY
+=========================================== */
+
+export const monthlyRechargeRepo =
+  () => {
+    return prisma.recharge.groupBy({
+      by: ["createdAt"],
+      _sum: {
+        amount: true,
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+  };
+
+/* ===========================================
+   BULK
+=========================================== */
+
+export const bulkProcessRechargeRepo =
+  (
+    ids: string[],
+    status: RechargeStatus
+  ) => {
+    return prisma.recharge.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data: {
+        status,
+        processedAt: new Date(),
+      },
+    });
+  };
+
+export const bulkRefundRechargeRepo =
+  (ids: string[]) => {
+    return prisma.recharge.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data: {
+        status: RechargeStatus.REFUNDED,
+        refundedAt: new Date(),
+      },
+    });
+  };
+
+/* ===========================================
+   EXPORT
+=========================================== */
+
+export const exportRechargeRepo =
+  () => {
+    return prisma.recharge.findMany({
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  };

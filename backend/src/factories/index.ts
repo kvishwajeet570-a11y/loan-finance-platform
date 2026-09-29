@@ -26,39 +26,13 @@ export * from "./partner.factory";
 /* ========================================
    KYC FACTORY
 ======================================== */
-export * from "./kyc.factory";
+// export * from "./kyc.factory";
 
-/* ========================================
-   DOCUMENT FACTORY
-======================================== */
-export * from "./document.factory";
 
 /* ========================================
    PAYMENT FACTORY
 ======================================== */
-export * from "./payment.factory";
+//export * from "./payment.factory";
 
-/* ========================================
-   WALLET FACTORY
-======================================== */
-export * from "./wallet.factory";
 
-/* ========================================
-   COMMISSION FACTORY
-======================================== */
-export * from "./commission.factory";
 
-/* ========================================
-   REFERRAL FACTORY
-======================================== */
-export * from "./referral.factory";
-
-/* ========================================
-   NOTIFICATION FACTORY
-======================================== */
-export * from "./notification.factory";
-
-/* ========================================
-   REPORT FACTORY
-======================================== */
-export * from "./report.factory";

@@ -1,0 +1,600 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import DsaShell from "@/components/dsa/DsaShell";
+import {
+  ShieldCheck,
+  type LucideIcon,
+  Search,
+  RefreshCw,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  AlertTriangle,
+  Eye,
+  FileCheck2,
+  UserRound,
+  CalendarDays,
+  CreditCard,
+  Building2,
+  ChevronRight,
+  Loader2,
+  Filter,
+} from "lucide-react";
+
+const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+type Kyc = {
+  id: string;
+  userId?: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  panNo?: string;
+  aadhaarNo?: string;
+  panVerified?: boolean;
+  aadhaarVerified?: boolean;
+  bankVerified?: boolean;
+  user?: {
+    id?: string;
+    name?: string;
+    fullName?: string;
+    email?: string;
+    phoneNo?: string;
+    phone?: string;
+  };
+};
+
+const statusMeta: Record<string, any> = {
+  PENDING: {
+    label: "Pending",
+    icon: Clock3,
+    cls: "bg-amber-50 text-amber-700 border-amber-100",
+    dot: "bg-amber-500",
+  },
+  UNDER_REVIEW: {
+    label: "Under Review",
+    icon: AlertTriangle,
+    cls: "bg-blue-50 text-blue-700 border-blue-100",
+    dot: "bg-blue-500",
+  },
+  APPROVED: {
+    label: "Approved",
+    icon: CheckCircle2,
+    cls: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    dot: "bg-emerald-500",
+  },
+  REJECTED: {
+    label: "Rejected",
+    icon: XCircle,
+    cls: "bg-red-50 text-red-700 border-red-100",
+    dot: "bg-red-500",
+  },
+};
+
+function getStatus(status?: string) {
+  return (
+    statusMeta[String(status || "PENDING").toUpperCase()] ||
+    statusMeta.PENDING
+  );
+}
+
+function getName(kyc: Kyc) {
+  return (
+    kyc.user?.name ||
+    kyc.user?.fullName ||
+    kyc.user?.email ||
+    kyc.user?.phoneNo ||
+    kyc.user?.phone ||
+    "Customer"
+  );
+}
+
+function normalizeList(json: any): Kyc[] {
+  const data = json?.data ?? json?.kycs ?? json;
+
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.rows)) return data.rows;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.results)) return data.results;
+
+  return [];
+}
+
+export default function DsaKycPage() {
+  const [kycs, setKycs] = useState<Kyc[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+
+  const [tab, setTab] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const getHeaders = (): Record<string, string> => {
+    const token = localStorage.getItem("loan_finance_token");
+    const headers: Record<string, string> = {};
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+  };
+
+  const loadKyc = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const headers = getHeaders();
+
+      const [listResponse, statsResponse] = await Promise.all([
+        fetch(`${API}/kyc`, { headers }),
+        fetch(`${API}/kyc/dashboard`, { headers }),
+      ]);
+
+      const listJson = await listResponse.json().catch(() => ({}));
+      const statsJson = await statsResponse.json().catch(() => ({}));
+
+      if (!listResponse.ok) {
+        throw new Error(
+          listJson?.message || "Unable to load KYC records."
+        );
+      }
+
+      setKycs(normalizeList(listJson));
+
+      const dashboard =
+        statsJson?.data ||
+        statsJson?.stats ||
+        statsJson;
+
+      setStats({
+        total: Number(dashboard?.total || 0),
+        pending: Number(dashboard?.pending || 0),
+        approved: Number(dashboard?.approved || 0),
+        rejected: Number(dashboard?.rejected || 0),
+      });
+    } catch (err: any) {
+      setError(err?.message || "Unable to load KYC data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadKyc();
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return kycs.filter((kyc) => {
+      const status = String(kyc.status || "PENDING").toUpperCase();
+
+      const matchesTab =
+        tab === "ALL" || status === tab;
+
+      const matchesSearch =
+        !q ||
+        `${getName(kyc)} ${kyc.user?.email || ""} ${
+          kyc.user?.phoneNo || kyc.user?.phone || ""
+        } ${kyc.panNo || ""} ${kyc.id}`
+          .toLowerCase()
+          .includes(q);
+
+      return matchesTab && matchesSearch;
+    });
+  }, [kycs, tab, search]);
+
+  const approve = async (id: string) => {
+    try {
+      const raw = localStorage.getItem("loan_finance_user");
+      const user = raw ? JSON.parse(raw) : null;
+
+      setActionId(id);
+      setError("");
+
+      const response = await fetch(`${API}/kyc/${id}/approve`, {
+        method: "PATCH",
+        headers: {
+          ...getHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          adminId: user?.id,
+        }),
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(json?.message || "KYC approval failed.");
+      }
+
+      await loadKyc();
+    } catch (err: any) {
+      setError(err?.message || "KYC approval failed.");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const reject = async (id: string) => {
+    const reason = window.prompt(
+      "Enter rejection reason:"
+    );
+
+    if (!reason?.trim()) return;
+
+    try {
+      setActionId(id);
+      setError("");
+
+      const response = await fetch(`${API}/kyc/${id}/reject`, {
+        method: "PATCH",
+        headers: {
+          ...getHeaders(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: reason.trim(),
+        }),
+      });
+
+      const json = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(json?.message || "KYC rejection failed.");
+      }
+
+      await loadKyc();
+    } catch (err: any) {
+      setError(err?.message || "KYC rejection failed.");
+    } finally {
+      setActionId(null);
+    }
+  };
+
+    const tabs = [
+    ["ALL", "All KYC", stats.total],
+    ["PENDING", "Pending", stats.pending],
+    ["UNDER_REVIEW", "Under Review", Math.max(
+      0,
+      stats.total - stats.pending - stats.approved - stats.rejected
+    )],
+    ["APPROVED", "Approved", stats.approved],
+    ["REJECTED", "Rejected", stats.rejected],
+  ];
+
+  return (
+    <DsaShell>
+      <div className="min-h-screen bg-[#f4f8fc]">
+        <header className="sticky top-0 z-30 flex h-[70px] items-center justify-between border-b border-slate-100/80 bg-white/95/95 px-5 backdrop-blur md:px-8">
+          <div className="relative w-full max-w-[420px]">
+            <Search
+              size={18}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search customer, PAN, phone or KYC ID..."
+              className="h-11 w-full rounded-xl border border-slate-100 bg-[#f5f8fc] pl-11 pr-4 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white/95 focus:ring-4 focus:ring-blue-50"
+            />
+          </div>
+
+          <button
+            onClick={loadKyc}
+            className="ml-4 flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white/95 text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+            title="Refresh KYC"
+          >
+            <RefreshCw
+              size={17}
+              className={loading ? "animate-spin" : ""}
+            />
+          </button>
+        </header>
+
+        <main className="px-5 py-7 md:px-8 xl:px-10">
+          <div className="mb-7 flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+                <ShieldCheck size={28} />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-[32px] font-black tracking-tight text-slate-900">
+                    KYC Verification
+                  </h1>
+                  <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-emerald-600">
+                    Secure
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Review customer identity documents and KYC verification status.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs font-bold text-blue-700">
+              <FileCheck2 size={16} />
+              Verification Center
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Total KYC", stats.total, ShieldCheck, "blue"],
+              ["Pending", stats.pending, Clock3, "amber"],
+              ["Approved", stats.approved, CheckCircle2, "emerald"],
+              ["Rejected", stats.rejected, XCircle, "red"],
+            ].map(([label, value, Icon, tone]) => {
+              const styles: Record<string, string> = {
+                blue: "bg-blue-50 text-blue-600",
+                amber: "bg-amber-50 text-amber-600",
+                emerald: "bg-emerald-50 text-emerald-600",
+                red: "bg-red-50 text-red-600",
+              };
+
+              return (
+                <div
+                  key={String(label)}
+                  className="rounded-[18px] border border-slate-100/80 bg-white/95 p-5 shadow-[0_6px_24px_rgba(15,23,42,0.05)]"
+                >
+                  <div className="flex items-center justify-between">
+                    
+
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      Live
+                    </span>
+                  </div>
+
+                  <div className="mt-4 text-2xl font-black text-slate-900">
+                    {Number(value).toLocaleString("en-IN")}
+                  </div>
+
+                  <div className="mt-1 text-xs font-bold text-slate-500">
+                    KYC Verification
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mb-5 overflow-x-auto rounded-[18px] border border-slate-100/80 bg-white/95 shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+            <div className="flex min-w-max">
+              {tabs.map(([key, label, count]) => (
+                <button
+                  key={String(key)}
+                  onClick={() => setTab(String(key))}
+                  className={`relative flex items-center gap-2 px-5 py-4 text-sm font-bold transition ${
+                    tab === key
+                      ? "text-blue-700"
+                      : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  KYC Verification
+
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                      tab === key
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {count}
+                  </span>
+
+                  {tab === key && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-blue-600" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <section className="overflow-hidden rounded-[18px] border border-slate-100/80 bg-white/95 shadow-[0_6px_24px_rgba(15,23,42,0.05)]">
+            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 md:px-6">
+              <div>
+                <h2 className="text-sm font-black text-slate-900">
+                  KYC Verification Queue
+                </h2>
+                <p className="mt-1 text-xs font-medium text-slate-400">
+                  {filtered.length} record{filtered.length === 1 ? "" : "s"} found
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+                <Filter size={15} />
+                {tab === "ALL" ? "All records" : getStatus(tab).label}
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex min-h-[380px] items-center justify-center">
+                <div className="flex items-center gap-3 text-sm font-bold text-slate-500">
+                  <Loader2
+                    size={20}
+                    className="animate-spin text-blue-600"
+                  />
+                  Loading KYC records...
+                </div>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex min-h-[380px] flex-col items-center justify-center px-6 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f5f8fc] text-slate-400">
+                  <ShieldCheck size={28} />
+                </div>
+                <h3 className="mt-4 text-lg font-black text-slate-900">
+                  No KYC records found
+                </h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Try another status or search term.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filtered.map((kyc) => {
+                  const status = getStatus(kyc.status);
+                  const StatusIcon = status.icon;
+                  const busy = actionId === kyc.id;
+
+                  return (
+                    <div
+                      key={kyc.id}
+                      className="group px-5 py-5 transition hover:bg-[#f5f8fc]/70 md:px-6"
+                    >
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                        <div className="flex min-w-0 flex-1 items-center gap-4">
+                          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600">
+                            <UserRound size={21} />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h3 className="truncate text-[15px] font-black text-slate-900">
+                                {getName(kyc)}
+                              </h3>
+
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black ${status.cls}`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
+                                />
+                                {status.label}
+                              </span>
+                            </div>
+
+                            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <CreditCard size={13} />
+                                {kyc.panNo || "PAN not available"}
+                              </span>
+
+                              <span className="flex items-center gap-1">
+                                <CalendarDays size={13} />
+                                {kyc.createdAt
+                                  ? new Date(
+                                      kyc.createdAt
+                                    ).toLocaleDateString("en-IN")
+                                  : "—"}
+                              </span>
+
+                              <span className="flex items-center gap-1">
+                                <Building2 size={13} />
+                                {kyc.user?.email || "No email"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 xl:justify-end">
+                          <div className="hidden items-center gap-2 pr-3 md:flex">
+                            <span
+                              title="PAN verification"
+                              className={`h-8 w-8 rounded-2xl flex items-center justify-center ${
+                                kyc.panVerified
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : "bg-slate-100 text-slate-400"
+                              }`}
+                            >
+                              <CreditCard size={15} />
+                            </span>
+
+                            <span
+                              title="Bank verification"
+                              className={`h-8 w-8 rounded-2xl flex items-center justify-center ${
+                                kyc.bankVerified
+                                  ? "bg-emerald-50 text-emerald-600"
+                                  : "bg-slate-100 text-slate-400"
+                              }`}
+                            >
+                              <Building2 size={15} />
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              router.push(`/dsa/kyc/${kyc.id}`)
+                            }
+                            className="flex h-9 items-center gap-1.5 rounded-2xl border border-slate-100 bg-white/95 px-3 text-xs font-bold text-slate-500 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                          >
+                            <Eye size={15} />
+                            View
+                          </button>
+
+                          {String(kyc.status).toUpperCase() !== "APPROVED" &&
+                            String(kyc.status).toUpperCase() !== "REJECTED" && (
+                              <>
+                                <button
+                                  disabled={busy}
+                                  onClick={() => approve(kyc.id)}
+                                  className="flex h-9 items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 text-xs font-black text-white transition hover:bg-emerald-700 disabled:opacity-50"
+                                >
+                                  {busy ? (
+                                    <Loader2
+                                      size={14}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <CheckCircle2 size={14} />
+                                  )}
+                                  Approve
+                                </button>
+
+                                <button
+                                  disabled={busy}
+                                  onClick={() => reject(kyc.id)}
+                                  className="flex h-9 items-center gap-1.5 rounded-2xl bg-red-50 px-3 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                                >
+                                  <XCircle size={14} />
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
+                          <ChevronRight
+                            size={18}
+                            className="text-slate-300"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+    </DsaShell>
+  );
+}
+
+
+
+
+
+
+
+

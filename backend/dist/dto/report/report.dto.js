@@ -68,8 +68,7 @@ exports.generateReportSchema = zod_1.z.object({
     startDate: zod_1.z.string().optional(),
     endDate: zod_1.z.string().optional(),
     generatedBy: zod_1.z.string().cuid(),
-    filters: zod_1.z.record(zod_1.z.any())
-        .optional(),
+    filters: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
     emailReport: zod_1.z.boolean()
         .default(false),
 });

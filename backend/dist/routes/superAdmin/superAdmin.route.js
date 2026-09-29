@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const superAdmin_controller_1 = require("../../controllers/super-admin/superAdmin.controller");
+const superAdmin_controller_1 = require("../../controllers/superAdmin/superAdmin.controller");
 const router = (0, express_1.Router)();
 /* ====================================
    DASHBOARD

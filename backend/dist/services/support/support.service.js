@@ -11,12 +11,14 @@ class SupportService {
     async createTicket(data) {
         return prisma_1.default.supportTicket.create({
             data: {
+                ticketNumber: `TKT-${Date.now()}`,
                 userId: data.userId,
                 subject: data.subject,
+                message: data.description, // या DTO में अलग message field जोड़ो
                 description: data.description,
                 category: data.category,
-                priority: data.priority || "MEDIUM",
-                status: "OPEN",
+                priority: data.priority || "medium",
+                status: "open",
             },
         });
     }

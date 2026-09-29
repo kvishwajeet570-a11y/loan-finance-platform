@@ -208,7 +208,8 @@ export const userPreferenceSchema =
    USER FILTER
 ========================================= */
 
-export const userFilterSchema =
+export const userSearchFilterSchema =
+
   z.object({
     role:
       userRoleEnum.optional(),
@@ -243,7 +244,7 @@ export const userFilterSchema =
    USER ANALYTICS
 ========================================= */
 
-export const userAnalyticsSchema =
+export const userDashboardAnalyticsSchema =
   z.object({
     startDate:
       z.string(),
@@ -317,12 +318,12 @@ export type UserPreferenceDto =
 
 export type UserFilterDto =
   z.infer<
-    typeof userFilterSchema
+    typeof userSearchFilterSchema
   >;
 
 export type UserAnalyticsDto =
   z.infer<
-    typeof userAnalyticsSchema
+    typeof userDashboardAnalyticsSchema
   >;
 
 export type BulkUserActionDto =

@@ -1,0 +1,49 @@
+import { Router } from "express";
+
+import {
+  applyLoan,
+  getAllLoans,
+  getSingleLoan,
+  approveLoan,
+  rejectLoan,
+  deleteLoan,
+} from "../../controllers/loan/loan.controller";
+
+import authMiddleware from "../../middlewares/auth";
+import adminMiddleware from "../../middlewares/admin";
+
+const router = Router();
+
+// Customer: Apply Loan
+router.post("/", applyLoan);
+
+// Existing loan listing/details
+router.get("/", getAllLoans);
+
+router.get("/:id", getSingleLoan);
+
+// Admin: Approve Loan
+router.patch(
+  "/:id/approve",
+  authMiddleware,
+  adminMiddleware,
+  approveLoan
+);
+
+// Admin: Reject Loan
+router.patch(
+  "/:id/reject",
+  authMiddleware,
+  adminMiddleware,
+  rejectLoan
+);
+
+// Admin: Delete Loan
+router.delete(
+  "/:id",
+  authMiddleware,
+  adminMiddleware,
+  deleteLoan
+);
+
+export default router;

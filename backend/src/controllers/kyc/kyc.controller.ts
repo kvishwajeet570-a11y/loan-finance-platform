@@ -1,21 +1,20 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import kycService from "../../services/kyc/kyc.service";
+
+/* ========================================
+   GET ALL KYCS
+======================================== */
 
 export const getKYCs = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 10);
-    const status = String(req.query.status || "");
-    const search = String(req.query.search || "");
-
-    const result = await kycService.getKYCs({
-      page,
-      limit,
-      status,
-      search,
+    const result = await kycService.getAllKYC({
+      page: Number(req.query.page || 1),
+      limit: Number(req.query.limit || 10),
+      status: String(req.query.status || ""),
+      search: String(req.query.search || ""),
     });
 
     res.status(200).json({
@@ -30,20 +29,25 @@ export const getKYCs = async (
   }
 };
 
+/* ========================================
+   GET KYC BY ID
+======================================== */
+
 export const getKYCById = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const kyc = await kycService.getKYCById(
-      req.params.id
+      String(req.params.id)
     );
 
     if (!kyc) {
-      return void res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "KYC not found",
       });
+      return;
     }
 
     res.status(200).json({
@@ -58,17 +62,32 @@ export const getKYCById = async (
   }
 };
 
+/* ========================================
+   CREATE / SUBMIT KYC
+======================================== */
+
 export const submitKYC = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
+    const userId = String(
+      (req as any).user?.id || req.body?.userId || ""
+    );
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "User authentication required",
+      });
+      return;
+    }
+
     const kyc = await kycService.submitKYC({
       ...req.body,
-      documents: req.files,
+      userId,
     });
-
-    res.status(201).json({
+res.status(201).json({
       success: true,
       message: "KYC submitted successfully",
       data: kyc,
@@ -76,19 +95,86 @@ export const submitKYC = async (
   } catch (error: any) {
     res.status(400).json({
       success: false,
-      message: error.message,
+      message:
+        error?.message ||
+        "Failed to submit KYC",
     });
   }
 };
+
+export const createKyc = submitKYC;
+export const submitKyc = submitKYC;
+
+/* ========================================
+   UPDATE KYC
+======================================== */
+
+export const updateKyc = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const kyc =
+      await kycService.updateKYC(
+        String(req.params.id),
+        req.body
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "KYC updated successfully",
+      data: kyc,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update KYC",
+    });
+  }
+};
+
+/* ========================================
+   DELETE KYC
+======================================== */
+
+export const deleteKyc = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    await kycService.deleteKYC(
+      String(req.params.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "KYC deleted successfully",
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete KYC",
+    });
+  }
+};
+
+/* ========================================
+   APPROVE KYC
+======================================== */
 
 export const approveKYC = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const kyc = await kycService.approveKYC(
-      req.params.id
-    );
+    const adminId =
+      String(req.body.adminId || "SYSTEM");
+
+    const kyc =
+      await kycService.approveKYC(
+        String(req.params.id),
+        adminId
+      );
 
     res.status(200).json({
       success: true,
@@ -103,19 +189,33 @@ export const approveKYC = async (
   }
 };
 
+export const approveKyc = approveKYC;
+
+/* ========================================
+   REJECT KYC
+======================================== */
+
 export const rejectKYC = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const kyc = await kycService.rejectKYC(
-      req.params.id,
-      req.body.reason
-    );
+    const reason =
+      String(req.body.reason || "");
+
+    const adminId =
+      String(req.body.adminId || "SYSTEM");
+
+    const kyc =
+      await kycService.rejectKYC(
+        String(req.params.id),
+        reason,
+        adminId
+      );
 
     res.status(200).json({
       success: true,
-      message: "KYC rejected",
+      message: "KYC rejected successfully",
       data: kyc,
     });
   } catch {
@@ -126,22 +226,330 @@ export const rejectKYC = async (
   }
 };
 
-export const getKYCAnalytics = async (
+export const rejectKyc = rejectKYC;
+
+/* ========================================
+   USER KYC
+======================================== */
+
+export const getUserKyc = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const analytics =
-      await kycService.getAnalytics();
+    const userId = String(req.params.userId);
+
+    console.log("KYC USER REQUEST:", userId);
+
+    const kyc = await kycService.getUserKYC(userId);
+
+    console.log("KYC USER RESULT:", kyc ? {
+      id: kyc.id,
+      userId: kyc.userId,
+      status: kyc.status,
+    } : null);
 
     res.status(200).json({
       success: true,
-      data: analytics,
+      data: kyc,
     });
-  } catch {
+  } catch (error: any) {
+    console.error("KYC getUserKyc ERROR:", error);
+
     res.status(500).json({
       success: false,
-      message: "Analytics failed",
+      message: error?.message || "Failed to fetch user KYC",
     });
   }
 };
+
+/* ========================================
+   STATUS LISTS
+======================================== */
+
+export const getPendingKycs =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const data =
+        await kycService.getPendingKYC();
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+      });
+    }
+  };
+
+export const getApprovedKycs =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const data =
+        await kycService.getApprovedKYC();
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+      });
+    }
+  };
+
+export const getRejectedKycs =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const data =
+        await kycService.getRejectedKYC();
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+      });
+    }
+  };
+
+export const getUnderReviewKycs =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const data =
+        await kycService.getUnderReviewKYC();
+
+      res.status(200).json({
+        success: true,
+        data,
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+      });
+    }
+  };
+
+/* ========================================
+   ANALYTICS
+======================================== */
+
+export const getKYCAnalytics =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const analytics =
+        await kycService.getAnalytics();
+
+      res.status(200).json({
+        success: true,
+        data: analytics,
+      });
+    } catch {
+      res.status(500).json({
+        success: false,
+        message:
+          "Analytics failed",
+      });
+    }
+  };
+
+export const getKycAnalytics =
+  getKYCAnalytics;
+
+export const getKycDashboard =
+  getKYCAnalytics;
+
+/* ========================================
+   PLACEHOLDERS
+======================================== */
+
+export const verifyAadhaar =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const result =
+        await kycService.verifyAadhaar(
+          String(req.params.id),
+          req.body?.aadhaarNumber
+        );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message:
+          error?.message ||
+          "Aadhaar verification failed",
+      });
+    }
+  };
+
+export const verifyPan =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const result =
+        await kycService.verifyPan(
+          String(req.params.id),
+          req.body?.panNumber,
+          req.body?.dob
+        );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      const message =
+        error?.message ||
+        "PAN verification failed";
+
+      const status =
+        message.includes("provider is not configured")
+          ? 503
+          : 400;
+
+      res.status(status).json({
+        success: false,
+        message,
+      });
+    }
+  };
+
+export const verifyBank =
+  async (
+    req: Request,
+    res: Response
+  ): Promise<void> => {
+    try {
+      const result =
+        await kycService.verifyBank(
+          String(req.params.id),
+          String(req.body?.bankAccountId || "")
+        );
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message:
+          error?.message ||
+          "Bank verification failed",
+      });
+    }
+  };
+
+export const searchKyc =
+  getKYCs;
+
+export const getRecentKycs =
+  getKYCs;
+
+export const getExpiringKycs =
+  getKYCs;
+
+export const exportKycExcel =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "Excel export pending",
+    });
+  };
+
+export const exportKycPdf =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "PDF export pending",
+    });
+  };
+
+export const bulkApproveKycs =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "Bulk approve pending",
+    });
+  };
+
+export const bulkRejectKycs =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    res.status(200).json({
+      success: true,
+      message:
+        "Bulk reject pending",
+    });
+  };
+
+export const getAllKycs = getKYCs;
+export const getKycById = getKYCById;
+
+
+export const submitExistingKyc = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const kyc = await kycService.submitExistingKYC(
+      String(req.params.id),
+      String((req as any).user?.id || req.body.userId)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "KYC submitted successfully",
+      data: kyc,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message || "Failed to submit KYC",
+    });
+  }
+};
+

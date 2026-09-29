@@ -1,4 +1,4 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class DocumentRepository {
 
@@ -97,7 +97,6 @@ export class DocumentRepository {
       data: {
         status: "VERIFIED",
         verifiedBy,
-        verifiedAt: new Date()
       }
     });
   }
@@ -107,41 +106,41 @@ export class DocumentRepository {
   ========================== */
 
   static async rejectDocument(
-    documentId: string,
-    remarks: string
-  ) {
+  documentId: string,
+  rejectionReason: string
+) {
 
-    return prisma.document.update({
-      where: {
-        id: documentId
-      },
-      data: {
-        status: "REJECTED",
-        remarks
-      }
-    });
-  }
+  return prisma.document.update({
+    where: {
+      id: documentId
+    },
+    data: {
+      status: "REJECTED",
+      rejectionReason
+    }
+  });
+}
 
-  /* ==========================
-      UPDATE DOCUMENT
-  ========================== */
+/* ==========================
+    UPDATE DOCUMENT
+========================== */
 
-  static async updateDocument(
-    documentId: string,
-    data: Partial<{
-      documentName: string;
-      fileUrl: string;
-      remarks: string;
-    }>
-  ) {
+static async updateDocument(
+  documentId: string,
+  data: Partial<{
+    documentName: string;
+    fileUrl: string;
+    rejectionReason: string;
+  }>
+) {
 
-    return prisma.document.update({
-      where: {
-        id: documentId
-      },
-      data
-    });
-  }
+  return prisma.document.update({
+    where: {
+      id: documentId
+    },
+    data
+  });
+}
 
   /* ==========================
       DELETE DOCUMENT

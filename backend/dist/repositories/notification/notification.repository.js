@@ -1,21 +1,31 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NotificationRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class NotificationRepository {
     /* =========================
         CREATE NOTIFICATION
     ========================= */
     static async createNotification(data) {
-        return prisma_1.prisma.notification.create({
-            data
+        return prisma_1.default.notification.create({
+            data: {
+                userId: data.userId,
+                title: data.title,
+                message: data.message,
+                type: data.type,
+                priority: data.priority,
+                channel: data.channel,
+            }
         });
     }
     /* =========================
         BULK CREATE
     ========================= */
     static async createBulkNotifications(notifications) {
-        return prisma_1.prisma.notification.createMany({
+        return prisma_1.default.notification.createMany({
             data: notifications
         });
     }
@@ -23,7 +33,7 @@ class NotificationRepository {
         GET BY ID
     ========================= */
     static async getNotificationById(id) {
-        return prisma_1.prisma.notification.findUnique({
+        return prisma_1.default.notification.findUnique({
             where: { id }
         });
     }
@@ -32,7 +42,7 @@ class NotificationRepository {
     ========================= */
     static async getUserNotifications(userId, page = 1, limit = 20) {
         const skip = (page - 1) * limit;
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             where: {
                 userId
             },
@@ -47,7 +57,7 @@ class NotificationRepository {
         UNREAD NOTIFICATIONS
     ========================= */
     static async getUnreadNotifications(userId) {
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             where: {
                 userId,
                 isRead: false
@@ -61,7 +71,7 @@ class NotificationRepository {
         MARK AS READ
     ========================= */
     static async markAsRead(id) {
-        return prisma_1.prisma.notification.update({
+        return prisma_1.default.notification.update({
             where: {
                 id
             },
@@ -74,7 +84,7 @@ class NotificationRepository {
         MARK ALL AS READ
     ========================= */
     static async markAllAsRead(userId) {
-        return prisma_1.prisma.notification.updateMany({
+        return prisma_1.default.notification.updateMany({
             where: {
                 userId,
                 isRead: false
@@ -88,7 +98,7 @@ class NotificationRepository {
         DELETE NOTIFICATION
     ========================= */
     static async deleteNotification(id) {
-        return prisma_1.prisma.notification.delete({
+        return prisma_1.default.notification.delete({
             where: { id }
         });
     }
@@ -96,7 +106,7 @@ class NotificationRepository {
         DELETE USER NOTIFICATIONS
     ========================= */
     static async deleteAllUserNotifications(userId) {
-        return prisma_1.prisma.notification.deleteMany({
+        return prisma_1.default.notification.deleteMany({
             where: {
                 userId
             }
@@ -106,7 +116,7 @@ class NotificationRepository {
         SEARCH NOTIFICATIONS
     ========================= */
     static async searchNotifications(keyword) {
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             where: {
                 OR: [
                     {
@@ -132,7 +142,7 @@ class NotificationRepository {
         GET BY TYPE
     ========================= */
     static async getByType(type) {
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             where: {
                 type
             },
@@ -147,7 +157,7 @@ class NotificationRepository {
     static async getAllNotifications(page = 1, limit = 50) {
         const skip = (page - 1) * limit;
         const [notifications, total] = await Promise.all([
-            prisma_1.prisma.notification.findMany({
+            prisma_1.default.notification.findMany({
                 skip,
                 take: limit,
                 include: {
@@ -157,7 +167,7 @@ class NotificationRepository {
                     createdAt: "desc"
                 }
             }),
-            prisma_1.prisma.notification.count()
+            prisma_1.default.notification.count()
         ]);
         return {
             notifications,
@@ -171,13 +181,13 @@ class NotificationRepository {
     ========================= */
     static async getAnalytics() {
         const [total, read, unread] = await Promise.all([
-            prisma_1.prisma.notification.count(),
-            prisma_1.prisma.notification.count({
+            prisma_1.default.notification.count(),
+            prisma_1.default.notification.count({
                 where: {
                     isRead: true
                 }
             }),
-            prisma_1.prisma.notification.count({
+            prisma_1.default.notification.count({
                 where: {
                     isRead: false
                 }
@@ -193,7 +203,7 @@ class NotificationRepository {
         RECENT NOTIFICATIONS
     ========================= */
     static async getRecentNotifications(limit = 10) {
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             take: limit,
             include: {
                 user: true
@@ -207,7 +217,7 @@ class NotificationRepository {
         UNREAD COUNT
     ========================= */
     static async getUnreadCount(userId) {
-        return prisma_1.prisma.notification.count({
+        return prisma_1.default.notification.count({
             where: {
                 userId,
                 isRead: false

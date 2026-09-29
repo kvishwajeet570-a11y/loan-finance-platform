@@ -1,5 +1,4 @@
-import { prisma } from "../../prisma/prisma";
-
+import prisma from "../../config/database/prisma";
 export class DashboardRepository {
 
   /* ===================================

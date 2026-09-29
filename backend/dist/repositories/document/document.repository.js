@@ -1,13 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DocumentRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class DocumentRepository {
     /* ==========================
         UPLOAD DOCUMENT
     ========================== */
     static async createDocument(data) {
-        return prisma_1.prisma.document.create({
+        return prisma_1.default.document.create({
             data
         });
     }
@@ -15,7 +18,7 @@ class DocumentRepository {
         GET DOCUMENT BY ID
     ========================== */
     static async getDocumentById(documentId) {
-        return prisma_1.prisma.document.findUnique({
+        return prisma_1.default.document.findUnique({
             where: {
                 id: documentId
             },
@@ -35,7 +38,7 @@ class DocumentRepository {
         USER DOCUMENTS
     ========================== */
     static async getUserDocuments(userId) {
-        return prisma_1.prisma.document.findMany({
+        return prisma_1.default.document.findMany({
             where: {
                 userId
             },
@@ -48,7 +51,7 @@ class DocumentRepository {
         DOCUMENT TYPE FILTER
     ========================== */
     static async getDocumentsByType(documentType) {
-        return prisma_1.prisma.document.findMany({
+        return prisma_1.default.document.findMany({
             where: {
                 documentType
             },
@@ -61,28 +64,27 @@ class DocumentRepository {
         VERIFY DOCUMENT
     ========================== */
     static async verifyDocument(documentId, verifiedBy) {
-        return prisma_1.prisma.document.update({
+        return prisma_1.default.document.update({
             where: {
                 id: documentId
             },
             data: {
                 status: "VERIFIED",
                 verifiedBy,
-                verifiedAt: new Date()
             }
         });
     }
     /* ==========================
         REJECT DOCUMENT
     ========================== */
-    static async rejectDocument(documentId, remarks) {
-        return prisma_1.prisma.document.update({
+    static async rejectDocument(documentId, rejectionReason) {
+        return prisma_1.default.document.update({
             where: {
                 id: documentId
             },
             data: {
                 status: "REJECTED",
-                remarks
+                rejectionReason
             }
         });
     }
@@ -90,7 +92,7 @@ class DocumentRepository {
         UPDATE DOCUMENT
     ========================== */
     static async updateDocument(documentId, data) {
-        return prisma_1.prisma.document.update({
+        return prisma_1.default.document.update({
             where: {
                 id: documentId
             },
@@ -101,7 +103,7 @@ class DocumentRepository {
         DELETE DOCUMENT
     ========================== */
     static async deleteDocument(documentId) {
-        return prisma_1.prisma.document.delete({
+        return prisma_1.default.document.delete({
             where: {
                 id: documentId
             }
@@ -111,7 +113,7 @@ class DocumentRepository {
         SEARCH DOCUMENTS
     ========================== */
     static async searchDocuments(keyword) {
-        return prisma_1.prisma.document.findMany({
+        return prisma_1.default.document.findMany({
             where: {
                 OR: [
                     {
@@ -136,7 +138,7 @@ class DocumentRepository {
     static async getAllDocuments(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [documents, total] = await Promise.all([
-            prisma_1.prisma.document.findMany({
+            prisma_1.default.document.findMany({
                 skip,
                 take: limit,
                 orderBy: {
@@ -146,7 +148,7 @@ class DocumentRepository {
                     user: true
                 }
             }),
-            prisma_1.prisma.document.count()
+            prisma_1.default.document.count()
         ]);
         return {
             total,
@@ -160,18 +162,18 @@ class DocumentRepository {
     ========================== */
     static async getDocumentAnalytics() {
         const [totalDocuments, verifiedDocuments, pendingDocuments, rejectedDocuments] = await Promise.all([
-            prisma_1.prisma.document.count(),
-            prisma_1.prisma.document.count({
+            prisma_1.default.document.count(),
+            prisma_1.default.document.count({
                 where: {
                     status: "VERIFIED"
                 }
             }),
-            prisma_1.prisma.document.count({
+            prisma_1.default.document.count({
                 where: {
                     status: "PENDING"
                 }
             }),
-            prisma_1.prisma.document.count({
+            prisma_1.default.document.count({
                 where: {
                     status: "REJECTED"
                 }
@@ -188,7 +190,7 @@ class DocumentRepository {
         PENDING DOCUMENTS
     ========================== */
     static async getPendingDocuments() {
-        return prisma_1.prisma.document.findMany({
+        return prisma_1.default.document.findMany({
             where: {
                 status: "PENDING"
             },
@@ -204,7 +206,7 @@ class DocumentRepository {
         RECENT DOCUMENTS
     ========================== */
     static async getRecentDocuments(limit = 10) {
-        return prisma_1.prisma.document.findMany({
+        return prisma_1.default.document.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc"

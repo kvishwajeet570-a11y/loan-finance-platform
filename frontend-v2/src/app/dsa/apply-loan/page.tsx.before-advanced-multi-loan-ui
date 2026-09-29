@@ -1,0 +1,591 @@
+﻿"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+
+type LoanOffer = {
+  company: string;
+  logo: string;
+  category: string;
+  amount: string;
+  rate: string;
+  fee: string;
+  tenure: string;
+  badge: string;
+  feature: string;
+  type: string;
+};
+
+const offers: LoanOffer[] = [
+  {
+    company: "Poonawalla Fincorp",
+    logo: "P",
+    category: "Personal Loan",
+    amount: "₹5,00,000",
+    rate: "11.8% p.a.",
+    fee: "1% - 1.2% + GST",
+    tenure: "3 Years",
+    badge: "Top Pick",
+    feature: "High Disbursement",
+    type: "NBFC",
+  },
+  {
+    company: "Aditya Birla Capital",
+    logo: "AB",
+    category: "Personal Loan",
+    amount: "₹5,00,000",
+    rate: "12.25% p.a.",
+    fee: "1.2% - 1.4% + GST",
+    tenure: "4 Years",
+    badge: "Popular",
+    feature: "Flexible Tenure",
+    type: "NBFC",
+  },
+  {
+    company: "Bajaj Finance",
+    logo: "B",
+    category: "Personal & Business Loan",
+    amount: "₹5,00,000",
+    rate: "12.99% p.a.",
+    fee: "1% - 1.5% + GST",
+    tenure: "3 Years",
+    badge: "Recommended",
+    feature: "Quick Approval",
+    type: "NBFC",
+  },
+  {
+    company: "Tata Capital",
+    logo: "T",
+    category: "Personal & Business Loan",
+    amount: "₹5,00,000",
+    rate: "12.5% p.a.",
+    fee: "1% - 1.5% + GST",
+    tenure: "4 Years",
+    badge: "Trusted",
+    feature: "Easy Process",
+    type: "NBFC",
+  },
+  {
+    company: "Hero FinCorp",
+    logo: "H",
+    category: "Personal Loan",
+    amount: "₹5,00,000",
+    rate: "12.4% p.a.",
+    fee: "1.2% - 1.5% + GST",
+    tenure: "2 Years",
+    badge: "Fast",
+    feature: "Minimal Documents",
+    type: "NBFC",
+  },
+  {
+    company: "Muthoot Finance",
+    logo: "M",
+    category: "Personal Loan",
+    amount: "₹5,00,000",
+    rate: "13% p.a.",
+    fee: "1.2% - 1.5% + GST",
+    tenure: "5 Years",
+    badge: "Trusted",
+    feature: "Trusted Brand",
+    type: "NBFC",
+  },
+  {
+    company: "Shriram Finance",
+    logo: "S",
+    category: "Personal Loan",
+    amount: "₹5,00,000",
+    rate: "12% p.a.",
+    fee: "1% - 1.5% + GST",
+    tenure: "5 Years",
+    badge: "Popular",
+    feature: "High Disbursement",
+    type: "NBFC",
+  },
+  {
+    company: "Mahindra Finance",
+    logo: "MF",
+    category: "Business Loan",
+    amount: "₹5,00,000",
+    rate: "12.5% p.a.",
+    fee: "1% - 1.5% + GST",
+    tenure: "4 Years",
+    badge: "Flexible",
+    feature: "Flexible Tenure",
+    type: "NBFC",
+  },
+];
+
+export default function ApplyLoanPage() {
+  const router = useRouter();
+
+  const [category, setCategory] = useState("Instant Loans");
+  const [search, setSearch] = useState("");
+  const [amount, setAmount] = useState("Any Amount");
+  const [rate, setRate] = useState("Any Rate");
+  const [tenure, setTenure] = useState("Any Tenure");
+  const [sort, setSort] = useState("Recommended");
+
+  const filteredOffers = useMemo(() => {
+    let result = offers.filter((offer) => {
+      const matchesSearch =
+        offer.company.toLowerCase().includes(search.toLowerCase()) ||
+        offer.category.toLowerCase().includes(search.toLowerCase());
+
+      const matchesCategory =
+        category === "Instant Loans" ||
+        offer.category.toLowerCase().includes(category.toLowerCase());
+
+      return matchesSearch && matchesCategory;
+    });
+
+    if (sort === "Low Interest") {
+      result = [...result].sort(
+        (a, b) =>
+          parseFloat(a.rate.replace("% p.a.", "")) -
+          parseFloat(b.rate.replace("% p.a.", ""))
+      );
+    }
+
+    if (sort === "High Amount") {
+      result = [...result].sort(
+        (a, b) =>
+          parseInt(b.amount.replace(/[₹,]/g, "")) -
+          parseInt(a.amount.replace(/[₹,]/g, ""))
+      );
+    }
+
+    return result;
+  }, [category, search, sort]);
+
+  const applyLoan = (company: string) => {
+    router.push(
+      `/dsa/apply-loan?company=${encodeURIComponent(company)}`
+    );
+  };
+
+  return (
+    <main className="min-h-screen bg-[#f5f8ff] text-[#07143b]">
+      <style jsx global>{`
+        * {
+          box-sizing: border-box;
+        }
+
+        body {
+          margin: 0;
+          font-family: Inter, Arial, sans-serif;
+          background: #f5f8ff;
+        }
+
+        .market-card {
+          transition: all 0.25s ease;
+        }
+
+        .market-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 45px rgba(30, 74, 170, 0.14);
+        }
+
+        .glass {
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+
+      {/* TOP HEADER */}
+      <header className="sticky top-0 z-50 border-b border-blue-100 bg-white/95 shadow-sm glass">
+        <div className="mx-auto flex h-[74px] max-w-[1380px] items-center justify-between px-5 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 text-xl font-black text-white shadow-lg">
+              IL
+            </div>
+
+            <div>
+              <div className="text-[18px] font-black tracking-tight">
+                India Loan Finance
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-[2px] text-slate-400">
+                Your Growth Our Support
+              </div>
+            </div>
+          </div>
+
+          <nav className="hidden items-center gap-8 text-sm font-semibold md:flex">
+            <a href="/" className="hover:text-blue-600">
+              Home
+            </a>
+            <a
+              href="/dsa/apply-loan"
+              className="border-b-2 border-blue-600 pb-6 pt-6 text-blue-600"
+            >
+              Loan Products
+            </a>
+            <a href="/about" className="hover:text-blue-600">
+              About Us
+            </a>
+            <a href="#" className="hover:text-blue-600">
+              Blogs
+            </a>
+            <a href="#" className="hover:text-blue-600">
+              Contact
+            </a>
+          </nav>
+
+          <div className="hidden items-center gap-3 lg:flex">
+            <div className="flex h-11 w-[245px] items-center rounded-full border border-blue-100 bg-slate-50 px-4">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search lender or loan type..."
+                className="w-full bg-transparent text-sm outline-none"
+              />
+              <span>⌕</span>
+            </div>
+
+            <button className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3 text-sm font-bold text-white shadow-lg">
+              Login
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#e8f5ff] via-[#eef5ff] to-[#dcecff]">
+        <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-blue-300/20 blur-3xl" />
+        <div className="absolute -left-20 bottom-0 h-60 w-60 rounded-full bg-indigo-300/20 blur-3xl" />
+
+        <div className="relative mx-auto max-w-[1380px] px-5 py-12 lg:px-8 lg:py-16">
+          <div className="max-w-3xl">
+            <div className="mb-4 text-xs font-black uppercase tracking-[3px] text-blue-600">
+              India's Trusted Loan Marketplace
+            </div>
+
+            <h1 className="text-4xl font-black leading-[1.08] tracking-tight md:text-6xl">
+              Compare{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">
+                20+ Lenders
+              </span>{" "}
+              & Get the Best Loan Offers
+            </h1>
+
+            <p className="mt-5 text-lg font-medium text-slate-600">
+              Quick approval • Minimal documentation • 100% secure
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-4">
+              {[
+                ["⚡", "Instant Approval", "Get loan in minutes"],
+                ["▤", "Minimal Documents", "Hassle free process"],
+                ["🛡", "100% Secure", "Your data is safe"],
+                ["👥", "20+ Trusted Lenders", "Compare best offers"],
+              ].map(([icon, title, text]) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-3 rounded-2xl border border-white bg-white/80 px-4 py-3 shadow-sm"
+                >
+                  <span className="text-xl text-blue-600">{icon}</span>
+                  <div>
+                    <div className="text-sm font-black">{title}</div>
+                    <div className="text-xs text-slate-500">{text}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="absolute right-8 top-12 hidden xl:block">
+            <div className="relative h-[260px] w-[210px] rotate-6 rounded-[35px] border-[8px] border-slate-900 bg-white shadow-2xl">
+              <div className="absolute left-1/2 top-0 h-5 w-24 -translate-x-1/2 rounded-b-2xl bg-slate-900" />
+
+              <div className="flex h-full flex-col items-center justify-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-4xl text-emerald-500">
+                  ✓
+                </div>
+                <div className="text-xl font-black">Loan</div>
+                <div className="text-xl font-black text-blue-600">
+                  Approved!
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CATEGORY TABS */}
+      <section className="border-b border-blue-100 bg-white">
+        <div className="scrollbar-hide mx-auto flex max-w-[1380px] gap-3 overflow-x-auto px-5 py-4 lg:px-8">
+          {[
+            ["⚡", "Instant Loans"],
+            ["👤", "Personal Loan"],
+            ["▦", "Business Loans"],
+            ["⌂", "Home Loan"],
+            ["🚗", "Vehicle Loan"],
+            ["▣", "EMI Cards"],
+            ["▣", "Credit Cards"],
+          ].map(([icon, name]) => (
+            <button
+              key={name}
+              onClick={() => setCategory(name)}
+              className={`flex min-w-max items-center gap-2 rounded-xl px-7 py-3 text-sm font-bold transition ${
+                category === name
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-lg"
+                  : "bg-slate-50 text-slate-700 hover:bg-blue-50"
+              }`}
+            >
+              <span>{icon}</span>
+              {name}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* CONTENT */}
+      <section className="mx-auto max-w-[1380px] px-5 py-8 lg:px-8">
+        <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[3px] text-blue-600">
+              Available Loan Offers
+            </div>
+            <h2 className="mt-1 text-3xl font-black">
+              {filteredOffers.length} Loan Offers Found
+            </h2>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-500">
+              Sort By
+            </span>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="rounded-xl border border-blue-100 bg-white px-5 py-3 text-sm font-bold outline-none"
+            >
+              <option>Recommended</option>
+              <option>Low Interest</option>
+              <option>High Amount</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid gap-7 lg:grid-cols-[250px_1fr]">
+          {/* FILTER SIDEBAR */}
+          <aside className="h-fit rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="text-xl font-black">Filters</h3>
+              <button
+                onClick={() => {
+                  setAmount("Any Amount");
+                  setRate("Any Rate");
+                  setTenure("Any Tenure");
+                  setSearch("");
+                }}
+                className="text-xs font-bold text-blue-600"
+              >
+                Clear All
+              </button>
+            </div>
+
+            {[
+              [
+                "Loan Amount",
+                amount,
+                setAmount,
+                ["Any Amount", "₹1 Lakh+", "₹3 Lakh+", "₹5 Lakh+"],
+              ],
+              [
+                "Interest Rate",
+                rate,
+                setRate,
+                ["Any Rate", "Below 12%", "12% - 13%", "Above 13%"],
+              ],
+              [
+                "Tenure",
+                tenure,
+                setTenure,
+                ["Any Tenure", "1 - 2 Years", "3 - 4 Years", "5+ Years"],
+              ],
+            ].map(([title, value, setter, options]) => (
+              <div key={title as string} className="mb-5">
+                <label className="mb-2 block text-sm font-black">
+                  {title as string}
+                </label>
+                <select
+                  value={value as string}
+                  onChange={(e) =>
+                    (setter as React.Dispatch<React.SetStateAction<string>>)(
+                      e.target.value
+                    )
+                  }
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm outline-none focus:border-blue-500"
+                >
+                  {(options as string[]).map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+
+            <div className="mb-5">
+              <div className="mb-3 text-sm font-black">Lender Type</div>
+
+              {["NBFC", "Private Bank", "Public Bank", "Fintech"].map(
+                (item) => (
+                  <label
+                    key={item}
+                    className="mb-3 flex items-center gap-3 text-sm text-slate-600"
+                  >
+                    <input type="checkbox" className="h-4 w-4" />
+                    {item}
+                  </label>
+                )
+              )}
+            </div>
+
+            <div>
+              <div className="mb-3 text-sm font-black">Features</div>
+
+              {[
+                "High Disbursement",
+                "Low Interest Rate",
+                "Minimal Documentation",
+                "Flexible Tenure",
+                "Instant Approval",
+              ].map((item) => (
+                <label
+                  key={item}
+                  className="mb-3 flex items-center gap-3 text-sm text-slate-600"
+                >
+                  <input type="checkbox" className="h-4 w-4" />
+                  {item}
+                </label>
+              ))}
+            </div>
+
+            <button className="mt-4 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 py-3 font-bold text-white shadow-lg">
+              ⚱ Apply Filters
+            </button>
+          </aside>
+
+          {/* OFFERS GRID */}
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {filteredOffers.map((offer) => (
+              <article
+                key={offer.company}
+                className="market-card relative overflow-hidden rounded-3xl border border-blue-100 bg-white p-5 shadow-sm"
+              >
+                <div className="absolute right-0 top-0 h-24 w-24 rounded-bl-full bg-blue-50" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-100 text-xl font-black text-blue-700">
+                      {offer.logo}
+                    </div>
+
+                    <div>
+                      <h3 className="text-[16px] font-black leading-tight">
+                        {offer.company}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {offer.category}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black text-amber-700">
+                    ★ {offer.badge}
+                  </span>
+                </div>
+
+                <div className="my-5 grid grid-cols-2 gap-4 border-y border-slate-100 py-4">
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-400">
+                      Loan Amount
+                    </div>
+                    <div className="mt-1 text-sm font-black">
+                      upto {offer.amount}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-400">
+                      Interest Rate
+                    </div>
+                    <div className="mt-1 text-sm font-black">
+                      {offer.rate}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-400">
+                      Processing Fee
+                    </div>
+                    <div className="mt-1 text-xs font-bold">
+                      {offer.fee}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[10px] font-semibold text-slate-400">
+                      Tenure
+                    </div>
+                    <div className="mt-1 text-sm font-black">
+                      {offer.tenure}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-4 flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 py-2.5 text-xs font-black text-blue-700">
+                  ⚡ {offer.feature}
+                </div>
+
+                <button
+                  onClick={() => applyLoan(offer.company)}
+                  className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 py-3.5 text-sm font-black text-white shadow-lg transition hover:scale-[1.02]"
+                >
+                  Apply Now →
+                </button>
+
+                <button
+                  onClick={() => applyLoan(offer.company)}
+                  className="mt-3 w-full text-center text-xs font-bold text-blue-600 hover:underline"
+                >
+                  View Detailed Offers
+                </button>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TRUST BAR */}
+      <section className="mx-auto max-w-[1380px] px-5 pb-10 lg:px-8">
+        <div className="grid overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm md:grid-cols-4">
+          {[
+            ["🛡", "100% Secure", "Your data is protected"],
+            ["👥", "20+ Lenders", "Compare best offers"],
+            ["⚡", "Quick Approval", "Get funds faster"],
+            ["▤", "Minimal Documents", "Hassle-free process"],
+          ].map(([icon, title, text]) => (
+            <div
+              key={title}
+              className="flex items-center gap-4 border-b border-slate-100 p-6 last:border-0 md:border-b-0 md:border-r"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-xl">
+                {icon}
+              </div>
+
+              <div>
+                <div className="font-black">{title}</div>
+                <div className="text-xs text-slate-500">{text}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}

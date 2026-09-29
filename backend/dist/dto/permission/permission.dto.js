@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.permissionAnalyticsSchema = exports.rolePermissionMatrixSchema = exports.permissionFilterSchema = exports.bulkAssignPermissionSchema = exports.removePermissionSchema = exports.assignPermissionSchema = exports.updatePermissionSchema = exports.createPermissionSchema = exports.permissionStatusEnum = exports.permissionActionEnum = exports.permissionModuleEnum = void 0;
+exports.permissionAnalyticsSchema = exports.permissionFilterSchema = exports.bulkAssignPermissionSchema = exports.assignPermissionToUserSchema = exports.assignPermissionToRoleSchema = exports.updatePermissionSchema = exports.createPermissionSchema = exports.permissionStatusEnum = exports.permissionModuleEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
-   PERMISSION MODULE
+   MODULE ENUM
 ========================================= */
 exports.permissionModuleEnum = zod_1.z.enum([
     "DASHBOARD",
@@ -34,23 +34,7 @@ exports.permissionModuleEnum = zod_1.z.enum([
     "AUDIT",
 ]);
 /* =========================================
-   PERMISSION ACTION
-========================================= */
-exports.permissionActionEnum = zod_1.z.enum([
-    "CREATE",
-    "READ",
-    "UPDATE",
-    "DELETE",
-    "APPROVE",
-    "REJECT",
-    "EXPORT",
-    "IMPORT",
-    "ASSIGN",
-    "VIEW_ALL",
-    "MANAGE",
-]);
-/* =========================================
-   PERMISSION STATUS
+   STATUS ENUM
 ========================================= */
 exports.permissionStatusEnum = zod_1.z.enum([
     "ACTIVE",
@@ -60,75 +44,60 @@ exports.permissionStatusEnum = zod_1.z.enum([
    CREATE PERMISSION
 ========================================= */
 exports.createPermissionSchema = zod_1.z.object({
-    name: zod_1.z.string()
-        .min(3)
-        .max(100),
-    code: zod_1.z.string()
-        .min(3)
-        .max(100)
-        .toUpperCase(),
+    name: zod_1.z.string().min(3).max(100),
+    code: zod_1.z.string().min(3).max(100),
     module: exports.permissionModuleEnum,
-    action: exports.permissionActionEnum,
-    description: zod_1.z.string()
-        .max(500)
-        .optional(),
-    status: exports.permissionStatusEnum
-        .default("ACTIVE"),
+    description: zod_1.z.string().max(500).optional(),
+    slug: zod_1.z.string().optional(),
+    status: exports.permissionStatusEnum.optional(),
 });
 /* =========================================
    UPDATE PERMISSION
 ========================================= */
 exports.updatePermissionSchema = zod_1.z.object({
-    name: zod_1.z.string().optional(),
+    name: zod_1.z.string().min(3).max(100).optional(),
+    code: zod_1.z.string().min(3).max(100).optional(),
     module: exports.permissionModuleEnum.optional(),
-    action: exports.permissionActionEnum.optional(),
-    description: zod_1.z.string().optional(),
+    description: zod_1.z.string().max(500).optional(),
+    slug: zod_1.z.string().optional(),
     status: exports.permissionStatusEnum.optional(),
 });
 /* =========================================
-   ASSIGN PERMISSION TO ROLE
+   ASSIGN ROLE PERMISSION
 ========================================= */
-exports.assignPermissionSchema = zod_1.z.object({
-    roleId: zod_1.z.string().cuid(),
-    permissionIds: zod_1.z.array(zod_1.z.string().cuid()).min(1),
-});
-/* =========================================
-   REMOVE PERMISSION
-========================================= */
-exports.removePermissionSchema = zod_1.z.object({
-    roleId: zod_1.z.string().cuid(),
+exports.assignPermissionToRoleSchema = zod_1.z.object({
+    role: zod_1.z.string().min(1),
     permissionId: zod_1.z.string().cuid(),
 });
 /* =========================================
-   BULK PERMISSION ASSIGN
+   ASSIGN USER PERMISSION
+========================================= */
+exports.assignPermissionToUserSchema = zod_1.z.object({
+    userId: zod_1.z.string().cuid(),
+    permissionId: zod_1.z.string().cuid(),
+});
+/* =========================================
+   BULK ASSIGN
 ========================================= */
 exports.bulkAssignPermissionSchema = zod_1.z.object({
-    roleIds: zod_1.z.array(zod_1.z.string().cuid()).min(1),
+    role: zod_1.z.string().min(1),
     permissionIds: zod_1.z.array(zod_1.z.string().cuid()).min(1),
 });
 /* =========================================
-   PERMISSION FILTER
+   FILTER
 ========================================= */
 exports.permissionFilterSchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
     module: exports.permissionModuleEnum.optional(),
-    action: exports.permissionActionEnum.optional(),
     status: exports.permissionStatusEnum.optional(),
-    page: zod_1.z.coerce.number()
-        .default(1),
+    page: zod_1.z.coerce.number().default(1),
     limit: zod_1.z.coerce.number()
         .min(1)
         .max(100)
         .default(20),
 });
 /* =========================================
-   ROLE PERMISSION MATRIX
-========================================= */
-exports.rolePermissionMatrixSchema = zod_1.z.object({
-    roleId: zod_1.z.string().cuid(),
-});
-/* =========================================
-   PERMISSION ANALYTICS
+   ANALYTICS
 ========================================= */
 exports.permissionAnalyticsSchema = zod_1.z.object({
     startDate: zod_1.z.string().optional(),

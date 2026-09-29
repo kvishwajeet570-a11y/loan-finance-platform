@@ -1,57 +1,99 @@
-import prisma from "../../prisma/prisma";
-import { Prisma } from "@prisma/client";
-
-interface CustomerFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  status?: string;
-  isVerified?: boolean;
-}
+import prisma from "../../config/database/prisma";
 
 class CustomerService {
-  /**
-   * Create Customer
-   */
-  async createCustomer(data: {
-    name: string;
-    email: string;
-    phoneNo: string;
-    password: string;
-  }) {
-    const existingUser =
-      await prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: data.email },
-            { phoneNo: data.phoneNo },
-          ],
-        },
-      });
-
-    if (existingUser) {
-      throw new Error(
-        "Customer already exists"
-      );
-    }
-
+  async createCustomer(data: any) {
     return prisma.user.create({
-      data: {
-        ...data,
-        role: "customer",
+      data,
+    });
+  }
+
+  async getCustomers(query: any) {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 10);
+
+    return prisma.user.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+      include: {
+        loans: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
   }
 
-  /**
-   * Customer Profile
-   */
-  async getCustomerProfile(
-    customerId: string
-  ) {
+  async getCustomerById(customerId: string) {
     return prisma.user.findUnique({
+      where: { id: customerId },
+      include: {
+        loans: true,
+      },
+    });
+  }
+
+  async getCustomerByUserId(userId: string) {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        loans: true,
+      },
+    });
+  }
+
+  async updateCustomer(customerId: string, data: any) {
+    return prisma.user.update({
+      where: { id: customerId },
+      data,
+    });
+  }
+
+  async deleteCustomer(customerId: string) {
+    return prisma.user.delete({
+      where: { id: customerId },
+    });
+  }
+
+  async blockCustomer(customerId: string) {
+    return prisma.user.update({
+      where: { id: customerId },
+      data: {
+        isBlocked: true,
+      },
+    });
+  }
+
+  async unblockCustomer(customerId: string) {
+    return prisma.user.update({
+      where: { id: customerId },
+      data: {
+        isBlocked: false,
+      },
+    });
+  }
+
+  async searchCustomers(search: string) {
+    return prisma.user.findMany({
       where: {
-        id: customerId,
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            email: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            phoneNo: {
+              contains: search,
+            },
+          },
+        ],
       },
       include: {
         loans: true,
@@ -59,134 +101,7 @@ class CustomerService {
     });
   }
 
-  /**
-   * Update Customer
-   */
-  async updateCustomer(
-    customerId: string,
-    data: any
-  ) {
-    return prisma.user.update({
-      where: {
-        id: customerId,
-      },
-      data,
-    });
-  }
-
-  /**
-   * Customer List
-   */
-  async getCustomers(
-    filters: CustomerFilters
-  ) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      status,
-      isVerified,
-    } = filters;
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.UserWhereInput =
-      {
-        role: "customer",
-      };
-
-    if (search) {
-      where.OR = [
-        {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-        {
-          email: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-        {
-          phoneNo: {
-            contains: search,
-          },
-        },
-      ];
-    }
-
-    if (typeof isVerified === "boolean") {
-      where.isVerified = isVerified;
-    }
-
-    if (status === "blocked") {
-      where.isBlocked = true;
-    }
-
-    const [customers, total] =
-      await Promise.all([
-        prisma.user.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc",
-          },
-        }),
-
-        prisma.user.count({
-          where,
-        }),
-      ]);
-
-    return {
-      customers,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-    };
-  }
-
-  /**
-   * Block Customer
-   */
-  async blockCustomer(
-    customerId: string
-  ) {
-    return prisma.user.update({
-      where: {
-        id: customerId,
-      },
-      data: {
-        isBlocked: true,
-      },
-    });
-  }
-
-  /**
-   * Unblock Customer
-   */
-  async unblockCustomer(
-    customerId: string
-  ) {
-    return prisma.user.update({
-      where: {
-        id: customerId,
-      },
-      data: {
-        isBlocked: false,
-      },
-    });
-  }
-
-  /**
-   * Customer Loan History
-   */
-  async getCustomerLoans(
-    customerId: string
-  ) {
+  async getCustomerLoans(customerId: string) {
     return prisma.loanApplication.findMany({
       where: {
         userId: customerId,
@@ -197,112 +112,207 @@ class CustomerService {
     });
   }
 
-  /**
-   * Customer Dashboard
-   */
-  async getCustomerDashboard(
-    customerId: string
-  ) {
-    const [
-      totalLoans,
-      approvedLoans,
-      pendingLoans,
-      rejectedLoans,
-    ] = await Promise.all([
-      prisma.loanApplication.count({
-        where: {
-          userId: customerId,
-        },
-      }),
-
-      prisma.loanApplication.count({
-        where: {
-          userId: customerId,
-          status: "approved",
-        },
-      }),
-
-      prisma.loanApplication.count({
-        where: {
-          userId: customerId,
-          status: "pending",
-        },
-      }),
-
-      prisma.loanApplication.count({
-        where: {
-          userId: customerId,
-          status: "rejected",
-        },
-      }),
-    ]);
-
+  async getCustomerTransactions(customerId: string) {
     return {
-      totalLoans,
-      approvedLoans,
-      pendingLoans,
-      rejectedLoans,
+      customerId,
+      transactions: [],
     };
   }
 
-  /**
-   * Customer Analytics
-   */
-  async getCustomerStats() {
-    const [
-      totalCustomers,
-      verifiedCustomers,
-      blockedCustomers,
-      activeCustomers,
-    ] = await Promise.all([
-      prisma.user.count({
-        where: {
-          role: "customer",
-        },
-      }),
-
-      prisma.user.count({
-        where: {
-          role: "customer",
-          isVerified: true,
-        },
-      }),
-
-      prisma.user.count({
-        where: {
-          role: "customer",
-          isBlocked: true,
-        },
-      }),
-
-      prisma.user.count({
-        where: {
-          role: "customer",
-          isBlocked: false,
-        },
-      }),
-    ]);
-
+  async getCustomerDocuments(customerId: string) {
     return {
-      totalCustomers,
-      verifiedCustomers,
-      blockedCustomers,
-      activeCustomers,
+      customerId,
+      documents: [],
     };
   }
 
-  /**
-   * Delete Customer
-   */
-  async deleteCustomer(
-    customerId: string
-  ) {
-    return prisma.user.delete({
+  async getCustomerKyc(customerId: string) {
+    const customer = await prisma.user.findUnique({
       where: {
         id: customerId,
       },
     });
+
+    return {
+      customerId,
+      isVerified: customer?.isVerified ?? false,
+    };
+  }
+
+  async verifyCustomer(customerId: string) {
+    return prisma.user.update({
+      where: {
+        id: customerId,
+      },
+      data: {
+        isVerified: true,
+      },
+    });
+  }
+
+  async getActiveCustomers() {
+    return prisma.user.findMany({
+      where: {
+        isBlocked: false,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getInactiveCustomers() {
+    return prisma.user.findMany({
+      where: {
+        isBlocked: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getTopCustomers() {
+    return prisma.user.findMany({
+      take: 10,
+      include: {
+        loans: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getMonthlyCustomers() {
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+
+    return prisma.user.findMany({
+      where: {
+        createdAt: {
+          gte: currentMonth,
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getCustomerProfile(customerId: string) {
+    return prisma.user.findUnique({
+      where: {
+        id: customerId,
+      },
+      include: {
+        loans: true,
+      },
+    });
+  }
+
+  async getCustomerDashboard(customerId: string) {
+    const customer = await prisma.user.findUnique({
+      where: {
+        id: customerId,
+      },
+    });
+
+    const totalLoans =
+      await prisma.loanApplication.count({
+        where: {
+          userId: customerId,
+        },
+      });
+
+    const approvedLoans =
+      await prisma.loanApplication.count({
+        where: {
+          userId: customerId,
+          status: "APPROVED",
+        },
+      });
+
+    const pendingLoans =
+      await prisma.loanApplication.count({
+        where: {
+          userId: customerId,
+          status: "PENDING",
+        },
+      });
+
+    const rejectedLoans =
+      await prisma.loanApplication.count({
+        where: {
+          userId: customerId,
+          status: "REJECTED",
+        },
+      });
+
+    return {
+      customer,
+      totalLoans,
+      approvedLoans,
+      pendingLoans,
+      rejectedLoans,
+    };
+  }
+
+  async getCustomerAnalytics() {
+    const totalCustomers =
+      await prisma.user.count();
+
+    const activeCustomers =
+      await prisma.user.count({
+        where: {
+          isBlocked: false,
+        },
+      });
+
+    const blockedCustomers =
+      await prisma.user.count({
+        where: {
+          isBlocked: true,
+        },
+      });
+
+    const verifiedCustomers =
+      await prisma.user.count({
+        where: {
+          isVerified: true,
+        },
+      });
+
+    return {
+      totalCustomers,
+      activeCustomers,
+      blockedCustomers,
+      verifiedCustomers,
+    };
+  }
+
+  async exportCustomersExcel() {
+    const customers =
+      await prisma.user.findMany();
+
+    return {
+      success: true,
+      total: customers.length,
+      data: customers,
+    };
+  }
+
+  async exportCustomersPdf() {
+    const customers =
+      await prisma.user.findMany();
+
+    return {
+      success: true,
+      total: customers.length,
+      data: customers,
+    };
   }
 }
 
-export default new CustomerService();
+export const customerService =
+  new CustomerService();

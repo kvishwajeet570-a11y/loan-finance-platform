@@ -1,0 +1,103 @@
+﻿.dashboard-premium {
+  position: relative;
+  isolation: isolate;
+}
+
+.dashboard-premium::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 85% 5%, rgba(59,130,246,.13), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(6,182,212,.08), transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(99,102,241,.08), transparent 30%);
+}
+
+.dashboard-premium .premium-card,
+.dashboard-premium .recent-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-premium .premium-card::before,
+.dashboard-premium .recent-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,#2563eb,#06b6d4,#8b5cf6);
+  opacity: .8;
+}
+
+.dashboard-premium .kpi-card {
+  min-height: 155px;
+}
+
+.dashboard-premium .kpi-card:hover {
+  transform: translateY(-5px) scale(1.01);
+}
+
+.dashboard-premium .rank-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-premium .rank-card::after {
+  content: "";
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  right: -45px;
+  top: -45px;
+  border-radius: 999px;
+  background: radial-gradient(circle,rgba(251,191,36,.35),transparent 70%);
+  pointer-events: none;
+}
+
+.dashboard-premium .wallet-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-premium .wallet-card::after {
+  content: "";
+  position: absolute;
+  width: 140px;
+  height: 140px;
+  right: -60px;
+  bottom: -70px;
+  border-radius: 999px;
+  background: radial-gradient(circle,rgba(16,185,129,.18),transparent 70%);
+  pointer-events: none;
+}
+
+.dashboard-premium .chart-card,
+.dashboard-premium .product-card,
+.dashboard-premium .recent-card {
+  transition: transform .3s ease, box-shadow .3s ease;
+}
+
+.dashboard-premium .chart-card:hover,
+.dashboard-premium .product-card:hover,
+.dashboard-premium .recent-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 55px rgba(37,99,235,.12);
+}
+
+.dashboard-premium table tbody tr {
+  transition: background .2s ease;
+}
+
+.dashboard-premium table tbody tr:hover {
+  background: linear-gradient(90deg,rgba(239,246,255,.9),rgba(236,254,255,.7));
+}
+
+@media (max-width: 768px) {
+  .dashboard-premium .kpi-card {
+    min-height: 135px;
+  }
+}

@@ -1,403 +1,271 @@
-import { prisma } from "../../prisma";
+import { Prisma } from "@prisma/client";
+import prisma from "../../prisma/prisma";
 
-export class TransactionRepository {
+class TransactionRepository {
+  // ==========================================================
+  // CREATE
+  // ==========================================================
 
-  /* =========================
-      CREATE TRANSACTION
-  ========================= */
-
-  static async createTransaction(data: {
-    userId: string;
-    transactionRef: string;
-    transactionType: string;
-    amount: number;
-    openingBalance?: number;
-    closingBalance?: number;
-    paymentMethod?: string;
-    gateway?: string;
-    referenceId?: string;
-    referenceType?: string;
-    remarks?: string;
-    metadata?: any;
-  }) {
-
+  async create(data: Prisma.TransactionCreateInput) {
     return prisma.transaction.create({
-      data
-    });
-  }
-
-  /* =========================
-      GET BY ID
-  ========================= */
-
-  static async getById(id: string) {
-
-    return prisma.transaction.findUnique({
-
-      where: { id },
-
+      data,
       include: {
-        user: true
-      }
+        user: true,
+        wallet: true,
+      },
     });
   }
 
-  /* =========================
-      GET BY REF
-  ========================= */
+  // ==========================================================
+  // FIND UNIQUE
+  // ==========================================================
 
-  static async getByReference(
-    transactionRef: string
-  ) {
-
-    return prisma.transaction.findUnique({
-
+  async findById(id: string) {
+    return prisma.transaction.findFirst({
       where: {
-        transactionRef
-      }
+        OR: [
+          { id },
+          { transactionId: id },
+          { referenceId: id },
+        ],
+      },
+      include: {
+        user: true,
+        wallet: true,
+      },
     });
   }
 
-  /* =========================
-      USER TRANSACTIONS
-  ========================= */
+  async findByTransactionId(transactionId: string) {
+    return prisma.transaction.findUnique({
+      where: {
+        transactionId,
+      },
+      include: {
+        user: true,
+        wallet: true,
+      },
+    });
+  }
 
-  static async getUserTransactions(
-    userId: string,
+  async findByReferenceId(referenceId: string) {
+    return prisma.transaction.findUnique({
+      where: {
+        referenceId,
+      },
+      include: {
+        user: true,
+        wallet: true,
+      },
+    });
+  }
+
+  // ==========================================================
+  // FIND MANY
+  // ==========================================================
+
+  async findMany(
+    where: Prisma.TransactionWhereInput = {},
     page = 1,
     limit = 20
   ) {
+    const skip = (page - 1) * limit;
 
-    return prisma.transaction.findMany({
+    const [data, total] = await prisma.$transaction([
+      prisma.transaction.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          user: true,
+          wallet: true,
+        },
+      }),
 
-      where: {
-        userId
-      },
-
-      skip: (page - 1) * limit,
-
-      take: limit,
-
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-  }
-
-  /* =========================
-      SUCCESS
-  ========================= */
-
-  static async markSuccess(
-    transactionRef: string,
-    gatewayTxnId?: string,
-    utrNumber?: string
-  ) {
-
-    return prisma.transaction.update({
-
-      where: {
-        transactionRef
-      },
-
-      data: {
-        status: "SUCCESS",
-        gatewayTxnId,
-        utrNumber,
-        processedAt: new Date()
-      }
-    });
-  }
-
-  /* =========================
-      FAILED
-  ========================= */
-
-  static async markFailed(
-    transactionRef: string,
-    remarks?: string
-  ) {
-
-    return prisma.transaction.update({
-
-      where: {
-        transactionRef
-      },
-
-      data: {
-        status: "FAILED",
-        remarks,
-        processedAt: new Date()
-      }
-    });
-  }
-
-  /* =========================
-      CANCEL
-  ========================= */
-
-  static async cancelTransaction(
-    transactionRef: string,
-    remarks?: string
-  ) {
-
-    return prisma.transaction.update({
-
-      where: {
-        transactionRef
-      },
-
-      data: {
-        status: "CANCELLED",
-        remarks
-      }
-    });
-  }
-
-  /* =========================
-      REFUND
-  ========================= */
-
-  static async refundTransaction(
-    transactionRef: string,
-    remarks?: string
-  ) {
-
-    return prisma.transaction.update({
-
-      where: {
-        transactionRef
-      },
-
-      data: {
-        status: "REFUNDED",
-        remarks,
-        processedAt: new Date()
-      }
-    });
-  }
-
-  /* =========================
-      SEARCH
-  ========================= */
-
-  static async searchTransactions(
-    keyword: string
-  ) {
-
-    return prisma.transaction.findMany({
-
-      where: {
-
-        OR: [
-
-          {
-            transactionRef: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            gatewayTxnId: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            utrNumber: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* =========================
-      STATUS FILTER
-  ========================= */
-
-  static async getByStatus(
-    status: string
-  ) {
-
-    return prisma.transaction.findMany({
-
-      where: {
-        status
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* =========================
-      TYPE FILTER
-  ========================= */
-
-  static async getByType(
-    transactionType: string
-  ) {
-
-    return prisma.transaction.findMany({
-
-      where: {
-        transactionType
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* =========================
-      DATE RANGE
-  ========================= */
-
-  static async getByDateRange(
-    startDate: Date,
-    endDate: Date
-  ) {
-
-    return prisma.transaction.findMany({
-
-      where: {
-
-        createdAt: {
-          gte: startDate,
-          lte: endDate
-        }
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* =========================
-      ALL TRANSACTIONS
-  ========================= */
-
-  static async getAllTransactions(
-    page = 1,
-    limit = 50
-  ) {
-
-    const skip =
-      (page - 1) * limit;
-
-    const [transactions, total] =
-      await Promise.all([
-
-        prisma.transaction.findMany({
-
-          skip,
-          take: limit,
-
-          include: {
-            user: true
-          },
-
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
-
-        prisma.transaction.count()
-      ]);
+      prisma.transaction.count({
+        where,
+      }),
+    ]);
 
     return {
-      transactions,
       total,
       page,
-      limit
+      limit,
+      totalPages: Math.ceil(total / limit),
+      data,
     };
   }
 
-  /* =========================
-      ANALYTICS
-  ========================= */
+  // ==========================================================
+  // UPDATE
+  // ==========================================================
 
-  static async getAnalytics() {
+  async update(
+    id: string,
+    data: Prisma.TransactionUpdateInput
+  ) {
+    return prisma.transaction.update({
+      where: {
+        id,
+      },
+      data,
+      include: {
+        user: true,
+        wallet: true,
+      },
+    });
+  }
 
-    const [
-      totalTransactions,
-      successTransactions,
-      failedTransactions,
-      totalAmount
-    ] = await Promise.all([
+  // ==========================================================
+  // DELETE
+  // ==========================================================
 
+  async delete(id: string) {
+    return prisma.transaction.delete({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async deleteMany(ids: string[]) {
+    return prisma.transaction.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+  }
+
+  // ==========================================================
+  // COUNT
+  // ==========================================================
+
+  async count(
+    where: Prisma.TransactionWhereInput = {}
+  ) {
+    return prisma.transaction.count({
+      where,
+    });
+  }
+
+  // ==========================================================
+  // AGGREGATE
+  // ==========================================================
+
+  async aggregate(
+    where: Prisma.TransactionWhereInput = {}
+  ) {
+    return prisma.transaction.aggregate({
+      where,
+      _count: true,
+      _sum: {
+        amount: true,
+        fee: true,
+        gst: true,
+        commission: true,
+        cashback: true,
+      },
+      _avg: {
+        amount: true,
+      },
+      _min: {
+        amount: true,
+      },
+      _max: {
+        amount: true,
+      },
+    });
+  }
+
+  // ==========================================================
+  // GROUP BY STATUS
+  // ==========================================================
+
+  async groupByStatus() {
+    return prisma.transaction.groupBy({
+      by: ["status"],
+      _count: {
+        status: true,
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+  }
+
+  // ==========================================================
+  // BULK UPDATE
+  // ==========================================================
+
+  async updateMany(
+    ids: string[],
+    data: Prisma.TransactionUpdateManyMutationInput
+  ) {
+    return prisma.transaction.updateMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      data,
+    });
+  }
+
+  // ==========================================================
+  // DASHBOARD
+  // ==========================================================
+
+  async dashboard() {
+    return prisma.$transaction([
       prisma.transaction.count(),
-
-      prisma.transaction.count({
-        where: {
-          status: "SUCCESS"
-        }
-      }),
-
-      prisma.transaction.count({
-        where: {
-          status: "FAILED"
-        }
-      }),
 
       prisma.transaction.aggregate({
         _sum: {
-          amount: true
-        }
-      })
-    ]);
+          amount: true,
+        },
+      }),
 
-    return {
-      totalTransactions,
-      successTransactions,
-      failedTransactions,
-      totalAmount:
-        totalAmount._sum.amount || 0
-    };
-  }
+      prisma.transaction.count({
+        where: {
+          status: "pending",
+        },
+      }),
 
-  /* =========================
-      DASHBOARD
-  ========================= */
+      prisma.transaction.count({
+        where: {
+          status: "success",
+        },
+      }),
 
-  static async getDashboard() {
+      prisma.transaction.count({
+        where: {
+          status: "failed",
+        },
+      }),
 
-    const [
-      analytics,
-      recentTransactions
-    ] = await Promise.all([
-
-      this.getAnalytics(),
+      prisma.transaction.count({
+        where: {
+          isRefunded: true,
+        },
+      }),
 
       prisma.transaction.findMany({
-
-        take: 20,
-
-        include: {
-          user: true
-        },
-
+        take: 10,
         orderBy: {
-          createdAt: "desc"
-        }
-      })
+          createdAt: "desc",
+        },
+        include: {
+          user: true,
+          wallet: true,
+        },
+      }),
     ]);
-
-    return {
-      analytics,
-      recentTransactions
-    };
   }
 }
+
+export default new TransactionRepository();

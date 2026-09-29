@@ -1,76 +1,52 @@
 import { Router } from "express";
-
-import {
-  createBlog,
-  getBlogById,
-  getBlogBySlug,
-  getAllBlogs,
-  getPublishedBlogs,
-  getFeaturedBlogs,
-  getBlogsByCategory,
-  searchBlogs,
-  updateBlog,
-  publishBlog,
-  unpublishBlog,
-  markFeatured,
-  removeFeatured,
-  incrementView,
-  deleteBlog,
-  getBlogAnalytics,
-} from "../../controllers/blog/blog.controller";
+import { BlogController } from "../../controllers/blog/blog.controller";
 
 const router = Router();
 
 /* ========================================
-   ANALYTICS
+   BLOG ANALYTICS
 ======================================== */
 
-router.get("/analytics", getBlogAnalytics);
+router.get("/analytics", BlogController.getBlogAnalytics);
 
 /* ========================================
-   PUBLIC BLOGS
+   PUBLIC BLOG ROUTES
 ======================================== */
 
-router.get("/published", getPublishedBlogs);
+router.get("/published", BlogController.getPublishedBlogs);
 
-router.get("/featured", getFeaturedBlogs);
+router.get("/category/:category", BlogController.getBlogsByCategory);
 
-router.get("/category/:category", getBlogsByCategory);
+router.get("/slug/:slug", BlogController.getBlogBySlug);
 
-router.get("/slug/:slug", getBlogBySlug);
-
-router.get("/search", searchBlogs);
+router.get("/search", BlogController.searchBlogs);
 
 /* ========================================
    BLOG CRUD
 ======================================== */
 
-router.post("/", createBlog);
+router.post("/", BlogController.createBlog);
 
-router.get("/", getAllBlogs);
+router.get("/", BlogController.getAllBlogs);
 
-router.get("/:id", getBlogById);
+router.get("/:id", BlogController.getBlogById);
 
-router.put("/:id", updateBlog);
+router.put("/:id", BlogController.updateBlog);
 
-router.delete("/:id", deleteBlog);
+router.delete("/:id", BlogController.deleteBlog);
 
 /* ========================================
    BLOG STATUS
 ======================================== */
 
-router.patch("/:id/publish", publishBlog);
+router.patch("/:id/publish", BlogController.publishBlog);
 
-router.patch("/:id/unpublish", unpublishBlog);
-
-router.patch("/:id/featured", markFeatured);
-
-router.patch("/:id/remove-featured", removeFeatured);
+router.patch("/:id/unpublish", BlogController.unpublishBlog);
 
 /* ========================================
-   TRACKING
+   BLOG TRACKING
 ======================================== */
 
-router.patch("/:id/view", incrementView);
+router.patch("/:id/view", BlogController.incrementView);
 
 export default router;

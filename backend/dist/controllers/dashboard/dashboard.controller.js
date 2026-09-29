@@ -3,70 +3,52 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDashboardStats = void 0;
-const prisma_1 = __importDefault(require("../prisma/prisma"));
-/* ========================================
-   GET DASHBOARD STATS
-======================================== */
+exports.getSystemHealth = exports.getPendingLoans = exports.getPendingKyc = exports.getPendingApprovals = exports.getTopPartners = exports.getTopDsa = exports.getTopCustomers = exports.getTodayStats = exports.getMonthlyStats = exports.getNotifications = exports.getRecentTransactions = exports.getRecentUsers = exports.getRecentLoans = exports.getRecentActivities = exports.getLeaderboardDashboard = exports.getAnalyticsDashboard = exports.getRevenueDashboard = exports.getWalletDashboard = exports.getCommissionDashboard = exports.getLoanDashboard = exports.getPartnerDashboard = exports.getDsaDashboard = exports.getCustomerDashboard = exports.getSuperAdminDashboard = exports.getAdminDashboard = exports.getDashboardOverview = exports.getDashboardStats = void 0;
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 const getDashboardStats = async (req, res) => {
     try {
-        /* ========================================
-           FETCH ANALYTICS
-        ======================================== */
         const [totalLeads, approvedLoans, pendingLoans, rejectedLoans, totalUsers, totalRecharges, totalTransactions, walletBalance, revenue, recentLoans, recentTransactions, recentUsers,] = await Promise.all([
-            /* TOTAL LEADS */
             prisma_1.default.loanApplication.count(),
-            /* APPROVED LOANS */
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "approved",
+                    status: "APPROVED",
                 },
             }),
-            /* PENDING LOANS */
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "pending",
+                    status: "PENDING",
                 },
             }),
-            /* REJECTED LOANS */
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "rejected",
+                    status: "REJECTED",
                 },
             }),
-            /* TOTAL USERS */
             prisma_1.default.user.count(),
-            /* TOTAL RECHARGES */
             prisma_1.default.recharge.count(),
-            /* TOTAL TRANSACTIONS */
             prisma_1.default.transaction.count(),
-            /* WALLET BALANCE */
             prisma_1.default.wallet.aggregate({
                 _sum: {
                     balance: true,
                 },
             }),
-            /* TOTAL REVENUE */
             prisma_1.default.transaction.aggregate({
                 _sum: {
                     amount: true,
                 },
             }),
-            /* RECENT LOANS */
             prisma_1.default.loanApplication.findMany({
                 take: 5,
                 orderBy: {
                     createdAt: "desc",
                 },
             }),
-            /* RECENT TRANSACTIONS */
             prisma_1.default.transaction.findMany({
                 take: 5,
                 orderBy: {
                     createdAt: "desc",
                 },
             }),
-            /* RECENT USERS */
             prisma_1.default.user.findMany({
                 take: 5,
                 orderBy: {
@@ -80,9 +62,6 @@ const getDashboardStats = async (req, res) => {
                 },
             }),
         ]);
-        /* ========================================
-           MONTHLY REVENUE
-        ======================================== */
         const monthlyTransactions = await prisma_1.default.transaction.findMany({
             where: {
                 createdAt: {
@@ -91,17 +70,12 @@ const getDashboardStats = async (req, res) => {
             },
         });
         const monthlyRevenue = monthlyTransactions.reduce((total, transaction) => total +
-            transaction.amount, 0);
-        /* ========================================
-           PERFORMANCE %
-        ======================================== */
+            Number(transaction.amount || 0), 0);
         const performance = totalLeads > 0
             ? Math.round((approvedLoans /
-                totalLeads) * 100)
+                totalLeads) *
+                100)
             : 0;
-        /* ========================================
-           RESPONSE
-        ======================================== */
         return res.status(200).json({
             success: true,
             dashboard: {
@@ -112,8 +86,9 @@ const getDashboardStats = async (req, res) => {
                 totalUsers,
                 totalRecharges,
                 totalTransactions,
-                totalWalletBalance: walletBalance._sum.balance || 0,
-                totalRevenue: revenue._sum.amount || 0,
+                totalWalletBalance: walletBalance?._sum?.balance ??
+                    0,
+                totalRevenue: revenue?._sum?.amount ?? 0,
                 monthlyRevenue,
                 performance,
             },
@@ -133,3 +108,32 @@ const getDashboardStats = async (req, res) => {
     }
 };
 exports.getDashboardStats = getDashboardStats;
+/* =====================================
+   ROUTE COMPATIBILITY EXPORTS
+===================================== */
+exports.getDashboardOverview = exports.getDashboardStats;
+exports.getAdminDashboard = exports.getDashboardStats;
+exports.getSuperAdminDashboard = exports.getDashboardStats;
+exports.getCustomerDashboard = exports.getDashboardStats;
+exports.getDsaDashboard = exports.getDashboardStats;
+exports.getPartnerDashboard = exports.getDashboardStats;
+exports.getLoanDashboard = exports.getDashboardStats;
+exports.getCommissionDashboard = exports.getDashboardStats;
+exports.getWalletDashboard = exports.getDashboardStats;
+exports.getRevenueDashboard = exports.getDashboardStats;
+exports.getAnalyticsDashboard = exports.getDashboardStats;
+exports.getLeaderboardDashboard = exports.getDashboardStats;
+exports.getRecentActivities = exports.getDashboardStats;
+exports.getRecentLoans = exports.getDashboardStats;
+exports.getRecentUsers = exports.getDashboardStats;
+exports.getRecentTransactions = exports.getDashboardStats;
+exports.getNotifications = exports.getDashboardStats;
+exports.getMonthlyStats = exports.getDashboardStats;
+exports.getTodayStats = exports.getDashboardStats;
+exports.getTopCustomers = exports.getDashboardStats;
+exports.getTopDsa = exports.getDashboardStats;
+exports.getTopPartners = exports.getDashboardStats;
+exports.getPendingApprovals = exports.getDashboardStats;
+exports.getPendingKyc = exports.getDashboardStats;
+exports.getPendingLoans = exports.getDashboardStats;
+exports.getSystemHealth = exports.getDashboardStats;

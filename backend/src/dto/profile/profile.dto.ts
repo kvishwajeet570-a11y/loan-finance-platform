@@ -4,7 +4,7 @@ import { z } from "zod";
    GENDER
 ========================================= */
 
-export const genderEnum = z.enum([
+export const profileGenderEnum = z.enum([
   "MALE",
   "FEMALE",
   "OTHER",
@@ -25,7 +25,7 @@ export const maritalStatusEnum = z.enum([
    EMPLOYMENT TYPE
 ========================================= */
 
-export const employmentTypeEnum = z.enum([
+const employmentTypeEnum = z.enum([
   "SALARIED",
   "SELF_EMPLOYED",
   "BUSINESS_OWNER",
@@ -57,7 +57,7 @@ export const updateProfileSchema =
       z.string().optional(),
 
     gender:
-      genderEnum.optional(),
+      profileGenderEnum.optional(),
 
     maritalStatus:
       maritalStatusEnum.optional(),

@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.refreshTokenAnalytics = exports.getActiveSessions = exports.revokeAllTokens = exports.revokeRefreshToken = exports.refreshAccessToken = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma_1 = __importDefault(require("../../config/prisma"));
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 /**

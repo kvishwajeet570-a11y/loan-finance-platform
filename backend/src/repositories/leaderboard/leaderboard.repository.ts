@@ -1,241 +1,76 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class LeaderboardRepository {
-
   /* ==========================
       CREATE ENTRY
   ========================== */
 
   static async createEntry(data: {
-    userId: string;
-    leaderboardType: string;
-    totalLeads?: number;
-    totalLoans?: number;
-    totalBusiness?: number;
-    totalCommission?: number;
-    score?: number;
-    month?: number;
-    year?: number;
+    userName: string;
+    totalPoints?: number;
+    totalSales?: number;
   }) {
-
     return prisma.leaderboard.create({
-      data
+      data: {
+        userName: data.userName,
+        totalPoints: data.totalPoints ?? 0,
+        totalSales: data.totalSales ?? 0,
+      },
     });
   }
 
   /* ==========================
-      GET ENTRY BY ID
+      GET BY ID
   ========================== */
 
-  static async getById(
-    id: string
-  ) {
-
+  static async getById(id: string) {
     return prisma.leaderboard.findUnique({
       where: { id },
-      include: {
-        user: true
-      }
     });
   }
 
   /* ==========================
-      USER RANKINGS
+      GET TOP USERS
   ========================== */
 
-  static async getUserRankings(
-    userId: string
-  ) {
-
+  static async getTopUsers(limit = 10) {
     return prisma.leaderboard.findMany({
-      where: {
-        userId
-      },
       orderBy: {
-        score: "desc"
-      }
-    });
-  }
-
-  /* ==========================
-      TOP DSA
-  ========================== */
-
-  static async getTopDsa(
-    limit = 10
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      where: {
-        leaderboardType: "DSA"
+        totalPoints: "desc",
       },
-
-      orderBy: {
-        score: "desc"
-      },
-
       take: limit,
-
-      include: {
-        user: true
-      }
     });
   }
 
   /* ==========================
-      TOP PARTNERS
+      UPDATE POINTS
   ========================== */
 
-  static async getTopPartners(
-    limit = 10
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      where: {
-        leaderboardType: "PARTNER"
-      },
-
-      orderBy: {
-        score: "desc"
-      },
-
-      take: limit,
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      TOP REFERRERS
-  ========================== */
-
-  static async getTopReferrers(
-    limit = 10
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      orderBy: {
-        totalLeads: "desc"
-      },
-
-      take: limit,
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      TOP COMMISSION EARNERS
-  ========================== */
-
-  static async getTopCommissionEarners(
-    limit = 10
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      orderBy: {
-        totalCommission: "desc"
-      },
-
-      take: limit,
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      TOP BUSINESS GENERATORS
-  ========================== */
-
-  static async getTopBusinessGenerators(
-    limit = 10
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      orderBy: {
-        totalBusiness: "desc"
-      },
-
-      take: limit,
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      MONTHLY LEADERBOARD
-  ========================== */
-
-  static async getMonthlyLeaderboard(
-    month: number,
-    year: number
-  ) {
-
-    return prisma.leaderboard.findMany({
-
-      where: {
-        month,
-        year
-      },
-
-      orderBy: {
-        score: "desc"
-      },
-
-      include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      UPDATE SCORE
-  ========================== */
-
-  static async updateScore(
+  static async updatePoints(
     id: string,
-    score: number
+    totalPoints: number
   ) {
-
     return prisma.leaderboard.update({
-      where: {
-        id
-      },
+      where: { id },
       data: {
-        score
-      }
+        totalPoints,
+      },
     });
   }
 
   /* ==========================
-      UPDATE RANK
+      UPDATE SALES
   ========================== */
 
-  static async updateRank(
+  static async updateSales(
     id: string,
-    rank: number
+    totalSales: number
   ) {
-
     return prisma.leaderboard.update({
-      where: {
-        id
-      },
+      where: { id },
       data: {
-        rank
-      }
+        totalSales,
+      },
     });
   }
 
@@ -243,129 +78,78 @@ export class LeaderboardRepository {
       DELETE ENTRY
   ========================== */
 
-  static async deleteEntry(
-    id: string
-  ) {
-
+  static async deleteEntry(id: string) {
     return prisma.leaderboard.delete({
-      where: {
-        id
-      }
+      where: { id },
     });
   }
 
   /* ==========================
-      RECALCULATE RANKS
-  ========================== */
-
-  static async recalculateRanks() {
-
-    const records =
-      await prisma.leaderboard.findMany({
-
-        orderBy: {
-          score: "desc"
-        }
-      });
-
-    const updates =
-      records.map((item, index) => {
-
-        return prisma.leaderboard.update({
-          where: {
-            id: item.id
-          },
-          data: {
-            rank: index + 1
-          }
-        });
-      });
-
-    return prisma.$transaction(updates);
-  }
-
-  /* ==========================
-      GET ALL LEADERBOARD
+      GET ALL
   ========================== */
 
   static async getAll(
     page = 1,
     limit = 20
   ) {
-
-    const skip =
-      (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const [records, total] =
       await Promise.all([
-
         prisma.leaderboard.findMany({
           skip,
           take: limit,
-          include: {
-            user: true
-          },
           orderBy: {
-            score: "desc"
-          }
+            totalPoints: "desc",
+          },
         }),
 
-        prisma.leaderboard.count()
+        prisma.leaderboard.count(),
       ]);
 
     return {
       total,
       page,
       limit,
-      records
+      records,
     };
   }
 
   /* ==========================
-      LEADERBOARD ANALYTICS
+      ANALYTICS
   ========================== */
 
   static async getAnalytics() {
-
     const [
       totalEntries,
-      totalBusiness,
-      totalCommission,
-      totalLeads
+      totalPoints,
+      totalSales,
     ] = await Promise.all([
-
       prisma.leaderboard.count(),
 
       prisma.leaderboard.aggregate({
         _sum: {
-          totalBusiness: true
-        }
+          totalPoints: true,
+        },
       }),
 
       prisma.leaderboard.aggregate({
         _sum: {
-          totalCommission: true
-        }
+          totalSales: true,
+        },
       }),
-
-      prisma.leaderboard.aggregate({
-        _sum: {
-          totalLeads: true
-        }
-      })
     ]);
 
     return {
       totalEntries,
 
-      totalBusiness:
-        totalBusiness._sum.totalBusiness || 0,
+      totalPoints:
+        totalPoints._sum.totalPoints ?? 0,
 
-      totalCommission:
-        totalCommission._sum.totalCommission || 0,
-
-      totalLeads:
-        totalLeads._sum.totalLeads || 0
+      totalSales:
+        totalSales._sum.totalSales ?? 0,
     };
   }
 }
+
+export default LeaderboardRepository;

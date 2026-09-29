@@ -1,0 +1,360 @@
+import prisma from "../../prisma/prisma";
+
+export class InvestmentRepository {
+
+  /* ==========================
+      CREATE INVESTMENT
+  ========================== */
+
+  static async createInvestment(data: {
+    userId: string;
+    investmentType: string;
+    investmentName: string;
+    investedAmount: number;
+    currentValue: number;
+    expectedReturn?: number;
+    provider?: string;
+    startDate: Date;
+    maturityDate?: Date;
+    remarks?: string;
+  }) {
+
+    return prisma.investment.create({
+      data
+    });
+  }
+
+  /* ==========================
+      GET BY ID
+  ========================== */
+
+  static async getInvestmentById(
+    investmentId: string
+  ) {
+
+    return prisma.investment.findUnique({
+      where: {
+        id: investmentId
+      },
+      include: {
+        user: true
+      }
+    });
+  }
+
+  /* ==========================
+      USER INVESTMENTS
+  ========================== */
+
+  static async getUserInvestments(
+    userId: string
+  ) {
+
+    return prisma.investment.findMany({
+      where: {
+        userId
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+  }
+
+  /* ==========================
+      INVESTMENT TYPE
+  ========================== */
+
+  static async getByType(
+    investmentType: string
+  ) {
+
+    return prisma.investment.findMany({
+      where: {
+        investmentType
+      }
+    });
+  }
+
+  /* ==========================
+      UPDATE INVESTMENT
+  ========================== */
+
+  static async updateInvestment(
+    investmentId: string,
+    data: Partial<{
+      currentValue: number;
+      expectedReturn: number;
+      remarks: string;
+      status: string;
+    }>
+  ) {
+
+    return prisma.investment.update({
+      where: {
+        id: investmentId
+      },
+      data
+    });
+  }
+
+  /* ==========================
+      CLOSE INVESTMENT
+  ========================== */
+
+  static async closeInvestment(
+    investmentId: string
+  ) {
+
+    return prisma.investment.update({
+      where: {
+        id: investmentId
+      },
+      data: {
+        status: "CLOSED"
+      }
+    });
+  }
+
+  /* ==========================
+      DELETE INVESTMENT
+  ========================== */
+
+  static async deleteInvestment(
+    investmentId: string
+  ) {
+
+    return prisma.investment.delete({
+      where: {
+        id: investmentId
+      }
+    });
+  }
+
+  /* ==========================
+      SEARCH INVESTMENTS
+  ========================== */
+
+  static async searchInvestments(
+    keyword: string
+  ) {
+
+    return prisma.investment.findMany({
+      where: {
+        OR: [
+          {
+            investmentName: {
+              contains: keyword,
+              mode: "insensitive"
+            }
+          },
+          {
+            investmentType: {
+              contains: keyword,
+              mode: "insensitive"
+            }
+          },
+          {
+            provider: {
+              contains: keyword,
+              mode: "insensitive"
+            }
+          }
+        ]
+      }
+    });
+  }
+
+  /* ==========================
+      MATURITY DUE
+  ========================== */
+
+  static async getMaturityDue(
+    days = 30
+  ) {
+
+    const targetDate = new Date();
+
+    targetDate.setDate(
+      targetDate.getDate() + days
+    );
+
+    return prisma.investment.findMany({
+      where: {
+        maturityDate: {
+          lte: targetDate
+        },
+        status: "ACTIVE"
+      }
+    });
+  }
+
+  /* ==========================
+      PORTFOLIO SUMMARY
+  ========================== */
+
+  static async getPortfolioSummary(
+    userId: string
+  ) {
+
+    const [
+      totalInvested,
+      totalCurrent
+    ] = await Promise.all([
+
+      prisma.investment.aggregate({
+        where: { userId },
+
+        _sum: {
+          investedAmount: true
+        }
+      }),
+
+      prisma.investment.aggregate({
+        where: { userId },
+
+        _sum: {
+          currentValue: true
+        }
+      })
+    ]);
+
+    const invested =
+      totalInvested._sum.investedAmount || 0;
+
+    const current =
+      totalCurrent._sum.currentValue || 0;
+
+    return {
+      totalInvested: invested,
+      currentValue: current,
+      profitLoss: current - invested
+    };
+  }
+
+  /* ==========================
+      TOP INVESTORS
+  ========================== */
+
+  static async getTopInvestors() {
+
+    return prisma.investment.groupBy({
+
+      by: ["userId"],
+
+      _sum: {
+        investedAmount: true
+      },
+
+      orderBy: {
+        _sum: {
+          investedAmount: "desc"
+        }
+      },
+
+      take: 10
+    });
+  }
+
+  /* ==========================
+      ADMIN ALL INVESTMENTS
+  ========================== */
+
+  static async getAllInvestments(
+    page = 1,
+    limit = 20
+  ) {
+
+    const skip =
+      (page - 1) * limit;
+
+    const [investments, total] =
+      await Promise.all([
+
+        prisma.investment.findMany({
+          skip,
+          take: limit,
+          include: {
+            user: true
+          },
+          orderBy: {
+            createdAt: "desc"
+          }
+        }),
+
+        prisma.investment.count()
+      ]);
+
+    return {
+      total,
+      page,
+      limit,
+      investments
+    };
+  }
+
+  /* ==========================
+      INVESTMENT ANALYTICS
+  ========================== */
+
+  static async getAnalytics() {
+
+    const [
+      totalInvestments,
+      activeInvestments,
+      totalInvested,
+      totalCurrent
+    ] = await Promise.all([
+
+      prisma.investment.count(),
+
+      prisma.investment.count({
+        where: {
+          status: "ACTIVE"
+        }
+      }),
+
+      prisma.investment.aggregate({
+        _sum: {
+          investedAmount: true
+        }
+      }),
+
+      prisma.investment.aggregate({
+        _sum: {
+          currentValue: true
+        }
+      })
+    ]);
+
+    return {
+      totalInvestments,
+      activeInvestments,
+
+      totalInvested:
+        totalInvested._sum.investedAmount || 0,
+
+      totalCurrentValue:
+        totalCurrent._sum.currentValue || 0
+    };
+  }
+
+  /* ==========================
+      TYPE ANALYTICS
+  ========================== */
+
+  static async typeAnalytics() {
+
+    return prisma.investment.groupBy({
+
+      by: ["investmentType"],
+
+      _count: {
+        investmentType: true
+      },
+
+      _sum: {
+        investedAmount: true
+      }
+    });
+  }
+}

@@ -1,19 +1,23 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class KycRepository {
-
   /* ==========================
       CREATE KYC
   ========================== */
 
   static async createKyc(data: {
     userId: string;
-    aadhaarNumber?: string;
-    panNumber?: string;
+    fullName: string;
+    panNumber: string;
+    dob: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    expiryDate?: Date;
   }) {
-
-    return prisma.kyc.create({
-      data
+    return prisma.kYC.create({
+      data,
     });
   }
 
@@ -21,17 +25,14 @@ export class KycRepository {
       GET KYC BY ID
   ========================== */
 
-  static async getById(
-    kycId: string
-  ) {
-
-    return prisma.kyc.findUnique({
+  static async getById(kycId: string) {
+    return prisma.kYC.findUnique({
       where: {
-        id: kycId
+        id: kycId,
       },
       include: {
-        user: true
-      }
+        user: true,
+      },
     });
   }
 
@@ -39,89 +40,14 @@ export class KycRepository {
       GET USER KYC
   ========================== */
 
-  static async getUserKyc(
-    userId: string
-  ) {
-
-    return prisma.kyc.findUnique({
+  static async getUserKyc(userId: string) {
+    return prisma.kYC.findUnique({
       where: {
-        userId
+        userId,
       },
       include: {
-        user: true
-      }
-    });
-  }
-
-  /* ==========================
-      VERIFY AADHAAR
-  ========================== */
-
-  static async verifyAadhaar(
-    userId: string
-  ) {
-
-    return prisma.kyc.update({
-      where: {
-        userId
+        user: true,
       },
-      data: {
-        aadhaarVerified: true
-      }
-    });
-  }
-
-  /* ==========================
-      VERIFY PAN
-  ========================== */
-
-  static async verifyPan(
-    userId: string
-  ) {
-
-    return prisma.kyc.update({
-      where: {
-        userId
-      },
-      data: {
-        panVerified: true
-      }
-    });
-  }
-
-  /* ==========================
-      VERIFY BANK
-  ========================== */
-
-  static async verifyBank(
-    userId: string
-  ) {
-
-    return prisma.kyc.update({
-      where: {
-        userId
-      },
-      data: {
-        bankVerified: true
-      }
-    });
-  }
-
-  /* ==========================
-      VERIFY SELFIE
-  ========================== */
-
-  static async verifySelfie(
-    userId: string
-  ) {
-
-    return prisma.kyc.update({
-      where: {
-        userId
-      },
-      data: {
-        selfieVerified: true
-      }
     });
   }
 
@@ -133,16 +59,15 @@ export class KycRepository {
     userId: string,
     adminId: string
   ) {
-
-    return prisma.kyc.update({
+    return prisma.kYC.update({
       where: {
-        userId
+        userId,
       },
       data: {
-        kycStatus: "APPROVED",
-        verifiedBy: adminId,
-        verifiedAt: new Date()
-      }
+        status: "APPROVED",
+        approvedBy: adminId,
+        approvedAt: new Date(),
+      },
     });
   }
 
@@ -154,15 +79,14 @@ export class KycRepository {
     userId: string,
     reason: string
   ) {
-
-    return prisma.kyc.update({
+    return prisma.kYC.update({
       where: {
-        userId
+        userId,
       },
       data: {
-        kycStatus: "REJECTED",
-        rejectionReason: reason
-      }
+        status: "REJECTED",
+        rejectionReason: reason,
+      },
     });
   }
 
@@ -171,14 +95,13 @@ export class KycRepository {
   ========================== */
 
   static async getPendingKyc() {
-
-    return prisma.kyc.findMany({
+    return prisma.kYC.findMany({
       where: {
-        kycStatus: "PENDING"
+        status: "PENDING",
       },
       include: {
-        user: true
-      }
+        user: true,
+      },
     });
   }
 
@@ -187,14 +110,13 @@ export class KycRepository {
   ========================== */
 
   static async getApprovedKyc() {
-
-    return prisma.kyc.findMany({
+    return prisma.kYC.findMany({
       where: {
-        kycStatus: "APPROVED"
+        status: "APPROVED",
       },
       include: {
-        user: true
-      }
+        user: true,
+      },
     });
   }
 
@@ -203,14 +125,13 @@ export class KycRepository {
   ========================== */
 
   static async getRejectedKyc() {
-
-    return prisma.kyc.findMany({
+    return prisma.kYC.findMany({
       where: {
-        kycStatus: "REJECTED"
+        status: "REJECTED",
       },
       include: {
-        user: true
-      }
+        user: true,
+      },
     });
   }
 
@@ -221,22 +142,26 @@ export class KycRepository {
   static async searchKyc(
     keyword: string
   ) {
-
-    return prisma.kyc.findMany({
+    return prisma.kYC.findMany({
       where: {
         OR: [
           {
-            aadhaarNumber: {
-              contains: keyword
-            }
+            fullName: {
+              contains: keyword,
+              mode: "insensitive",
+            },
           },
           {
             panNumber: {
-              contains: keyword
-            }
-          }
-        ]
-      }
+              contains: keyword,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+      include: {
+        user: true,
+      },
     });
   }
 
@@ -248,31 +173,29 @@ export class KycRepository {
     page = 1,
     limit = 20
   ) {
-
     const skip = (page - 1) * limit;
 
     const [records, total] =
       await Promise.all([
-
-        prisma.kyc.findMany({
+        prisma.kYC.findMany({
           skip,
           take: limit,
           include: {
-            user: true
+            user: true,
           },
           orderBy: {
-            createdAt: "desc"
-          }
+            createdAt: "desc",
+          },
         }),
 
-        prisma.kyc.count()
+        prisma.kYC.count(),
       ]);
 
     return {
       total,
       page,
       limit,
-      records
+      records,
     };
   }
 
@@ -281,65 +204,50 @@ export class KycRepository {
   ========================== */
 
   static async getAnalytics() {
-
     const [
       totalKyc,
       approved,
       pending,
-      rejected
+      rejected,
     ] = await Promise.all([
+      prisma.kYC.count(),
 
-      prisma.kyc.count(),
-
-      prisma.kyc.count({
+      prisma.kYC.count({
         where: {
-          kycStatus: "APPROVED"
-        }
+          status: "APPROVED",
+        },
       }),
 
-      prisma.kyc.count({
+      prisma.kYC.count({
         where: {
-          kycStatus: "PENDING"
-        }
+          status: "PENDING",
+        },
       }),
 
-      prisma.kyc.count({
+      prisma.kYC.count({
         where: {
-          kycStatus: "REJECTED"
-        }
-      })
+          status: "REJECTED",
+        },
+      }),
     ]);
 
     return {
       totalKyc,
       approved,
       pending,
-      rejected
+      rejected,
     };
   }
 
   /* ==========================
-      KYC COMPLETION %
+      DELETE KYC
   ========================== */
 
-  static async getKycCompletion(
-    userId: string
-  ) {
-
-    const kyc =
-      await prisma.kyc.findUnique({
-        where: { userId }
-      });
-
-    if (!kyc) return 0;
-
-    let completed = 0;
-
-    if (kyc.aadhaarVerified) completed++;
-    if (kyc.panVerified) completed++;
-    if (kyc.bankVerified) completed++;
-    if (kyc.selfieVerified) completed++;
-
-    return (completed / 4) * 100;
+  static async deleteKyc(id: string) {
+    return prisma.kYC.delete({
+      where: {
+        id,
+      },
+    });
   }
 }

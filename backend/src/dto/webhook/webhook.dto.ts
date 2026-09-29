@@ -77,180 +77,181 @@ export const webhookMethodEnum = z.enum([
    REGISTER WEBHOOK
 ========================================= */
 
-export const createWebhookSchema =
-  z.object({
-    name: z.string()
-      .min(2)
-      .max(255),
+export const createWebhookSchema = z.object({
+  name: z
+    .string()
+    .min(2)
+    .max(255),
 
-    provider:
-      webhookProviderEnum,
+  provider: webhookProviderEnum,
 
-    event:
-      webhookEventEnum,
+  event: webhookEventEnum,
 
-    url: z.string().url(),
+  url: z.string().url(),
 
-    method:
-      webhookMethodEnum
-      .default("POST"),
+  method: webhookMethodEnum.default("POST"),
 
-    secretKey:
+  secretKey: z
+    .string()
+    .min(8),
+
+  active: z
+    .boolean()
+    .default(true),
+
+  headers: z
+    .record(
+      z.string(),
       z.string()
-      .min(8),
-
-    active:
-      z.boolean()
-      .default(true),
-
-    headers:
-      z.record(z.string())
-      .optional(),
-  });
+    )
+    .optional(),
+});
 
 /* =========================================
    UPDATE WEBHOOK
 ========================================= */
 
-export const updateWebhookSchema =
-  z.object({
-    webhookId:
-      z.string().cuid(),
+export const updateWebhookSchema = z.object({
+  webhookId: z
+    .string()
+    .cuid(),
 
-    name:
+  name: z
+    .string()
+    .max(255)
+    .optional(),
+
+  url: z
+    .string()
+    .url()
+    .optional(),
+
+  active: z
+    .boolean()
+    .optional(),
+
+  headers: z
+    .record(
+      z.string(),
       z.string()
-      .max(255)
-      .optional(),
-
-    url:
-      z.string()
-      .url()
-      .optional(),
-
-    active:
-      z.boolean()
-      .optional(),
-
-    headers:
-      z.record(z.string())
-      .optional(),
-  });
+    )
+    .optional(),
+});
 
 /* =========================================
    TEST WEBHOOK
 ========================================= */
 
-export const testWebhookSchema =
-  z.object({
-    webhookId:
-      z.string().cuid(),
+export const testWebhookSchema = z.object({
+  webhookId: z
+    .string()
+    .cuid(),
 
-    payload:
-      z.record(z.any())
-      .optional(),
-  });
+  payload: z
+    .record(
+      z.string(),
+      z.any()
+    )
+    .optional(),
+});
 
 /* =========================================
    RETRY WEBHOOK
 ========================================= */
 
-export const retryWebhookSchema =
-  z.object({
-    webhookLogId:
-      z.string().cuid(),
-  });
+export const retryWebhookSchema = z.object({
+  webhookLogId: z
+    .string()
+    .cuid(),
+});
 
 /* =========================================
    WEBHOOK DELIVERY
 ========================================= */
 
-export const webhookDeliverySchema =
-  z.object({
-    webhookId:
-      z.string().cuid(),
+export const webhookDeliverySchema = z.object({
+  webhookId: z
+    .string()
+    .cuid(),
 
-    event:
-      webhookEventEnum,
+  event: webhookEventEnum,
 
-    payload:
-      z.record(z.any()),
-  });
+  payload: z.record(
+    z.string(),
+    z.any()
+  ),
+});
 
 /* =========================================
    WEBHOOK FILTER
 ========================================= */
 
-export const webhookFilterSchema =
-  z.object({
-    provider:
-      webhookProviderEnum
-      .optional(),
+export const webhookFilterSchema = z.object({
+  provider: webhookProviderEnum
+    .optional(),
 
-    event:
-      webhookEventEnum
-      .optional(),
+  event: webhookEventEnum
+    .optional(),
 
-    status:
-      webhookStatusEnum
-      .optional(),
+  status: webhookStatusEnum
+    .optional(),
 
-    active:
-      z.boolean()
-      .optional(),
+  active: z
+    .boolean()
+    .optional(),
 
-    startDate:
-      z.string()
-      .optional(),
+  startDate: z
+    .string()
+    .optional(),
 
-    endDate:
-      z.string()
-      .optional(),
+  endDate: z
+    .string()
+    .optional(),
 
-    page:
-      z.coerce.number()
-      .default(1),
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20),
+});
 
 /* =========================================
    WEBHOOK ANALYTICS
 ========================================= */
 
-export const webhookAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string(),
+export const webhookAnalyticsSchema = z.object({
+  startDate: z.string(),
 
-    endDate:
-      z.string(),
+  endDate: z.string(),
 
-    provider:
-      webhookProviderEnum
-      .optional(),
-  });
+  provider: webhookProviderEnum
+    .optional(),
+});
 
 /* =========================================
    WEBHOOK SECURITY
 ========================================= */
 
-export const webhookSecuritySchema =
-  z.object({
-    webhookId:
-      z.string().cuid(),
+export const webhookSecuritySchema = z.object({
+  webhookId: z
+    .string()
+    .cuid(),
 
-    secretKey:
-      z.string()
-      .min(8),
+  secretKey: z
+    .string()
+    .min(8),
 
-    verifySignature:
-      z.boolean()
-      .default(true),
-  });
+  verifySignature: z
+    .boolean()
+    .default(true),
+});
 
 /* =========================================
    TYPES
@@ -269,21 +270,13 @@ export type RetryWebhookDto =
   z.infer<typeof retryWebhookSchema>;
 
 export type WebhookDeliveryDto =
-  z.infer<
-    typeof webhookDeliverySchema
-  >;
+  z.infer<typeof webhookDeliverySchema>;
 
 export type WebhookFilterDto =
-  z.infer<
-    typeof webhookFilterSchema
-  >;
+  z.infer<typeof webhookFilterSchema>;
 
 export type WebhookAnalyticsDto =
-  z.infer<
-    typeof webhookAnalyticsSchema
-  >;
+  z.infer<typeof webhookAnalyticsSchema>;
 
 export type WebhookSecurityDto =
-  z.infer<
-    typeof webhookSecuritySchema
-  >;
+  z.infer<typeof webhookSecuritySchema>;

@@ -1,173 +1,187 @@
-import { prisma } from "../../prisma";
+import prisma from "../prisma/prisma";
 
 export class RestoreService {
-
   /* =========================
-      USER RESTORE
+     USER RESTORE
   ========================= */
 
   static async restoreUser(
     userId: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
         deletedAt: null,
-        isDeleted: false
-      }
-    });
-  }
-
-  /* =========================
-      LOAN RESTORE
-  ========================= */
-
-  static async restoreLoan(
-    loanId: string
-  ) {
-
-    return prisma.loanApplication.update({
-
-      where: {
-        id: loanId
+        isDeleted: false,
       },
-
-      data: {
-        deletedAt: null,
-        isDeleted: false
-      }
     });
   }
 
   /* =========================
-      DOCUMENT RESTORE
-  ========================= */
-
-  static async restoreDocument(
-    documentId: string
-  ) {
-
-    return prisma.document.update({
-
-      where: {
-        id: documentId
-      },
-
-      data: {
-        deletedAt: null,
-        isDeleted: false
-      }
-    });
-  }
-
-  /* =========================
-      PARTNER RESTORE
-  ========================= */
-
-  static async restorePartner(
-    partnerId: string
-  ) {
-
-    return prisma.partnerProfile.update({
-
-      where: {
-        id: partnerId
-      },
-
-      data: {
-        deletedAt: null,
-        isDeleted: false
-      }
-    });
-  }
-
-  /* =========================
-      DSA RESTORE
-  ========================= */
-
-  static async restoreDsa(
-    dsaId: string
-  ) {
-
-    return prisma.dsaProfile.update({
-
-      where: {
-        id: dsaId
-      },
-
-      data: {
-        deletedAt: null,
-        isDeleted: false
-      }
-    });
-  }
-
-  /* =========================
-      BANK RESTORE
-  ========================= */
-
-  static async restoreBank(
-    bankId: string
-  ) {
-
-    return prisma.bankAccount.update({
-
-      where: {
-        id: bankId
-      },
-
-      data: {
-        deletedAt: null,
-        isDeleted: false
-      }
-    });
-  }
-
-  /* =========================
-      FILE RESTORE
+     UPLOAD / FILE RESTORE
   ========================= */
 
   static async restoreUpload(
     uploadId: string
   ) {
-
     return prisma.upload.update({
-
       where: {
-        id: uploadId
+        id: uploadId,
       },
 
       data: {
         deletedAt: null,
-        isDeleted: false
-      }
+        isDeleted: false,
+      },
     });
   }
 
   /* =========================
-      GENERIC RESTORE
+     CHECK USER RESTORABLE
+  ========================= */
+
+  static async isUserRestorable(
+    userId: string
+  ) {
+    const user =
+      await prisma.user.findUnique({
+        where: {
+          id: userId,
+        },
+
+        select: {
+          id: true,
+          isDeleted: true,
+          deletedAt: true,
+        },
+      });
+
+    if (!user) {
+      return false;
+    }
+
+    return (
+      user.isDeleted === true ||
+      user.deletedAt !== null
+    );
+  }
+
+  /* =========================
+     CHECK UPLOAD RESTORABLE
+  ========================= */
+
+  static async isUploadRestorable(
+    uploadId: string
+  ) {
+    const upload =
+      await prisma.upload.findUnique({
+        where: {
+          id: uploadId,
+        },
+
+        select: {
+          id: true,
+          isDeleted: true,
+          deletedAt: true,
+        },
+      });
+
+    if (!upload) {
+      return false;
+    }
+
+    return (
+      upload.isDeleted === true ||
+      upload.deletedAt !== null
+    );
+  }
+
+  /* =========================
+     GET DELETED USERS
+  ========================= */
+
+  static async getDeletedUsers() {
+    return prisma.user.findMany({
+      where: {
+        OR: [
+          {
+            isDeleted: true,
+          },
+          {
+            deletedAt: {
+              not: null,
+            },
+          },
+        ],
+      },
+
+      orderBy: {
+        deletedAt: "desc",
+      },
+    });
+  }
+
+  /* =========================
+     GET DELETED UPLOADS
+  ========================= */
+
+  static async getDeletedUploads() {
+    return prisma.upload.findMany({
+      where: {
+        OR: [
+          {
+            isDeleted: true,
+          },
+          {
+            deletedAt: {
+              not: null,
+            },
+          },
+        ],
+      },
+
+      orderBy: {
+        deletedAt: "desc",
+      },
+    });
+  }
+
+  /* =========================
+     GENERIC RESTORE
+
+     Use only with Prisma models
+     containing:
+     - id
+     - isDeleted
+     - deletedAt
   ========================= */
 
   static async restoreEntity(
-    model: any,
+    model: {
+      update: (args: {
+        where: {
+          id: string;
+        };
+        data: {
+          deletedAt: null;
+          isDeleted: boolean;
+        };
+      }) => Promise<unknown>;
+    },
     id: string
   ) {
-
     return model.update({
-
       where: {
-        id
+        id,
       },
 
       data: {
         deletedAt: null,
-        isDeleted: false
-      }
+        isDeleted: false,
+      },
     });
   }
 }

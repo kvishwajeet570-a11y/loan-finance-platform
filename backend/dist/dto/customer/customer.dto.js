@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.eligibilityCheckSchema = exports.blockCustomerSchema = exports.customerFilterSchema = exports.updateCustomerProfileSchema = exports.updateCustomerSchema = exports.createCustomerSchema = exports.employmentTypeEnum = exports.customerStatusEnum = void 0;
+exports.eligibilityCheckSchema = exports.blockCustomerSchema = exports.customerFilterSchema = exports.updateCustomerProfileSchema = exports.updateCustomerSchema = exports.createCustomerSchema = exports.customerStatusEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    CUSTOMER STATUS
@@ -13,7 +13,7 @@ exports.customerStatusEnum = zod_1.z.enum([
 /* =========================================
    EMPLOYMENT TYPE
 ========================================= */
-exports.employmentTypeEnum = zod_1.z.enum([
+const employmentTypeEnum = zod_1.z.enum([
     "SALARIED",
     "SELF_EMPLOYED",
     "BUSINESS_OWNER",
@@ -38,7 +38,7 @@ exports.createCustomerSchema = zod_1.z.object({
         .optional(),
     city: zod_1.z.string().optional(),
     state: zod_1.z.string().optional(),
-    employmentType: exports.employmentTypeEnum.optional(),
+    employmentType: employmentTypeEnum.optional(),
     monthlyIncome: zod_1.z
         .number()
         .positive()
@@ -57,7 +57,7 @@ exports.updateCustomerProfileSchema = zod_1.z.object({
     city: zod_1.z.string().optional(),
     state: zod_1.z.string().optional(),
     dob: zod_1.z.string().optional(),
-    employmentType: exports.employmentTypeEnum.optional(),
+    employmentType: employmentTypeEnum.optional(),
     monthlyIncome: zod_1.z.number().positive().optional(),
 });
 /* =========================================
@@ -68,7 +68,7 @@ exports.customerFilterSchema = zod_1.z.object({
     isVerified: zod_1.z.boolean().optional(),
     isBlocked: zod_1.z.boolean().optional(),
     status: exports.customerStatusEnum.optional(),
-    employmentType: exports.employmentTypeEnum.optional(),
+    employmentType: employmentTypeEnum.optional(),
     page: zod_1.z.coerce.number().default(1),
     limit: zod_1.z.coerce.number()
         .min(1)

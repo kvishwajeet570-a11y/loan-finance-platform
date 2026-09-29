@@ -102,7 +102,7 @@ exports.assignRoleToAdminSchema = zod_1.z.object({
    GLOBAL SETTINGS UPDATE
 ========================================= */
 exports.updateGlobalSettingsSchema = zod_1.z.object({
-    settings: zod_1.z.record(zod_1.z.any()),
+    settings: zod_1.z.record(zod_1.z.string(), zod_1.z.any()),
 });
 /* =========================================
    SYSTEM ANNOUNCEMENT

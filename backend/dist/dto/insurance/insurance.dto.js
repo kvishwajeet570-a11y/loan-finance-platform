@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.insuranceAnalyticsSchema = exports.insuranceFilterSchema = exports.renewPolicySchema = exports.claimInsuranceSchema = exports.updatePolicyStatusSchema = exports.updateInsuranceSchema = exports.createInsuranceSchema = exports.paymentStatusEnum = exports.policyStatusEnum = exports.insuranceTypeEnum = void 0;
+exports.insuranceAnalyticsSchema = exports.insuranceFilterSchema = exports.renewPolicySchema = exports.claimInsuranceSchema = exports.updatePolicyStatusSchema = exports.updateInsuranceSchema = exports.createInsuranceSchema = exports.insurancePaymentStatusEnum = exports.policyStatusEnum = exports.insuranceTypeEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    INSURANCE TYPE
@@ -29,7 +29,7 @@ exports.policyStatusEnum = zod_1.z.enum([
 /* =========================================
    POLICY PAYMENT STATUS
 ========================================= */
-exports.paymentStatusEnum = zod_1.z.enum([
+exports.insurancePaymentStatusEnum = zod_1.z.enum([
     "PENDING",
     "PAID",
     "FAILED",
@@ -46,7 +46,7 @@ exports.createInsuranceSchema = zod_1.z.object({
         .max(100),
     mobileNumber: zod_1.z.string()
         .regex(/^[6-9]\d{9}$/),
-    email: zod_1.z.email(),
+    email: zod_1.z.string().email(),
     sumInsured: zod_1.z.number().positive(),
     premiumAmount: zod_1.z.number().positive(),
     tenureMonths: zod_1.z.number().positive(),
@@ -91,10 +91,9 @@ exports.insuranceFilterSchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
     insuranceType: exports.insuranceTypeEnum.optional(),
     status: exports.policyStatusEnum.optional(),
-    paymentStatus: exports.paymentStatusEnum.optional(),
+    paymentStatus: exports.insurancePaymentStatusEnum.optional(),
     userId: zod_1.z.string().cuid().optional(),
-    page: zod_1.z.coerce.number()
-        .default(1),
+    page: zod_1.z.coerce.number().default(1),
     limit: zod_1.z.coerce.number()
         .min(1)
         .max(100)

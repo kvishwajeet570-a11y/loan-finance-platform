@@ -32,7 +32,7 @@ export const policyStatusEnum = z.enum([
    POLICY PAYMENT STATUS
 ========================================= */
 
-export const paymentStatusEnum = z.enum([
+export const insurancePaymentStatusEnum = z.enum([
   "PENDING",
   "PAID",
   "FAILED",
@@ -43,41 +43,32 @@ export const paymentStatusEnum = z.enum([
    CREATE INSURANCE POLICY
 ========================================= */
 
-export const createInsuranceSchema =
-  z.object({
-    userId: z.string().cuid(),
+export const createInsuranceSchema = z.object({
+  userId: z.string().cuid(),
 
-    insuranceType:
-      insuranceTypeEnum,
+  insuranceType: insuranceTypeEnum,
 
-    policyHolderName:
-      z.string()
-      .min(3)
-      .max(100),
+  policyHolderName: z.string()
+    .min(3)
+    .max(100),
 
-    mobileNumber: z.string()
-      .regex(/^[6-9]\d{9}$/),
+  mobileNumber: z.string()
+    .regex(/^[6-9]\d{9}$/),
 
-    email: z.email(),
+  email: z.string().email(),
 
-    sumInsured:
-      z.number().positive(),
+  sumInsured: z.number().positive(),
 
-    premiumAmount:
-      z.number().positive(),
+  premiumAmount: z.number().positive(),
 
-    tenureMonths:
-      z.number().positive(),
+  tenureMonths: z.number().positive(),
 
-    nomineeName:
-      z.string().optional(),
+  nomineeName: z.string().optional(),
 
-    nomineeRelation:
-      z.string().optional(),
+  nomineeRelation: z.string().optional(),
 
-    insurerName:
-      z.string().min(2),
-  });
+  insurerName: z.string().min(2),
+});
 
 /* =========================================
    UPDATE INSURANCE
@@ -94,11 +85,9 @@ export const updatePolicyStatusSchema =
   z.object({
     policyId: z.string().cuid(),
 
-    status:
-      policyStatusEnum,
+    status: policyStatusEnum,
 
-    remarks:
-      z.string().optional(),
+    remarks: z.string().optional(),
   });
 
 /* =========================================
@@ -109,11 +98,9 @@ export const claimInsuranceSchema =
   z.object({
     policyId: z.string().cuid(),
 
-    claimAmount:
-      z.number().positive(),
+    claimAmount: z.number().positive(),
 
-    claimReason:
-      z.string()
+    claimReason: z.string()
       .min(10)
       .max(1000),
   });
@@ -126,11 +113,9 @@ export const renewPolicySchema =
   z.object({
     policyId: z.string().cuid(),
 
-    tenureMonths:
-      z.number().positive(),
+    tenureMonths: z.number().positive(),
 
-    premiumAmount:
-      z.number().positive(),
+    premiumAmount: z.number().positive(),
   });
 
 /* =========================================
@@ -148,20 +133,19 @@ export const insuranceFilterSchema =
       policyStatusEnum.optional(),
 
     paymentStatus:
-      paymentStatusEnum.optional(),
+      insurancePaymentStatusEnum.optional(),
 
     userId:
       z.string().cuid().optional(),
 
     page:
-      z.coerce.number()
-      .default(1),
+      z.coerce.number().default(1),
 
     limit:
       z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(10),
+        .min(1)
+        .max(100)
+        .default(10),
   });
 
 /* =========================================

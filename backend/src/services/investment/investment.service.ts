@@ -1,49 +1,33 @@
+﻿import { InvestmentStatus } from "@prisma/client";
 import prisma from "../../prisma/prisma";
-import { Prisma } from "@prisma/client";
+export class InvestmentService {
+  /* ========================================
+     CRUD
+  ======================================== */
 
-interface CreateInvestmentDto {
-  name: string;
-  category: string;
-
-  minimumAmount: number;
-
-  expectedReturn: number;
-
-  tenureMonths: number;
-
-  riskLevel: string;
-
-  description?: string;
-
-  isActive?: boolean;
-}
-
-interface InvestmentFilters {
-  page?: number;
-  limit?: number;
-  search?: string;
-  category?: string;
-  riskLevel?: string;
-}
-
-class InvestmentService {
-  /**
-   * Create Investment Product
-   */
-  async createInvestment(
-    data: CreateInvestmentDto
-  ) {
+  static async createInvestment(data: any) {
     return prisma.investment.create({
       data,
     });
   }
 
-  /**
-   * Update Investment
-   */
-  async updateInvestment(
+  static async getAllInvestments() {
+    return prisma.investment.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  static async getInvestmentById(id: string) {
+    return prisma.investment.findUnique({
+      where: { id },
+    });
+  }
+
+  static async updateInvestment(
     id: string,
-    data: Partial<CreateInvestmentDto>
+    data: any
   ) {
     return prisma.investment.update({
       where: { id },
@@ -51,187 +35,223 @@ class InvestmentService {
     });
   }
 
-  /**
-   * Delete Investment
-   */
-  async deleteInvestment(id: string) {
+  static async deleteInvestment(id: string) {
     return prisma.investment.delete({
       where: { id },
     });
   }
 
-  /**
-   * Investment Details
-   */
-  async getInvestmentById(id: string) {
+  /* ========================================
+     SEARCH
+  ======================================== */
+
+  static async searchInvestments(
+    search: string
+  ) {
+    return prisma.investment.findMany({
+      where: {
+        OR: [
+          {
+            title: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+    });
+  }
+
+  /* ========================================
+     STATUS
+  ======================================== */
+
+static async getPendingInvestments() {
+  return prisma.investment.findMany({
+    where: {
+      status: InvestmentStatus.PENDING,
+    },
+  });
+}
+
+static async getActiveInvestments() {
+  return prisma.investment.findMany({
+    where: {
+      status: InvestmentStatus.ACTIVE,
+    },
+  });
+}
+
+static async getClosedInvestments() {
+  return prisma.investment.findMany({
+    where: {
+      status: InvestmentStatus.CLOSED,
+    },
+  });
+}
+
+static async getRejectedInvestments() {
+  return prisma.investment.findMany({
+    where: {
+      status: InvestmentStatus.REJECTED,
+    },
+  });
+}
+
+  /* ========================================
+     APPROVAL
+  ======================================== */
+
+  static async approveInvestment(
+    id: string
+  ) {
+    return prisma.investment.update({
+      where: { id },
+      data: {
+        status: InvestmentStatus.ACTIVE,
+      },
+    });
+  }
+
+  static async rejectInvestment(
+    id: string
+  ) {
+    return prisma.investment.update({
+      where: { id },
+      data: {
+        status: InvestmentStatus.REJECTED,
+      },
+    });
+  }
+
+  static async activateInvestment(
+    id: string
+  ) {
+    return prisma.investment.update({
+      where: { id },
+      data: {
+        status: InvestmentStatus.ACTIVE,
+      },
+    });
+  }
+
+  static async closeInvestment(
+    id: string
+  ) {
+    return prisma.investment.update({
+      where: { id },
+      data: {
+        status: InvestmentStatus.CLOSED,
+      },
+    });
+  }
+
+  /* ========================================
+     USER
+  ======================================== */
+
+  static async getUserInvestments(
+  userId: string
+) {
+  return prisma.userInvestment.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      investment: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+  /* ========================================
+     ANALYTICS
+  ======================================== */
+
+  static async getInvestmentAnalytics() {
+    const total =
+      await prisma.investment.count();
+
+    const active =
+      await prisma.investment.count({
+        where: {
+          status: InvestmentStatus.ACTIVE,
+        },
+      });
+
+    return {
+      total,
+      active,
+    };
+  }
+
+  static async getInvestmentDashboard() {
+    const total =
+      await prisma.investment.count();
+
+    const active =
+      await prisma.investment.count({
+        where: {
+          status: InvestmentStatus.ACTIVE,
+        },
+      });
+
+    const pending =
+      await prisma.investment.count({
+        where: {
+          status: InvestmentStatus.PENDING,
+        },
+      });
+
+    return {
+      total,
+      active,
+      pending,
+    };
+  }
+
+  /* ========================================
+     TOP DATA
+  ======================================== */
+
+  static async getTopInvestors() {
+    return [];
+  }
+
+  static async getTopPlans() {
+    return prisma.investment.findMany({
+      take: 5,
+      orderBy: {
+        interestRate: "desc",
+      },
+    });
+  }
+
+  static async getMonthlyInvestments() {
+    return [];
+  }
+
+  /* ========================================
+     RETURNS
+  ======================================== */
+
+  static async getInvestmentReturns(
+    id: string
+  ) {
     return prisma.investment.findUnique({
       where: { id },
     });
   }
 
-  /**
-   * Investment Listing
-   */
-  async getInvestments(
-    filters: InvestmentFilters
-  ) {
-    const {
-      page = 1,
-      limit = 20,
-      search,
-      category,
-      riskLevel,
-    } = filters;
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.InvestmentWhereInput =
-      {};
-
-    if (search) {
-      where.OR = [
-        {
-          name: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-        {
-          description: {
-            contains: search,
-            mode: "insensitive",
-          },
-        },
-      ];
-    }
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (riskLevel) {
-      where.riskLevel = riskLevel;
-    }
-
-    const [investments, total] =
-      await Promise.all([
-        prisma.investment.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc",
-          },
-        }),
-        prisma.investment.count({
-          where,
-        }),
-      ]);
-
-    return {
-      investments,
-      total,
-      page,
-      pages: Math.ceil(total / limit),
-    };
-  }
-
-  /**
-   * Invest
-   */
-  async createInvestmentRequest(
-    userId: string,
-    investmentId: string,
-    amount: number
-  ) {
-    const investment =
-      await prisma.investment.findUnique({
-        where: {
-          id: investmentId,
-        },
-      });
-
-    if (!investment) {
-      throw new Error(
-        "Investment product not found"
-      );
-    }
-
-    if (
-      amount < investment.minimumAmount
-    ) {
-      throw new Error(
-        `Minimum investment amount is ₹${investment.minimumAmount}`
-      );
-    }
-
-    return prisma.userInvestment.create({
-      data: {
-        userId,
-        investmentId,
-        amount,
-        status: "PENDING",
-      },
-    });
-  }
-
-  /**
-   * Approve Investment
-   */
-  async approveInvestment(
-    investmentRequestId: string
-  ) {
-    return prisma.userInvestment.update({
-      where: {
-        id: investmentRequestId,
-      },
-      data: {
-        status: "ACTIVE",
-        approvedAt: new Date(),
-      },
-    });
-  }
-
-  /**
-   * Close Investment
-   */
-  async closeInvestment(
-    investmentRequestId: string
-  ) {
-    return prisma.userInvestment.update({
-      where: {
-        id: investmentRequestId,
-      },
-      data: {
-        status: "CLOSED",
-        closedAt: new Date(),
-      },
-    });
-  }
-
-  /**
-   * User Investments
-   */
-  async getUserInvestments(
-    userId: string
-  ) {
-    return prisma.userInvestment.findMany({
-      where: {
-        userId,
-      },
-      include: {
-        investment: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
-  }
-
-  /**
-   * ROI Calculator
-   */
-  calculateReturns(
+  static async calculateReturns(
     principal: number,
     annualRate: number,
     years: number
@@ -244,56 +264,62 @@ class InvestmentService {
       );
 
     return {
-      investedAmount: principal,
-      maturityAmount:
-        Number(
-          maturityAmount.toFixed(2)
-        ),
-      estimatedProfit:
-        Number(
-          (
-            maturityAmount -
-            principal
-          ).toFixed(2)
-        ),
+      principal,
+      maturityAmount,
+      profit:
+        maturityAmount - principal,
     };
   }
 
-  /**
-   * Dashboard Analytics
-   */
-  async getInvestmentStats() {
-    const [
-      totalProducts,
-      totalInvestments,
-      activeInvestments,
-      totalAmount,
-    ] = await Promise.all([
-      prisma.investment.count(),
+  /* ========================================
+     EXPORT
+  ======================================== */
 
-      prisma.userInvestment.count(),
+  static async exportInvestmentsExcel() {
+    return [];
+  }
 
-      prisma.userInvestment.count({
-        where: {
-          status: "ACTIVE",
+  static async exportInvestmentsPdf() {
+    return [];
+  }
+
+  /* ========================================
+     BULK
+  ======================================== */
+
+  static async bulkApproveInvestments(
+    ids: string[]
+  ) {
+    return prisma.investment.updateMany({
+      where: {
+        id: {
+          in: ids,
         },
-      }),
+      },
+      data: {
+        status: InvestmentStatus.ACTIVE,
+      },
+    });
+  }
 
-      prisma.userInvestment.aggregate({
-        _sum: {
-          amount: true,
+  static async bulkRejectInvestments(
+    ids: string[]
+  ) {
+    return prisma.investment.updateMany({
+      where: {
+        id: {
+          in: ids,
         },
-      }),
-    ]);
-
-    return {
-      totalProducts,
-      totalInvestments,
-      activeInvestments,
-      totalInvestmentAmount:
-        totalAmount._sum.amount || 0,
-    };
+      },
+      data: {
+        status: InvestmentStatus.REJECTED,
+      },
+    });
   }
 }
 
-export default new InvestmentService();
+export default InvestmentService;
+
+
+
+

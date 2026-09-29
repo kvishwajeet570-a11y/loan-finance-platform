@@ -1,7 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanupAuditLogsSchema = exports.exportAuditReportSchema = exports.userAuditFilterSchema = exports.auditFilterSchema = exports.createAuditLogSchema = exports.auditModuleEnum = exports.auditActionEnum = void 0;
+exports.cleanupAuditLogsSchema = exports.exportAuditReportSchema = exports.actionAuditFilterSchema = exports.moduleAuditFilterSchema = exports.userAuditFilterSchema = exports.auditFilterSchema = exports.updateAuditLogSchema = exports.createAuditLogSchema = exports.auditModuleEnum = exports.auditActionEnum = exports.auditSeverityEnum = void 0;
 const zod_1 = require("zod");
+/* =========================================
+   AUDIT SEVERITY
+========================================= */
+exports.auditSeverityEnum = zod_1.z.enum([
+    "INFO",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+]);
 /* =========================================
    AUDIT ACTION TYPES
 ========================================= */
@@ -45,16 +54,23 @@ exports.auditModuleEnum = zod_1.z.enum([
    CREATE AUDIT LOG
 ========================================= */
 exports.createAuditLogSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
+    userId: zod_1.z.string().cuid().optional(),
     action: exports.auditActionEnum,
     module: exports.auditModuleEnum,
-    recordId: zod_1.z.string().optional(),
-    oldData: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
-    newData: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
+    entityId: zod_1.z.string().optional(),
+    severity: exports.auditSeverityEnum.default("INFO"),
+    role: zod_1.z.string().optional(),
+    requestId: zod_1.z.string().optional(),
     ipAddress: zod_1.z.string().optional(),
     userAgent: zod_1.z.string().optional(),
-    remarks: zod_1.z.string().max(500).optional(),
+    metadata: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
+    oldData: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
+    newData: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
 });
+/* =========================================
+   UPDATE AUDIT LOG
+========================================= */
+exports.updateAuditLogSchema = exports.createAuditLogSchema.partial();
 /* =========================================
    AUDIT FILTER
 ========================================= */
@@ -63,16 +79,38 @@ exports.auditFilterSchema = zod_1.z.object({
     userId: zod_1.z.string().cuid().optional(),
     module: exports.auditModuleEnum.optional(),
     action: exports.auditActionEnum.optional(),
+    severity: exports.auditSeverityEnum.optional(),
+    role: zod_1.z.string().optional(),
     startDate: zod_1.z.string().optional(),
     endDate: zod_1.z.string().optional(),
     page: zod_1.z.coerce.number().min(1).default(1),
-    limit: zod_1.z.coerce.number().min(1).max(100).default(20),
+    limit: zod_1.z.coerce
+        .number()
+        .min(1)
+        .max(100)
+        .default(20),
 });
 /* =========================================
    USER AUDIT FILTER
 ========================================= */
 exports.userAuditFilterSchema = zod_1.z.object({
     userId: zod_1.z.string().cuid(),
+    page: zod_1.z.coerce.number().default(1),
+    limit: zod_1.z.coerce.number().default(20),
+});
+/* =========================================
+   MODULE FILTER
+========================================= */
+exports.moduleAuditFilterSchema = zod_1.z.object({
+    module: exports.auditModuleEnum,
+    page: zod_1.z.coerce.number().default(1),
+    limit: zod_1.z.coerce.number().default(20),
+});
+/* =========================================
+   ACTION FILTER
+========================================= */
+exports.actionAuditFilterSchema = zod_1.z.object({
+    action: exports.auditActionEnum,
     page: zod_1.z.coerce.number().default(1),
     limit: zod_1.z.coerce.number().default(20),
 });
@@ -88,6 +126,7 @@ exports.exportAuditReportSchema = zod_1.z.object({
     startDate: zod_1.z.string(),
     endDate: zod_1.z.string(),
     module: exports.auditModuleEnum.optional(),
+    severity: exports.auditSeverityEnum.optional(),
 });
 /* =========================================
    CLEANUP AUDIT LOGS
@@ -95,6 +134,6 @@ exports.exportAuditReportSchema = zod_1.z.object({
 exports.cleanupAuditLogsSchema = zod_1.z.object({
     olderThanDays: zod_1.z.coerce
         .number()
-        .min(30)
+        .min(1)
         .max(3650),
 });

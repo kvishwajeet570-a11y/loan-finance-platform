@@ -1,50 +1,40 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuditRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class AuditRepository {
-    /* ============================
-       CREATE AUDIT LOG
-    ============================ */
     static async createAuditLog(data) {
-        return prisma_1.prisma.auditLog.create({
+        return prisma_1.default.auditLog.create({
             data: {
-                userId: data.userId,
+                performedBy: data.userId,
                 action: data.action,
                 module: data.module,
-                description: data.description,
                 ipAddress: data.ipAddress,
                 userAgent: data.userAgent,
-                metadata: data.metadata
-                    ? JSON.stringify(data.metadata)
-                    : null,
+                metadata: data.metadata,
+                severity: data.severity ?? "INFO",
+                role: data.role,
+                entityId: data.entityId,
+                requestId: data.requestId,
+                oldData: data.oldData,
+                newData: data.newData,
             },
         });
     }
-    /* ============================
-       GET ALL AUDIT LOGS
-    ============================ */
     static async getAuditLogs(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [logs, total] = await Promise.all([
-            prisma_1.prisma.auditLog.findMany({
+            prisma_1.default.auditLog.findMany({
                 skip,
                 take: limit,
                 orderBy: {
                     createdAt: "desc",
                 },
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            name: true,
-                            email: true,
-                            role: true,
-                        },
-                    },
-                },
             }),
-            prisma_1.prisma.auditLog.count(),
+            prisma_1.default.auditLog.count(),
         ]);
         return {
             logs,
@@ -54,24 +44,18 @@ class AuditRepository {
             totalPages: Math.ceil(total / limit),
         };
     }
-    /* ============================
-       GET USER AUDIT LOGS
-    ============================ */
     static async getUserAuditLogs(userId) {
-        return prisma_1.prisma.auditLog.findMany({
+        return prisma_1.default.auditLog.findMany({
             where: {
-                userId,
+                performedBy: userId,
             },
             orderBy: {
                 createdAt: "desc",
             },
         });
     }
-    /* ============================
-       GET MODULE LOGS
-    ============================ */
     static async getModuleLogs(module) {
-        return prisma_1.prisma.auditLog.findMany({
+        return prisma_1.default.auditLog.findMany({
             where: {
                 module,
             },
@@ -80,11 +64,8 @@ class AuditRepository {
             },
         });
     }
-    /* ============================
-       GET ACTION LOGS
-    ============================ */
     static async getActionLogs(action) {
-        return prisma_1.prisma.auditLog.findMany({
+        return prisma_1.default.auditLog.findMany({
             where: {
                 action,
             },
@@ -93,11 +74,8 @@ class AuditRepository {
             },
         });
     }
-    /* ============================
-       SEARCH AUDIT LOGS
-    ============================ */
     static async searchAuditLogs(keyword) {
-        return prisma_1.prisma.auditLog.findMany({
+        return prisma_1.default.auditLog.findMany({
             where: {
                 OR: [
                     {
@@ -113,7 +91,7 @@ class AuditRepository {
                         },
                     },
                     {
-                        description: {
+                        performedBy: {
                             contains: keyword,
                             mode: "insensitive",
                         },
@@ -121,28 +99,22 @@ class AuditRepository {
                 ],
             },
             take: 50,
+            orderBy: {
+                createdAt: "desc",
+            },
         });
     }
-    /* ============================
-       AUDIT ANALYTICS
-    ============================ */
     static async getAuditStats() {
-        const [totalLogs, loginLogs, loanLogs, kycLogs,] = await Promise.all([
-            prisma_1.prisma.auditLog.count(),
-            prisma_1.prisma.auditLog.count({
-                where: {
-                    module: "AUTH",
-                },
+        const [totalLogs, loginLogs, loanLogs, kycLogs] = await Promise.all([
+            prisma_1.default.auditLog.count(),
+            prisma_1.default.auditLog.count({
+                where: { module: "AUTH" },
             }),
-            prisma_1.prisma.auditLog.count({
-                where: {
-                    module: "LOAN",
-                },
+            prisma_1.default.auditLog.count({
+                where: { module: "LOAN" },
             }),
-            prisma_1.prisma.auditLog.count({
-                where: {
-                    module: "KYC",
-                },
+            prisma_1.default.auditLog.count({
+                where: { module: "KYC" },
             }),
         ]);
         return {
@@ -152,11 +124,8 @@ class AuditRepository {
             kycLogs,
         };
     }
-    /* ============================
-       DELETE OLD LOGS
-    ============================ */
     static async deleteOldLogs(beforeDate) {
-        return prisma_1.prisma.auditLog.deleteMany({
+        return prisma_1.default.auditLog.deleteMany({
             where: {
                 createdAt: {
                     lt: beforeDate,

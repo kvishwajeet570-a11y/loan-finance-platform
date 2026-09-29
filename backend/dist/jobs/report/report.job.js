@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.reportJob = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
-const prisma_1 = __importDefault(require("../../config/prisma"));
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 const reportJob = () => {
     node_cron_1.default.schedule("0 0 * * *", async () => {
         console.log("Generating Daily Report...");
@@ -13,7 +13,7 @@ const reportJob = () => {
         const totalLoans = await prisma_1.default.loanApplication.count();
         const approvedLoans = await prisma_1.default.loanApplication.count({
             where: {
-                status: "approved",
+                status: "APPROVED",
             },
         });
         const totalTransactions = await prisma_1.default.transaction.count();

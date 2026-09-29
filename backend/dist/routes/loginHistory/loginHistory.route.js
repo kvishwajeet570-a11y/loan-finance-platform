@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const loginHistory_controller_1 = require("../../controllers/loginHistory/loginHistory.controller");
+const router = (0, express_1.Router)();
+router.get("/", loginHistory_controller_1.getAllLoginHistory);
+router.get("/analytics", loginHistory_controller_1.loginAnalytics);
+router.get("/user/:userId", loginHistory_controller_1.getUserLoginHistory);
+router.put("/logout/:id", loginHistory_controller_1.logoutSession);
+exports.default = router;

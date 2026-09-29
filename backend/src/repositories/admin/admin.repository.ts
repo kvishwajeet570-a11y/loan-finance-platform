@@ -1,4 +1,4 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class AdminRepository {
 
@@ -86,28 +86,26 @@ export class AdminRepository {
       (page - 1) * limit;
 
     const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-            {
-              email: {
-                contains: search,
-                mode: "insensitive",
-              },
-            },
-            {
-              phoneNo: {
-                contains: search,
-              },
-            },
-          ],
-        }
-      : {};
+  ? {
+      OR: [
+        {
+          name: {
+            contains: search,
+          },
+        },
+        {
+          email: {
+            contains: search,
+          },
+        },
+        {
+          phoneNo: {
+            contains: search,
+          },
+        },
+      ],
+    }
+  : undefined;
 
     const [users, total] =
       await Promise.all([

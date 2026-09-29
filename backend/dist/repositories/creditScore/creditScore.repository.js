@@ -1,13 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreditScoreHistoryRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class CreditScoreHistoryRepository {
     /* ==========================
         CREATE SCORE RECORD
     ========================== */
     static async createScoreHistory(data) {
-        return prisma_1.prisma.creditScoreHistory.create({
+        return prisma_1.default.creditScoreHistory.create({
             data: {
                 ...data,
                 enquiryDate: data.enquiryDate || new Date()
@@ -18,7 +21,7 @@ class CreditScoreHistoryRepository {
         GET BY ID
     ========================== */
     static async getById(id) {
-        return prisma_1.prisma.creditScoreHistory.findUnique({
+        return prisma_1.default.creditScoreHistory.findUnique({
             where: { id },
             include: {
                 user: {
@@ -36,7 +39,7 @@ class CreditScoreHistoryRepository {
         USER SCORE HISTORY
     ========================== */
     static async getUserScoreHistory(userId) {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             where: { userId },
             orderBy: {
                 enquiryDate: "desc"
@@ -47,7 +50,7 @@ class CreditScoreHistoryRepository {
         LATEST SCORE
     ========================== */
     static async getLatestScore(userId) {
-        return prisma_1.prisma.creditScoreHistory.findFirst({
+        return prisma_1.default.creditScoreHistory.findFirst({
             where: { userId },
             orderBy: {
                 enquiryDate: "desc"
@@ -58,7 +61,7 @@ class CreditScoreHistoryRepository {
         SCORE TREND
     ========================== */
     static async getScoreTrend(userId) {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             where: { userId },
             orderBy: {
                 enquiryDate: "asc"
@@ -74,7 +77,7 @@ class CreditScoreHistoryRepository {
         SCORE RANGE FILTER
     ========================== */
     static async getScoresByRange(min, max) {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             where: {
                 score: {
                     gte: min,
@@ -87,7 +90,7 @@ class CreditScoreHistoryRepository {
         BUREAU WISE SCORES
     ========================== */
     static async getBureauScores(bureauType) {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             where: {
                 bureauType
             },
@@ -100,7 +103,7 @@ class CreditScoreHistoryRepository {
         UPDATE RECORD
     ========================== */
     static async updateRecord(id, data) {
-        return prisma_1.prisma.creditScoreHistory.update({
+        return prisma_1.default.creditScoreHistory.update({
             where: { id },
             data
         });
@@ -109,7 +112,7 @@ class CreditScoreHistoryRepository {
         DELETE RECORD
     ========================== */
     static async deleteRecord(id) {
-        return prisma_1.prisma.creditScoreHistory.delete({
+        return prisma_1.default.creditScoreHistory.delete({
             where: { id }
         });
     }
@@ -119,7 +122,7 @@ class CreditScoreHistoryRepository {
     static async getAllRecords(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [records, total] = await Promise.all([
-            prisma_1.prisma.creditScoreHistory.findMany({
+            prisma_1.default.creditScoreHistory.findMany({
                 skip,
                 take: limit,
                 orderBy: {
@@ -129,7 +132,7 @@ class CreditScoreHistoryRepository {
                     user: true
                 }
             }),
-            prisma_1.prisma.creditScoreHistory.count()
+            prisma_1.default.creditScoreHistory.count()
         ]);
         return {
             total,
@@ -143,18 +146,18 @@ class CreditScoreHistoryRepository {
     ========================== */
     static async getAnalytics() {
         const [totalRecords, avgScore, highestScore, lowestScore] = await Promise.all([
-            prisma_1.prisma.creditScoreHistory.count(),
-            prisma_1.prisma.creditScoreHistory.aggregate({
+            prisma_1.default.creditScoreHistory.count(),
+            prisma_1.default.creditScoreHistory.aggregate({
                 _avg: {
                     score: true
                 }
             }),
-            prisma_1.prisma.creditScoreHistory.aggregate({
+            prisma_1.default.creditScoreHistory.aggregate({
                 _max: {
                     score: true
                 }
             }),
-            prisma_1.prisma.creditScoreHistory.aggregate({
+            prisma_1.default.creditScoreHistory.aggregate({
                 _min: {
                     score: true
                 }
@@ -172,14 +175,14 @@ class CreditScoreHistoryRepository {
     ========================== */
     static async getScoreDistribution() {
         return {
-            poor: await prisma_1.prisma.creditScoreHistory.count({
+            poor: await prisma_1.default.creditScoreHistory.count({
                 where: {
                     score: {
                         lt: 600
                     }
                 }
             }),
-            fair: await prisma_1.prisma.creditScoreHistory.count({
+            fair: await prisma_1.default.creditScoreHistory.count({
                 where: {
                     score: {
                         gte: 600,
@@ -187,7 +190,7 @@ class CreditScoreHistoryRepository {
                     }
                 }
             }),
-            good: await prisma_1.prisma.creditScoreHistory.count({
+            good: await prisma_1.default.creditScoreHistory.count({
                 where: {
                     score: {
                         gte: 700,
@@ -195,7 +198,7 @@ class CreditScoreHistoryRepository {
                     }
                 }
             }),
-            excellent: await prisma_1.prisma.creditScoreHistory.count({
+            excellent: await prisma_1.default.creditScoreHistory.count({
                 where: {
                     score: {
                         gte: 750
@@ -208,7 +211,7 @@ class CreditScoreHistoryRepository {
         TOP CREDIT USERS
     ========================== */
     static async getTopCreditUsers() {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             orderBy: {
                 score: "desc"
             },

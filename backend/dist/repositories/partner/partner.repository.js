@@ -1,285 +1,240 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PartnerRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class PartnerRepository {
     /* =========================
         CREATE PARTNER
     ========================= */
     static async createPartner(data) {
-        return prisma_1.prisma.partnerProfile.create({
-            data
+        return prisma_1.default.partner.create({
+            data: {
+                companyName: data.companyName,
+                email: data.email,
+                phone: data.phone,
+                contactPerson: data.contactPerson,
+                partnerCode: data.partnerCode,
+                city: data.city,
+                state: data.state,
+            },
         });
     }
     /* =========================
         GET BY ID
     ========================= */
     static async getPartnerById(id) {
-        return prisma_1.prisma.partnerProfile.findUnique({
+        return prisma_1.default.partner.findUnique({
             where: { id },
-            include: {
-                user: true
-            }
         });
     }
     /* =========================
-        GET BY USER ID
+        GET BY EMAIL
     ========================= */
-    static async getPartnerByUserId(userId) {
-        return prisma_1.prisma.partnerProfile.findUnique({
-            where: {
-                userId
-            },
-            include: {
-                user: true
-            }
+    static async getPartnerByEmail(email) {
+        return prisma_1.default.partner.findUnique({
+            where: { email },
         });
     }
     /* =========================
         GET BY CODE
     ========================= */
     static async getPartnerByCode(partnerCode) {
-        return prisma_1.prisma.partnerProfile.findUnique({
-            where: {
-                partnerCode
-            },
-            include: {
-                user: true
-            }
+        return prisma_1.default.partner.findUnique({
+            where: { partnerCode },
         });
     }
     /* =========================
         UPDATE PARTNER
     ========================= */
     static async updatePartner(id, data) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                id
-            },
-            data
+        return prisma_1.default.partner.update({
+            where: { id },
+            data,
         });
     }
     /* =========================
-        ACTIVATE PARTNER
+        APPROVE PARTNER
     ========================= */
-    static async activatePartner(id) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                id
-            },
+    static async approvePartner(id, approvedBy) {
+        return prisma_1.default.partner.update({
+            where: { id },
             data: {
-                status: "ACTIVE"
-            }
+                status: "APPROVED",
+                approvedBy,
+                approvedAt: new Date(),
+            },
+        });
+    }
+    /* =========================
+        REJECT PARTNER
+    ========================= */
+    static async rejectPartner(id, rejectionReason) {
+        return prisma_1.default.partner.update({
+            where: { id },
+            data: {
+                status: "REJECTED",
+                rejectionReason,
+            },
         });
     }
     /* =========================
         BLOCK PARTNER
     ========================= */
     static async blockPartner(id) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                id
-            },
+        return prisma_1.default.partner.update({
+            where: { id },
             data: {
-                status: "BLOCKED"
-            }
+                isBlocked: true,
+            },
         });
     }
     /* =========================
-        ADD LEAD
+        UNBLOCK PARTNER
     ========================= */
-    static async addLead(userId) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                userId
-            },
+    static async unblockPartner(id) {
+        return prisma_1.default.partner.update({
+            where: { id },
             data: {
-                totalLeads: {
-                    increment: 1
-                }
-            }
+                isBlocked: false,
+            },
         });
     }
     /* =========================
-        ADD CUSTOMER
+        TOGGLE ACTIVE
     ========================= */
-    static async addCustomer(userId) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                userId
-            },
+    static async togglePartnerStatus(id, isActive) {
+        return prisma_1.default.partner.update({
+            where: { id },
             data: {
-                totalCustomers: {
-                    increment: 1
-                }
-            }
-        });
-    }
-    /* =========================
-        ADD LOAN
-    ========================= */
-    static async addLoan(userId) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                userId
+                isActive,
             },
-            data: {
-                totalLoans: {
-                    increment: 1
-                }
-            }
-        });
-    }
-    /* =========================
-        ADD BUSINESS
-    ========================= */
-    static async addBusinessVolume(userId, amount) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                userId
-            },
-            data: {
-                totalBusiness: {
-                    increment: amount
-                }
-            }
-        });
-    }
-    /* =========================
-        ADD COMMISSION
-    ========================= */
-    static async addCommission(userId, amount) {
-        return prisma_1.prisma.partnerProfile.update({
-            where: {
-                userId
-            },
-            data: {
-                totalCommission: {
-                    increment: amount
-                }
-            }
-        });
-    }
-    /* =========================
-        TOP PARTNERS
-    ========================= */
-    static async getTopPartners(limit = 10) {
-        return prisma_1.prisma.partnerProfile.findMany({
-            take: limit,
-            include: {
-                user: true
-            },
-            orderBy: {
-                totalBusiness: "desc"
-            }
         });
     }
     /* =========================
         SEARCH PARTNERS
     ========================= */
     static async searchPartners(keyword) {
-        return prisma_1.prisma.partnerProfile.findMany({
+        return prisma_1.default.partner.findMany({
             where: {
                 OR: [
                     {
-                        partnerCode: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
                         companyName: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        email: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        phone: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        partnerCode: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
             },
-            include: {
-                user: true
-            }
+            orderBy: {
+                createdAt: "desc",
+            },
         });
     }
     /* =========================
-        ALL PARTNERS
+        GET ALL PARTNERS
     ========================= */
     static async getAllPartners(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [partners, total] = await Promise.all([
-            prisma_1.prisma.partnerProfile.findMany({
+            prisma_1.default.partner.findMany({
                 skip,
                 take: limit,
-                include: {
-                    user: true
-                },
                 orderBy: {
-                    createdAt: "desc"
-                }
+                    createdAt: "desc",
+                },
             }),
-            prisma_1.prisma.partnerProfile.count()
+            prisma_1.default.partner.count(),
         ]);
         return {
             partners,
             total,
             page,
-            limit
+            limit,
+            totalPages: Math.ceil(total / limit),
         };
     }
     /* =========================
         DELETE PARTNER
     ========================= */
     static async deletePartner(id) {
-        return prisma_1.prisma.partnerProfile.delete({
-            where: { id }
+        return prisma_1.default.partner.delete({
+            where: { id },
         });
     }
     /* =========================
-        PARTNER ANALYTICS
+        ANALYTICS
     ========================= */
     static async getAnalytics() {
-        const [totalPartners, activePartners, totalBusiness, totalCommission] = await Promise.all([
-            prisma_1.prisma.partnerProfile.count(),
-            prisma_1.prisma.partnerProfile.count({
+        const [totalPartners, activePartners, blockedPartners, approvedPartners, pendingPartners,] = await Promise.all([
+            prisma_1.default.partner.count(),
+            prisma_1.default.partner.count({
                 where: {
-                    status: "ACTIVE"
-                }
+                    isActive: true,
+                },
             }),
-            prisma_1.prisma.partnerProfile.aggregate({
-                _sum: {
-                    totalBusiness: true
-                }
+            prisma_1.default.partner.count({
+                where: {
+                    isBlocked: true,
+                },
             }),
-            prisma_1.prisma.partnerProfile.aggregate({
-                _sum: {
-                    totalCommission: true
-                }
-            })
+            prisma_1.default.partner.count({
+                where: {
+                    status: "APPROVED",
+                },
+            }),
+            prisma_1.default.partner.count({
+                where: {
+                    status: "PENDING",
+                },
+            }),
         ]);
         return {
             totalPartners,
             activePartners,
-            totalBusiness: totalBusiness._sum.totalBusiness || 0,
-            totalCommission: totalCommission._sum.totalCommission || 0
+            blockedPartners,
+            approvedPartners,
+            pendingPartners,
         };
     }
     /* =========================
         DASHBOARD
     ========================= */
-    static async getPartnerDashboard(userId) {
-        const partner = await prisma_1.prisma.partnerProfile.findUnique({
-            where: {
-                userId
-            }
+    static async getPartnerDashboard(id) {
+        const partner = await prisma_1.default.partner.findUnique({
+            where: { id },
         });
         if (!partner) {
             return null;
         }
         return {
-            totalLeads: partner.totalLeads,
-            totalCustomers: partner.totalCustomers,
-            totalLoans: partner.totalLoans,
-            totalBusiness: partner.totalBusiness,
-            totalCommission: partner.totalCommission
+            id: partner.id,
+            companyName: partner.companyName,
+            email: partner.email,
+            status: partner.status,
+            isActive: partner.isActive,
+            isBlocked: partner.isBlocked,
+            createdAt: partner.createdAt,
         };
     }
 }

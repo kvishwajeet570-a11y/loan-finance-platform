@@ -5,14 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailJob = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
-const prisma_1 = __importDefault(require("../../config/prisma"));
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 const email_1 = require("../../integrations/email/email");
 const emailJob = () => {
     node_cron_1.default.schedule("0 10 * * *", async () => {
         console.log("Running Email Job...");
         const pendingLoans = await prisma_1.default.loanApplication.findMany({
             where: {
-                status: "pending",
+                status: "PENDING",
             },
         });
         for (const loan of pendingLoans) {

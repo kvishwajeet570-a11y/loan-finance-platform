@@ -70,7 +70,7 @@ exports.createSecurityLogSchema = zod_1.z.object({
     location: zod_1.z.string().max(255).optional(),
     endpoint: zod_1.z.string().max(255).optional(),
     description: zod_1.z.string().min(5).max(1000),
-    metadata: zod_1.z.record(zod_1.z.any()).optional(),
+    metadata: zod_1.z.record(zod_1.z.string(), zod_1.z.unknown()).optional(),
 });
 /* =========================================
    UPDATE SECURITY STATUS

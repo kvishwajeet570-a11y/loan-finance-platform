@@ -118,8 +118,7 @@ class FAQService {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.FAQWhereInput = {};
-
+const where: Prisma.fAQWhereInput = {};
     if (search) {
       where.OR = [
         {

@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import blogCategoryService from "../../services/blog-category/blogCategory.service";
 
+type CategoryParams = {
+  id: string;
+};
+
 export const getCategories = async (
   req: Request,
   res: Response
@@ -31,13 +35,14 @@ export const getCategories = async (
 };
 
 export const getCategoryById = async (
-  req: Request,
+  req: Request<CategoryParams>,
   res: Response
 ): Promise<void> => {
   try {
-    const category = await blogCategoryService.getCategoryById(
-      req.params.id
-    );
+    const id = req.params.id;
+
+    const category =
+      await blogCategoryService.getCategoryById(id);
 
     if (!category) {
       res.status(404).json({
@@ -51,7 +56,9 @@ export const getCategoryById = async (
       success: true,
       data: category,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch category",
@@ -64,9 +71,10 @@ export const createCategory = async (
   res: Response
 ): Promise<void> => {
   try {
-    const category = await blogCategoryService.createCategory(
-      req.body
-    );
+    const category =
+      await blogCategoryService.createCategory(
+        req.body
+      );
 
     res.status(201).json({
       success: true,
@@ -82,14 +90,17 @@ export const createCategory = async (
 };
 
 export const updateCategory = async (
-  req: Request,
+  req: Request<CategoryParams>,
   res: Response
 ): Promise<void> => {
   try {
-    const category = await blogCategoryService.updateCategory(
-      req.params.id,
-      req.body
-    );
+    const id = req.params.id;
+
+    const category =
+      await blogCategoryService.updateCategory(
+        id,
+        req.body
+      );
 
     res.status(200).json({
       success: true,
@@ -105,21 +116,23 @@ export const updateCategory = async (
 };
 
 export const toggleCategoryStatus = async (
-  req: Request,
+  req: Request<CategoryParams>,
   res: Response
 ): Promise<void> => {
   try {
+    const id = req.params.id;
+
     const category =
-      await blogCategoryService.toggleStatus(
-        req.params.id
-      );
+      await blogCategoryService.toggleStatus(id);
 
     res.status(200).json({
       success: true,
       message: "Status updated",
       data: category,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to update status",
@@ -128,19 +141,21 @@ export const toggleCategoryStatus = async (
 };
 
 export const deleteCategory = async (
-  req: Request,
+  req: Request<CategoryParams>,
   res: Response
 ): Promise<void> => {
   try {
-    await blogCategoryService.softDelete(
-      req.params.id
-    );
+    const id = req.params.id;
+
+    await blogCategoryService.softDelete(id);
 
     res.status(200).json({
       success: true,
       message: "Category deleted successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to delete category",
@@ -160,7 +175,9 @@ export const getCategoryAnalytics = async (
       success: true,
       data: analytics,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch analytics",

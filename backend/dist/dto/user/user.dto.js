@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.bulkUserActionSchema = exports.userAnalyticsSchema = exports.userFilterSchema = exports.userPreferenceSchema = exports.changeUserRoleSchema = exports.verifyUserSchema = exports.unblockUserSchema = exports.blockUserSchema = exports.updateUserProfileSchema = exports.updateUserSchema = exports.createUserSchema = exports.genderEnum = exports.userStatusEnum = exports.userRoleEnum = void 0;
+exports.bulkUserActionSchema = exports.userDashboardAnalyticsSchema = exports.userSearchFilterSchema = exports.userPreferenceSchema = exports.changeUserRoleSchema = exports.verifyUserSchema = exports.unblockUserSchema = exports.blockUserSchema = exports.updateUserProfileSchema = exports.updateUserSchema = exports.createUserSchema = exports.genderEnum = exports.userStatusEnum = exports.userRoleEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    USER ROLE
@@ -134,7 +134,7 @@ exports.userPreferenceSchema = zod_1.z.object({
 /* =========================================
    USER FILTER
 ========================================= */
-exports.userFilterSchema = zod_1.z.object({
+exports.userSearchFilterSchema = zod_1.z.object({
     role: exports.userRoleEnum.optional(),
     status: exports.userStatusEnum.optional(),
     isVerified: zod_1.z.boolean().optional(),
@@ -151,7 +151,7 @@ exports.userFilterSchema = zod_1.z.object({
 /* =========================================
    USER ANALYTICS
 ========================================= */
-exports.userAnalyticsSchema = zod_1.z.object({
+exports.userDashboardAnalyticsSchema = zod_1.z.object({
     startDate: zod_1.z.string(),
     endDate: zod_1.z.string(),
     role: exports.userRoleEnum.optional(),

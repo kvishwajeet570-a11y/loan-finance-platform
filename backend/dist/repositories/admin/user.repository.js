@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class UserRepository {
     /* ==========================
        GET ALL USERS
@@ -34,7 +37,7 @@ class UserRepository {
             ];
         }
         const [users, total] = await Promise.all([
-            prisma_1.prisma.user.findMany({
+            prisma_1.default.user.findMany({
                 where,
                 skip,
                 take: limit,
@@ -52,7 +55,7 @@ class UserRepository {
                     createdAt: true,
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where,
             }),
         ]);
@@ -68,7 +71,7 @@ class UserRepository {
        GET USER BY ID
     ========================== */
     static async getUserById(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
                 id: userId,
             },
@@ -81,7 +84,7 @@ class UserRepository {
        BLOCK USER
     ========================== */
     static async blockUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -94,7 +97,7 @@ class UserRepository {
        UNBLOCK USER
     ========================== */
     static async unblockUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -107,7 +110,7 @@ class UserRepository {
        VERIFY USER
     ========================== */
     static async verifyUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -120,7 +123,7 @@ class UserRepository {
        UNVERIFY USER
     ========================== */
     static async unverifyUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -133,7 +136,7 @@ class UserRepository {
        DELETE USER
     ========================== */
     static async deleteUser(userId) {
-        return prisma_1.prisma.user.delete({
+        return prisma_1.default.user.delete({
             where: {
                 id: userId,
             },
@@ -143,7 +146,7 @@ class UserRepository {
        RECENT USERS
     ========================== */
     static async getRecentUsers(limit = 10) {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc",
@@ -162,33 +165,33 @@ class UserRepository {
     ========================== */
     static async getUserAnalytics() {
         const [totalUsers, verifiedUsers, blockedUsers, customers, dsas, partners, admins,] = await Promise.all([
-            prisma_1.prisma.user.count(),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count(),
+            prisma_1.default.user.count({
                 where: {
                     isVerified: true,
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     isBlocked: true,
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     role: "CUSTOMER",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     role: "DSA",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     role: "PARTNER",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     role: "ADMIN",
                 },
@@ -208,7 +211,7 @@ class UserRepository {
        ROLE WISE USERS
     ========================== */
     static async getUsersByRole(role) {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 role,
             },

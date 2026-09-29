@@ -90,8 +90,10 @@ export const createNotificationSchema =
       .optional(),
 
     metadata:
-      z.record(z.any())
-      .optional(),
+  z.record(
+    z.string(),
+    z.any()
+  ).optional(),
 
     scheduledAt:
       z.string()
@@ -166,10 +168,14 @@ export const sendTestNotificationSchema =
       notificationChannelEnum,
 
     title:
-      z.string(),
+      z.string()
+      .min(3)
+      .max(200),
 
     message:
-      z.string(),
+      z.string()
+      .min(5)
+      .max(5000),
   });
 
 /* =========================================
@@ -220,11 +226,13 @@ export const scheduleNotificationSchema =
   z.object({
     title:
       z.string()
-      .min(3),
+      .min(3)
+      .max(200),
 
     message:
       z.string()
-      .min(5),
+      .min(5)
+      .max(5000),
 
     type:
       notificationTypeEnum,

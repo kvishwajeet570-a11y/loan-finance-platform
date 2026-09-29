@@ -1,0 +1,509 @@
+﻿"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+type Item = {
+  label: string;
+  href: string;
+  icon: string;
+  badge?: number;
+  children?: { label: string; href: string }[];
+};
+
+const groups: { title: string; items: Item[] }[] = [
+  {
+    title: "OVERVIEW",
+    items: [
+      {
+        label: "Dashboard", href: "/dsa/dashboard", icon: "⌂",
+        children: [
+          { label: "Business Overview", href: "/dsa/dashboard" },
+          { label: "Performance", href: "/dsa/dashboard?view=performance" },
+          { label: "Recent Activity", href: "/dsa/dashboard?view=activity" },
+          { label: "Quick Actions", href: "/dsa/dashboard?view=actions" },
+        ],
+      },
+      {
+        label: "Analytics", href: "/dsa/analytics", icon: "◫",
+        children: [
+          { label: "Business Analytics", href: "/dsa/analytics?view=business" },
+          { label: "Loan Analytics", href: "/dsa/analytics?view=loans" },
+          { label: "Commission Analytics", href: "/dsa/analytics?view=commission" },
+        ],
+      },
+      {
+        label: "Notifications", href: "/dsa/notifications", icon: "♢",
+        children: [
+          { label: "All Notifications", href: "/dsa/notifications" },
+          { label: "Unread", href: "/dsa/notifications?filter=unread" },
+          { label: "Important", href: "/dsa/notifications?filter=important" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "BUSINESS",
+    items: [
+      {
+        label: "Leads", href: "/dsa/leads", icon: "◉",
+        children: [
+          { label: "All Leads", href: "/dsa/leads" },
+          { label: "New Leads", href: "/dsa/leads?status=NEW" },
+          { label: "Follow-up", href: "/dsa/leads?status=FOLLOW_UP" },
+          { label: "Converted", href: "/dsa/leads?status=CONVERTED" },
+          { label: "Rejected", href: "/dsa/leads?status=REJECTED" },
+        ],
+      },
+      {
+        label: "Customers", href: "/dsa/customers", icon: "♙",
+        children: [
+          { label: "All Customers", href: "/dsa/customers" },
+          { label: "Active Customers", href: "/dsa/customers?status=active" },
+          { label: "Loan Customers", href: "/dsa/customers?type=loan" },
+          { label: "Customer History", href: "/dsa/customers?view=history" },
+        ],
+      },
+      {
+        label: "Loan Applications", href: "/dsa/loan-applications", icon: "▣",
+        children: [
+          { label: "All Applications", href: "/dsa/loan-applications" },
+          { label: "New Application", href: "/dsa/loan-applications?status=new" },
+          { label: "Under Review", href: "/dsa/loan-applications?status=pending" },
+          { label: "Approved", href: "/dsa/loan-applications?status=approved" },
+          { label: "Rejected", href: "/dsa/loan-applications?status=rejected" },
+          { label: "Disbursed", href: "/dsa/loan-applications?status=disbursed" },
+        ],
+      },
+      {
+        label: "KYC Verification", href: "/dsa/kyc", icon: "✓",
+        children: [
+          { label: "Pending KYC", href: "/dsa/kyc?status=pending" },
+          { label: "Under Review", href: "/dsa/kyc?status=review" },
+          { label: "Approved", href: "/dsa/kyc?status=approved" },
+          { label: "Rejected", href: "/dsa/kyc?status=rejected" },
+          { label: "Documents", href: "/dsa/kyc?view=documents" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "FINANCE",
+    items: [
+      {
+        label: "Commission", href: "/dsa/commission", icon: "₹",
+        children: [
+          { label: "Overview", href: "/dsa/commission" },
+          { label: "Pending", href: "/dsa/commission?status=pending" },
+          { label: "Approved", href: "/dsa/commission?status=approved" },
+          { label: "Paid", href: "/dsa/commission?status=paid" },
+          { label: "History", href: "/dsa/commission?view=history" },
+        ],
+      },
+      {
+        label: "Wallet", href: "/dsa/wallet", icon: "◈",
+        children: [
+          { label: "Overview", href: "/dsa/wallet" },
+          { label: "Earnings", href: "/dsa/wallet?view=earnings" },
+          { label: "Cashback", href: "/dsa/wallet?view=cashback" },
+          { label: "Withdrawal", href: "/dsa/wallet?view=withdrawal" },
+        ],
+      },
+      {
+        label: "Transactions", href: "/dsa/transactions", icon: "⇄",
+        children: [
+          { label: "All Transactions", href: "/dsa/transactions" },
+          { label: "Credit", href: "/dsa/transactions?type=credit" },
+          { label: "Debit", href: "/dsa/transactions?type=debit" },
+          { label: "Commission", href: "/dsa/transactions?type=commission" },
+        ],
+      },
+      {
+        label: "Reports", href: "/dsa/reports", icon: "▤",
+        children: [
+          { label: "Business Report", href: "/dsa/reports?type=business" },
+          { label: "Loan Report", href: "/dsa/reports?type=loan" },
+          { label: "Commission Report", href: "/dsa/reports?type=commission" },
+          { label: "Customer Report", href: "/dsa/reports?type=customer" },
+          { label: "Export Reports", href: "/dsa/reports?view=export" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "GROWTH",
+    items: [
+      {
+        label: "Refer & Earn", href: "/dsa/referral", icon: "↗",
+        children: [
+          { label: "Referral Link", href: "/dsa/referral" },
+          { label: "My Referrals", href: "/dsa/referral?view=referrals" },
+          { label: "Referral Earnings", href: "/dsa/referral?view=earnings" },
+          { label: "Referral History", href: "/dsa/referral?view=history" },
+        ],
+      },
+      {
+        label: "Achievements", href: "/dsa/achievements", icon: "★",
+        children: [
+          { label: "Milestones", href: "/dsa/achievements" },
+          { label: "Completed", href: "/dsa/achievements?status=completed" },
+          { label: "In Progress", href: "/dsa/achievements?status=progress" },
+        ],
+      },
+      {
+        label: "Leaderboard", href: "/dsa/leaderboard", icon: "♛",
+        children: [
+          { label: "Overall", href: "/dsa/leaderboard" },
+          { label: "Weekly", href: "/dsa/leaderboard?period=weekly" },
+          { label: "Monthly", href: "/dsa/leaderboard?period=monthly" },
+          { label: "Top DSA", href: "/dsa/leaderboard?type=dsa" },
+        ],
+      },
+      {
+        label: "Training Center", href: "/dsa/training", icon: "▶",
+        children: [
+          { label: "Training Videos", href: "/dsa/training" },
+          { label: "Product Training", href: "/dsa/training?type=product" },
+          { label: "Sales Training", href: "/dsa/training?type=sales" },
+          { label: "Process Training", href: "/dsa/training?type=process" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "TOOLS",
+    items: [
+      { label: "EMI Calculator", href: "/dsa/tools/emi-calculator", icon: "▥" },
+      { label: "Loan Eligibility", href: "/dsa/tools/eligibility", icon: "◈" },
+      { label: "Credit Score", href: "/dsa/tools/credit-score", icon: "◉" },
+      { label: "Document Checker", href: "/dsa/tools/document-checker", icon: "▣" },
+    ],
+  },
+  {
+    title: "SUPPORT",
+    items: [
+      {
+        label: "Help & Support", href: "/dsa/support", icon: "?",
+        children: [
+          { label: "FAQ", href: "/dsa/support?view=faq" },
+          { label: "My Tickets", href: "/dsa/support?view=tickets" },
+          { label: "Create Ticket", href: "/dsa/support?view=create" },
+        ],
+      },
+      {
+        label: "Profile", href: "/dsa/profile", icon: "●",
+        children: [
+          { label: "Personal Details", href: "/dsa/profile" },
+          { label: "KYC & Documents", href: "/dsa/profile?view=kyc" },
+          { label: "Bank Details", href: "/dsa/profile?view=bank" },
+          { label: "Security", href: "/dsa/profile?view=security" },
+        ],
+      },
+    ],
+  },
+];
+
+export default function DsaSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  const [user, setUser] = useState<any>(null);
+  const [wallet, setWallet] = useState<number | null>(null);
+  const [unread, setUnread] = useState(0);
+
+  const API =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("loan_finance_user");
+      if (raw) setUser(JSON.parse(raw));
+    } catch {}
+
+    const token = localStorage.getItem("loan_finance_token");
+    const raw = localStorage.getItem("loan_finance_user");
+
+    if (!token || !raw) return;
+
+    try {
+      const current = JSON.parse(raw);
+      if (!current?.id) return;
+
+      fetch(`${API}/dsa/dashboard/${current.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((r) => r.json())
+        .then((j) => {
+          const data = j?.data || j;
+          setWallet(Number(data?.wallet?.balance || 0));
+          setUnread(Number(data?.unreadNotifications || 0));
+        })
+        .catch(() => {});
+    } catch {}
+  }, [API]);
+
+  const displayName = useMemo(
+    () => user?.name || user?.fullName || "DSA Partner",
+    [user]
+  );
+
+  useEffect(() => {
+    groups.forEach((group) =>
+      group.items.forEach((item) => {
+        if (pathname === item.href || pathname.startsWith(item.href + "/")) {
+          if (item.children?.length) {
+            setOpen((prev) => ({ ...prev, [item.label]: true }));
+          }
+        }
+      })
+    );
+  }, [pathname]);
+
+  const toggle = (label: string) => {
+    setOpen((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const logout = () => {
+    localStorage.removeItem("loan_finance_token");
+    localStorage.removeItem("loan_finance_user");
+    router.push("/login");
+  };
+
+  return (
+    <aside
+      className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200/80 bg-white shadow-[10px_0_40px_rgba(15,23,42,0.08)] transition-all duration-300 ${
+        collapsed ? "w-[76px]" : "w-[292px]"
+      }`}
+    >
+      {/* BRAND */}
+      <div className="relative border-b border-slate-100 px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-cyan-500 to-emerald-400 text-lg font-black text-white shadow-lg shadow-blue-200">
+            D
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 ring-2 ring-white" />
+          </div>
+
+          {!collapsed && (
+            <div className="min-w-0">
+              <div className="text-[17px] font-black tracking-tight text-slate-900">
+                DSA <span className="text-blue-600">FinCorp</span>
+              </div>
+              <div className="text-[9px] font-black tracking-[0.2em] text-slate-400">
+                GROW TOGETHER
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setCollapsed((v) => !v)}
+            className="ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+            title="Toggle sidebar"
+          >
+            {collapsed ? "→" : "←"}
+          </button>
+        </div>
+      </div>
+
+      {/* PROFILE */}
+      {!collapsed && (
+        <div className="mx-3 mt-3 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-blue-50/70 p-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-xs font-black text-white shadow-md">
+              {displayName
+                .split(" ")
+                .map((x: string) => x[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-black text-slate-900">
+                {displayName}
+              </div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-500">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                DSA Partner · Online
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-white p-2.5 shadow-sm">
+              <div className="text-[9px] font-bold text-slate-400">WALLET</div>
+              <div className="mt-0.5 truncate text-xs font-black text-slate-900">
+                ₹{(wallet ?? 0).toLocaleString("en-IN")}
+              </div>
+            </div>
+            <div className="rounded-xl bg-white p-2.5 shadow-sm">
+              <div className="text-[9px] font-bold text-slate-400">ALERTS</div>
+              <div className="mt-0.5 text-xs font-black text-blue-600">
+                {unread > 99 ? "99+" : unread}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QUICK ACTION */}
+      {!collapsed && (
+        <Link
+          href="/dsa/loan-applications"
+          className="mx-3 mt-3 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-blue-600 to-cyan-500 px-4 py-3 text-xs font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:shadow-xl"
+        >
+          <span className="text-base">+</span>
+          New Loan Application
+        </Link>
+      )}
+
+      {/* NAVIGATION */}
+      <nav className="mt-3 flex-1 overflow-y-auto px-3 pb-5 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+        {groups.map((group) => (
+          <div key={group.title} className="mb-4">
+            {!collapsed && (
+              <div className="mb-1.5 px-3 text-[9px] font-black tracking-[0.2em] text-slate-400">
+                {group.title}
+              </div>
+            )}
+
+            {group.items.map((item) => {
+              const active =
+                pathname === item.href ||
+                pathname.startsWith(item.href + "/");
+
+              const hasChildren = Boolean(item.children?.length);
+              const isOpen = Boolean(open[item.label]);
+
+              return (
+                <div key={item.href} className="mb-1">
+                  <div className="relative flex items-center">
+                    <Link
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={`group flex min-w-0 flex-1 items-center gap-3 rounded-[14px] px-3 py-2.5 text-[12px] font-bold transition-all ${
+                        active
+                          ? "bg-gradient-to-r from-blue-50 via-cyan-50 to-emerald-50 text-blue-700 shadow-[0_5px_18px_rgba(37,99,235,0.10)]"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                      }`}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-gradient-to-b from-blue-600 to-cyan-400" />
+                      )}
+
+                      <span
+                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm transition ${
+                          active
+                            ? "bg-gradient-to-br from-blue-600 via-cyan-500 to-emerald-400 text-white shadow-lg shadow-blue-200"
+                            : "bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"
+                        }`}
+                      >
+                        {item.icon}
+                      </span>
+
+                      {!collapsed && (
+                        <span className="min-w-0 flex-1 truncate">
+                          {item.label}
+                        </span>
+                      )}
+
+                      {!collapsed && item.label === "Notifications" && unread > 0 && (
+                        <span className="mr-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[9px] font-black text-white">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </Link>
+
+                    {!collapsed && hasChildren && (
+                      <button
+                        onClick={() => toggle(item.label)}
+                        className="absolute right-1 flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
+                        aria-label={`Toggle ${item.label}`}
+                      >
+                        <span
+                          className={`text-[11px] transition-transform duration-200 ${
+                            isOpen ? "rotate-180" : ""
+                          }`}
+                        >
+                          ⌄
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {!collapsed && hasChildren && isOpen && (
+                    <div className="ml-7 mt-1 space-y-0.5 border-l-2 border-blue-100 pl-3">
+                      {item.children!.map((child) => {
+                        const childActive =
+                          pathname === child.href.split("?")[0];
+
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={`flex items-center gap-2 rounded-[10px] px-2.5 py-2 text-[11px] font-semibold transition ${
+                              childActive
+                                ? "bg-blue-50 text-blue-700 font-bold"
+                                : "text-slate-500 hover:bg-slate-50 hover:text-blue-600"
+                            }`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                childActive
+                                  ? "bg-blue-600"
+                                  : "bg-slate-300"
+                              }`}
+                            />
+                            <span className="truncate">{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </nav>
+
+      {/* BOTTOM PROMO */}
+      {!collapsed && (
+        <div className="border-t border-slate-100 p-3">
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-3 shadow-sm ring-1 ring-emerald-100">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-sm">
+                ↗
+              </span>
+              <div>
+                <div className="text-[10px] font-black text-slate-900">
+                  Grow Your Network
+                </div>
+                <div className="text-[9px] font-semibold text-slate-500">
+                  Refer & Earn
+                </div>
+              </div>
+            </div>
+
+            <Link
+              href="/dsa/referral"
+              className="mt-2 block rounded-lg bg-white px-3 py-2 text-center text-[10px] font-black text-emerald-700 shadow-sm ring-1 ring-emerald-100 transition hover:bg-emerald-50"
+            >
+              Refer Now →
+            </Link>
+          </div>
+
+          <button
+            onClick={logout}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[11px] font-black text-slate-500 transition hover:bg-red-50 hover:text-red-600"
+          >
+            <span>↪</span>
+            Logout
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+}
+

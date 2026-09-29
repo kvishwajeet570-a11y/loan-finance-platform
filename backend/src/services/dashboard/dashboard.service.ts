@@ -1,9 +1,6 @@
 import prisma from "../../prisma/prisma";
 
 class DashboardService {
-  /**
-   * Super Admin Dashboard
-   */
   async getDashboardStats() {
     const [
       totalUsers,
@@ -19,19 +16,19 @@ class DashboardService {
 
       prisma.loanApplication.count({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "pending",
+          status: "PENDING",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "rejected",
+          status: "REJECTED",
         },
       }),
 
@@ -59,14 +56,11 @@ class DashboardService {
     };
   }
 
-  /**
-   * Revenue Analytics
-   */
   async getRevenueAnalytics() {
     const result =
       await prisma.loanApplication.aggregate({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
         _sum: {
           amount: true,
@@ -76,16 +70,13 @@ class DashboardService {
 
     return {
       totalDisbursed:
-        result._sum.amount || 0,
+        result?._sum?.amount ?? 0,
 
       totalApprovedLoans:
         result._count,
     };
   }
 
-  /**
-   * Recent Loan Applications
-   */
   async getRecentLoans(limit = 10) {
     return prisma.loanApplication.findMany({
       take: limit,
@@ -98,9 +89,6 @@ class DashboardService {
     });
   }
 
-  /**
-   * Recent Users
-   */
   async getRecentUsers(limit = 10) {
     return prisma.user.findMany({
       take: limit,
@@ -110,9 +98,6 @@ class DashboardService {
     });
   }
 
-  /**
-   * Monthly Loan Analytics
-   */
   async getMonthlyLoanAnalytics() {
     const currentYear =
       new Date().getFullYear();
@@ -154,9 +139,6 @@ class DashboardService {
     return data;
   }
 
-  /**
-   * Loan Status Distribution
-   */
   async getLoanStatusAnalytics() {
     const [
       approved,
@@ -165,19 +147,19 @@ class DashboardService {
     ] = await Promise.all([
       prisma.loanApplication.count({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "pending",
+          status: "PENDING",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "rejected",
+          status: "REJECTED",
         },
       }),
     ]);
@@ -189,9 +171,6 @@ class DashboardService {
     };
   }
 
-  /**
-   * User Growth Analytics
-   */
   async getUserGrowthAnalytics() {
     const currentYear =
       new Date().getFullYear();
@@ -233,9 +212,6 @@ class DashboardService {
     return result;
   }
 
-  /**
-   * Top DSA Partners
-   */
   async getTopDSA(limit = 10) {
     return prisma.user.findMany({
       where: {
@@ -248,9 +224,6 @@ class DashboardService {
     });
   }
 
-  /**
-   * Dashboard KPIs
-   */
   async getKPIs() {
     const [
       totalLoanAmount,
@@ -265,7 +238,7 @@ class DashboardService {
 
       prisma.loanApplication.aggregate({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
         _sum: {
           amount: true,
@@ -274,7 +247,7 @@ class DashboardService {
 
       prisma.loanApplication.aggregate({
         where: {
-          status: "pending",
+          status: "PENDING",
         },
         _sum: {
           amount: true,
@@ -284,19 +257,16 @@ class DashboardService {
 
     return {
       totalLoanAmount:
-        totalLoanAmount._sum.amount || 0,
+        totalLoanAmount?._sum?.amount ?? 0,
 
       approvedLoanAmount:
-        approvedLoanAmount._sum.amount || 0,
+        approvedLoanAmount?._sum?.amount ?? 0,
 
       pendingLoanAmount:
-        pendingLoanAmount._sum.amount || 0,
+        pendingLoanAmount?._sum?.amount ?? 0,
     };
   }
 
-  /**
-   * Complete Dashboard API
-   */
   async getCompleteDashboard() {
     const [
       stats,

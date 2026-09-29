@@ -21,7 +21,7 @@ class LoanService {
         return prisma_1.default.loanApplication.update({
             where: { id },
             data: {
-                status: "approved",
+                status: "APPROVED",
             },
         });
     }
@@ -29,7 +29,7 @@ class LoanService {
         return prisma_1.default.loanApplication.update({
             where: { id },
             data: {
-                status: "rejected",
+                status: "REJECTED",
             },
         });
     }
@@ -37,13 +37,13 @@ class LoanService {
         const [totalLoans, approvedLoans, rejectedLoans, pendingLoans,] = await Promise.all([
             prisma_1.default.loanApplication.count(),
             prisma_1.default.loanApplication.count({
-                where: { status: "approved" },
+                where: { status: "APPROVED" },
             }),
             prisma_1.default.loanApplication.count({
-                where: { status: "rejected" },
+                where: { status: "REJECTED" },
             }),
             prisma_1.default.loanApplication.count({
-                where: { status: "pending" },
+                where: { status: "PENDING" },
             }),
         ]);
         return {

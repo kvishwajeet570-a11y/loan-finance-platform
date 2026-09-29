@@ -1,73 +1,43 @@
 "use strict";
+// src/services/insurance/insurance.service.ts
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.insuranceService = void 0;
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class InsuranceService {
-    /**
-     * Create Insurance Product
-     */
     async createInsurance(data) {
         return prisma_1.default.insurance.create({
-            data,
+            data: {
+                ...data,
+            },
         });
     }
-    /**
-     * Update Insurance
-     */
-    async updateInsurance(id, data) {
-        return prisma_1.default.insurance.update({
-            where: { id },
-            data,
-        });
-    }
-    /**
-     * Delete Insurance
-     */
-    async deleteInsurance(id) {
-        return prisma_1.default.insurance.delete({
-            where: { id },
-        });
-    }
-    /**
-     * Insurance Details
-     */
-    async getInsuranceById(id) {
-        return prisma_1.default.insurance.findUnique({
-            where: { id },
-        });
-    }
-    /**
-     * Insurance List
-     */
     async getInsurances(filters) {
-        const { page = 1, limit = 20, search, category, company, } = filters;
+        const { page = 1, limit = 10, search, type, } = filters;
         const skip = (page - 1) * limit;
         const where = {};
         if (search) {
             where.OR = [
                 {
-                    name: {
+                    title: {
                         contains: search,
                         mode: "insensitive",
                     },
                 },
                 {
-                    company: {
+                    policyNumber: {
                         contains: search,
                         mode: "insensitive",
                     },
                 },
             ];
         }
-        if (category) {
-            where.category = category;
+        if (type) {
+            where.type = type;
         }
-        if (company) {
-            where.company = company;
-        }
-        const [products, total] = await Promise.all([
+        const [items, total] = await Promise.all([
             prisma_1.default.insurance.findMany({
                 where,
                 skip,
@@ -81,27 +51,59 @@ class InsuranceService {
             }),
         ]);
         return {
-            products,
+            data: items,
             total,
             page,
-            pages: Math.ceil(total / limit),
+            limit,
+            totalPages: Math.ceil(total / limit),
         };
     }
-    /**
-     * Apply Insurance
-     */
-    async applyInsurance(userId, insuranceId) {
+    async getInsuranceById(id) {
+        return prisma_1.default.insurance.findUnique({
+            where: {
+                id,
+            },
+            include: {
+                applications: true,
+                claims: true,
+            },
+        });
+    }
+    async updateInsurance(id, data) {
+        return prisma_1.default.insurance.update({
+            where: {
+                id,
+            },
+            data,
+        });
+    }
+    async deleteInsurance(id) {
+        return prisma_1.default.insurance.delete({
+            where: {
+                id,
+            },
+        });
+    }
+    async applyInsurance(userId, insuranceId, amount) {
+        const policy = await prisma_1.default.insurance.findUnique({
+            where: {
+                id: insuranceId,
+            },
+        });
+        if (!policy) {
+            throw new Error("Insurance policy not found");
+        }
         return prisma_1.default.insuranceApplication.create({
             data: {
+                applicationNo: `APP-${Date.now()}`,
+                insuranceType: policy.type,
+                amount,
                 userId,
                 insuranceId,
                 status: "PENDING",
             },
         });
     }
-    /**
-     * Approve Insurance
-     */
     async approveInsurance(applicationId) {
         return prisma_1.default.insuranceApplication.update({
             where: {
@@ -113,9 +115,6 @@ class InsuranceService {
             },
         });
     }
-    /**
-     * Reject Insurance
-     */
     async rejectInsurance(applicationId, reason) {
         return prisma_1.default.insuranceApplication.update({
             where: {
@@ -123,31 +122,72 @@ class InsuranceService {
             },
             data: {
                 status: "REJECTED",
+                rejectedAt: new Date(),
                 rejectionReason: reason,
             },
         });
     }
-    /**
-     * User Policies
-     */
     async getUserPolicies(userId) {
         return prisma_1.default.insuranceApplication.findMany({
             where: {
                 userId,
             },
             include: {
-                insurance: true,
+                insuranceRef: true,
+                claims: true,
             },
             orderBy: {
                 createdAt: "desc",
             },
         });
     }
-    /**
-     * Dashboard Stats
-     */
+    async createClaim(data) {
+        return prisma_1.default.insuranceClaim.create({
+            data: {
+                claimNo: `CLM-${Date.now()}`,
+                ...data,
+            },
+        });
+    }
+    async getPolicyClaims(applicationId) {
+        return prisma_1.default.insuranceClaim.findMany({
+            where: {
+                applicationId,
+            },
+            include: {
+                insurance: true,
+                application: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    async approveClaim(claimId) {
+        return prisma_1.default.insuranceClaim.update({
+            where: {
+                id: claimId,
+            },
+            data: {
+                status: "APPROVED",
+                approvedAt: new Date(),
+            },
+        });
+    }
+    async rejectClaim(claimId, reason) {
+        return prisma_1.default.insuranceClaim.update({
+            where: {
+                id: claimId,
+            },
+            data: {
+                status: "REJECTED",
+                rejectionReason: reason,
+                rejectedAt: new Date(),
+            },
+        });
+    }
     async getInsuranceStats() {
-        const [totalProducts, totalPolicies, approvedPolicies, pendingPolicies,] = await Promise.all([
+        const [totalPolicies, totalApplications, approvedApplications, rejectedApplications, pendingApplications, totalClaims, approvedClaims, rejectedClaims,] = await Promise.all([
             prisma_1.default.insurance.count(),
             prisma_1.default.insuranceApplication.count(),
             prisma_1.default.insuranceApplication.count({
@@ -157,16 +197,40 @@ class InsuranceService {
             }),
             prisma_1.default.insuranceApplication.count({
                 where: {
+                    status: "REJECTED",
+                },
+            }),
+            prisma_1.default.insuranceApplication.count({
+                where: {
                     status: "PENDING",
+                },
+            }),
+            prisma_1.default.insuranceClaim.count(),
+            prisma_1.default.insuranceClaim.count({
+                where: {
+                    status: "APPROVED",
+                },
+            }),
+            prisma_1.default.insuranceClaim.count({
+                where: {
+                    status: "REJECTED",
                 },
             }),
         ]);
         return {
-            totalProducts,
             totalPolicies,
-            approvedPolicies,
-            pendingPolicies,
+            totalApplications,
+            approvedApplications,
+            rejectedApplications,
+            pendingApplications,
+            totalClaims,
+            approvedClaims,
+            rejectedClaims,
         };
     }
+    async getInsuranceAnalytics() {
+        return this.getInsuranceStats();
+    }
 }
-exports.default = new InsuranceService();
+exports.insuranceService = new InsuranceService();
+exports.default = exports.insuranceService;

@@ -1,13 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CustomerRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class CustomerRepository {
     /* ==========================
         CUSTOMER PROFILE
     ========================== */
     static async getCustomerProfile(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
                 id: userId
             },
@@ -20,7 +23,7 @@ class CustomerRepository {
         UPDATE PROFILE
     ========================== */
     static async updateProfile(userId, data) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId
             },
@@ -31,7 +34,7 @@ class CustomerRepository {
         CUSTOMER LOANS
     ========================== */
     static async getCustomerLoans(userId) {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             where: {
                 userId
             },
@@ -44,7 +47,7 @@ class CustomerRepository {
         LOAN DETAILS
     ========================== */
     static async getLoanDetails(loanId) {
-        return prisma_1.prisma.loanApplication.findUnique({
+        return prisma_1.default.loanApplication.findUnique({
             where: {
                 id: loanId
             }
@@ -54,7 +57,7 @@ class CustomerRepository {
         CUSTOMER BANK ACCOUNTS
     ========================== */
     static async getBankAccounts(userId) {
-        return prisma_1.prisma.bankAccount.findMany({
+        return prisma_1.default.bankAccount.findMany({
             where: {
                 userId
             }
@@ -64,7 +67,7 @@ class CustomerRepository {
         CUSTOMER CREDIT SCORES
     ========================== */
     static async getCreditHistory(userId) {
-        return prisma_1.prisma.creditScoreHistory.findMany({
+        return prisma_1.default.creditScoreHistory.findMany({
             where: {
                 userId
             },
@@ -77,7 +80,7 @@ class CustomerRepository {
         LATEST CREDIT SCORE
     ========================== */
     static async getLatestCreditScore(userId) {
-        return prisma_1.prisma.creditScoreHistory.findFirst({
+        return prisma_1.default.creditScoreHistory.findFirst({
             where: {
                 userId
             },
@@ -91,29 +94,29 @@ class CustomerRepository {
     ========================== */
     static async getDashboard(userId) {
         const [profile, totalLoans, approvedLoans, pendingLoans, latestCreditScore] = await Promise.all([
-            prisma_1.prisma.user.findUnique({
+            prisma_1.default.user.findUnique({
                 where: {
                     id: userId
                 }
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     userId
                 }
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     userId,
                     status: "APPROVED"
                 }
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     userId,
                     status: "PENDING"
                 }
             }),
-            prisma_1.prisma.creditScoreHistory.findFirst({
+            prisma_1.default.creditScoreHistory.findFirst({
                 where: {
                     userId
                 },
@@ -134,7 +137,7 @@ class CustomerRepository {
         LOAN ANALYTICS
     ========================== */
     static async getLoanAnalytics(userId) {
-        const totalAmount = await prisma_1.prisma.loanApplication.aggregate({
+        const totalAmount = await prisma_1.default.loanApplication.aggregate({
             where: {
                 userId
             },
@@ -150,7 +153,7 @@ class CustomerRepository {
         DELETE CUSTOMER
     ========================== */
     static async deleteCustomer(userId) {
-        return prisma_1.prisma.user.delete({
+        return prisma_1.default.user.delete({
             where: {
                 id: userId
             }
@@ -160,7 +163,7 @@ class CustomerRepository {
         CUSTOMER NOTIFICATIONS
     ========================== */
     static async getNotifications(userId) {
-        return prisma_1.prisma.notification.findMany({
+        return prisma_1.default.notification.findMany({
             where: {
                 userId
             },
@@ -173,7 +176,7 @@ class CustomerRepository {
         CUSTOMER SUPPORT TICKETS
     ========================== */
     static async getSupportTickets(userId) {
-        return prisma_1.prisma.supportTicket.findMany({
+        return prisma_1.default.supportTicket.findMany({
             where: {
                 userId
             },
@@ -186,7 +189,7 @@ class CustomerRepository {
         CUSTOMER COMMISSIONS
     ========================== */
     static async getCustomerReferralIncome(userId) {
-        return prisma_1.prisma.commission.findMany({
+        return prisma_1.default.commission.findMany({
             where: {
                 userId,
                 status: "PAID"

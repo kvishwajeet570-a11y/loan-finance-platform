@@ -1,4 +1,4 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class NotificationRepository {
 
@@ -7,37 +7,45 @@ export class NotificationRepository {
   ========================= */
 
   static async createNotification(data: {
-    userId?: string;
-    title: string;
-    message: string;
-    type: string;
-    priority?: string;
-    redirectUrl?: string;
-    metadata?: string;
-  }) {
+  userId: string;
+  title: string;
+  message: string;
+  type?: string;
+  priority?: string;
+  channel?: string;
+}) {
 
-    return prisma.notification.create({
-      data
-    });
-  }
+  return prisma.notification.create({
+    data: {
+      userId: data.userId,
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      priority: data.priority,
+      channel: data.channel,
+    }
+  });
+}
 
   /* =========================
       BULK CREATE
   ========================= */
 
-  static async createBulkNotifications(
-    notifications: {
-      userId?: string;
-      title: string;
-      message: string;
-      type: string;
-    }[]
-  ) {
+ static async createBulkNotifications(
+  notifications: {
+    userId: string;
+    title: string;
+    message: string;
+    type?: string;
+    priority?: string;
+    channel?: string;
+  }[]
+) {
 
-    return prisma.notification.createMany({
-      data: notifications
-    });
-  }
+  return prisma.notification.createMany({
+    data: notifications
+  });
+}
 
   /* =========================
       GET BY ID

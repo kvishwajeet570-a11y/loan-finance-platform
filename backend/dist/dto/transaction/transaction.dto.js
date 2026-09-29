@@ -82,8 +82,7 @@ exports.createTransactionSchema = zod_1.z.object({
     description: zod_1.z.string()
         .min(2)
         .max(1000),
-    metadata: zod_1.z.record(zod_1.z.any())
-        .optional(),
+    metadata: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
 });
 /* =========================================
    UPDATE STATUS
@@ -101,9 +100,9 @@ exports.updateTransactionStatusSchema = zod_1.z.object({
 exports.refundTransactionSchema = zod_1.z.object({
     transactionId: zod_1.z.string().cuid(),
     refundAmount: zod_1.z.number().positive(),
-    reason: zod_1.z.string()
-        .min(5)
-        .max(1000),
+    reason: zod_1.z.string().min(5).max(1000),
+    refundedBy: zod_1.z.string()
+        .optional(),
 });
 /* =========================================
    SETTLEMENT REQUEST
@@ -119,31 +118,17 @@ exports.settlementRequestSchema = zod_1.z.object({
    TRANSACTION FILTER
 ========================================= */
 exports.transactionFilterSchema = zod_1.z.object({
-    userId: zod_1.z.string()
-        .cuid()
-        .optional(),
-    transactionType: exports.transactionTypeEnum
-        .optional(),
-    category: exports.transactionCategoryEnum
-        .optional(),
-    status: exports.transactionStatusEnum
-        .optional(),
-    paymentMode: exports.paymentModeEnum
-        .optional(),
-    startDate: zod_1.z.string()
-        .optional(),
-    endDate: zod_1.z.string()
-        .optional(),
-    minAmount: zod_1.z.number()
-        .optional(),
-    maxAmount: zod_1.z.number()
-        .optional(),
-    page: zod_1.z.coerce.number()
-        .default(1),
-    limit: zod_1.z.coerce.number()
-        .min(1)
-        .max(100)
-        .default(20),
+    userId: zod_1.z.string().cuid().optional(),
+    type: exports.transactionTypeEnum.optional(),
+    category: exports.transactionCategoryEnum.optional(),
+    status: exports.transactionStatusEnum.optional(),
+    paymentMethod: exports.paymentModeEnum.optional(),
+    startDate: zod_1.z.string().optional(),
+    endDate: zod_1.z.string().optional(),
+    minAmount: zod_1.z.number().optional(),
+    maxAmount: zod_1.z.number().optional(),
+    page: zod_1.z.coerce.number().default(1),
+    limit: zod_1.z.coerce.number().min(1).max(100).default(20),
 });
 /* =========================================
    RECONCILIATION

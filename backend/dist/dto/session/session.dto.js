@@ -1,110 +1,103 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.activeSessionSchema = exports.sessionAnalyticsSchema = exports.sessionFilterSchema = exports.revokeSessionSchema = exports.terminateAllSessionsSchema = exports.terminateSessionSchema = exports.updateSessionSchema = exports.createSessionSchema = exports.deviceTypeEnum = exports.sessionStatusEnum = void 0;
+exports.cleanupSessionSchema = exports.sessionQuerySchema = exports.userSessionSchema = exports.sessionIdSchema = exports.updateSessionSchema = exports.createSessionSchema = exports.sessionStatusSchema = void 0;
 const zod_1 = require("zod");
-/* =========================================
-   SESSION STATUS
-========================================= */
-exports.sessionStatusEnum = zod_1.z.enum([
+/* ==========================================================
+   COMMON ENUMS
+========================================================== */
+exports.sessionStatusSchema = zod_1.z.enum([
     "ACTIVE",
-    "EXPIRED",
-    "REVOKED",
-    "LOGGED_OUT",
+    "INACTIVE",
 ]);
-/* =========================================
-   DEVICE TYPE
-========================================= */
-exports.deviceTypeEnum = zod_1.z.enum([
-    "WEB",
-    "ANDROID",
-    "IOS",
-    "TABLET",
-    "DESKTOP",
-]);
-/* =========================================
+/* ==========================================================
    CREATE SESSION
-========================================= */
+========================================================== */
 exports.createSessionSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    refreshTokenId: zod_1.z.string().cuid().optional(),
-    deviceType: exports.deviceTypeEnum,
-    deviceName: zod_1.z.string().max(255).optional(),
-    browser: zod_1.z.string().max(100).optional(),
-    operatingSystem: zod_1.z.string().max(100).optional(),
-    ipAddress: zod_1.z.string().max(100),
-    location: zod_1.z.string().max(255).optional(),
-    userAgent: zod_1.z.string().max(1000).optional(),
-});
-/* =========================================
-   UPDATE SESSION
-========================================= */
-exports.updateSessionSchema = zod_1.z.object({
-    sessionId: zod_1.z.string().cuid(),
-    lastActivityAt: zod_1.z.coerce.date().optional(),
-    ipAddress: zod_1.z.string().optional(),
-    location: zod_1.z.string().optional(),
-});
-/* =========================================
-   TERMINATE SESSION
-========================================= */
-exports.terminateSessionSchema = zod_1.z.object({
-    sessionId: zod_1.z.string().cuid(),
-    reason: zod_1.z.string()
-        .min(3)
-        .max(500)
-        .optional(),
-});
-/* =========================================
-   TERMINATE ALL SESSIONS
-========================================= */
-exports.terminateAllSessionsSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    exceptCurrent: zod_1.z.boolean().default(true),
-});
-/* =========================================
-   REVOKE SESSION
-========================================= */
-exports.revokeSessionSchema = zod_1.z.object({
-    sessionId: zod_1.z.string().cuid(),
-    remarks: zod_1.z.string()
-        .max(500)
-        .optional(),
-});
-/* =========================================
-   SESSION FILTER
-========================================= */
-exports.sessionFilterSchema = zod_1.z.object({
-    userId: zod_1.z.string()
-        .cuid()
-        .optional(),
-    deviceType: exports.deviceTypeEnum
-        .optional(),
-    status: exports.sessionStatusEnum
-        .optional(),
-    startDate: zod_1.z.string()
-        .optional(),
-    endDate: zod_1.z.string()
-        .optional(),
-    page: zod_1.z.coerce.number()
-        .default(1),
-    limit: zod_1.z.coerce.number()
-        .min(1)
+    userId: zod_1.z.string().cuid("Invalid User ID"),
+    token: zod_1.z
+        .string()
+        .min(32, "Token is too short")
+        .max(500),
+    ipAddress: zod_1.z
+        .string()
         .max(100)
-        .default(20),
+        .optional(),
+    userAgent: zod_1.z
+        .string()
+        .max(1000)
+        .optional(),
+    isActive: zod_1.z
+        .boolean()
+        .default(true)
+        .optional(),
+    expiresAt: zod_1.z.coerce.date(),
 });
-/* =========================================
-   SESSION ANALYTICS
-========================================= */
-exports.sessionAnalyticsSchema = zod_1.z.object({
-    startDate: zod_1.z.string(),
-    endDate: zod_1.z.string(),
-    userId: zod_1.z.string()
-        .cuid()
+/* ==========================================================
+   UPDATE SESSION
+========================================================== */
+exports.updateSessionSchema = zod_1.z.object({
+    token: zod_1.z
+        .string()
+        .min(32)
+        .max(500)
+        .optional(),
+    ipAddress: zod_1.z
+        .string()
+        .max(100)
+        .optional(),
+    userAgent: zod_1.z
+        .string()
+        .max(1000)
+        .optional(),
+    isActive: zod_1.z
+        .boolean()
+        .optional(),
+    logoutAt: zod_1.z
+        .coerce
+        .date()
+        .optional(),
+    expiresAt: zod_1.z
+        .coerce
+        .date()
         .optional(),
 });
-/* =========================================
-   ACTIVE SESSION CHECK
-========================================= */
-exports.activeSessionSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
+/* ==========================================================
+   SESSION ID PARAM
+========================================================== */
+exports.sessionIdSchema = zod_1.z.object({
+    id: zod_1.z.string().cuid("Invalid Session ID"),
+});
+/* ==========================================================
+   USER SESSION PARAM
+========================================================== */
+exports.userSessionSchema = zod_1.z.object({
+    userId: zod_1.z.string().cuid("Invalid User ID"),
+});
+/* ==========================================================
+   SESSION QUERY
+========================================================== */
+exports.sessionQuerySchema = zod_1.z.object({
+    page: zod_1.z.coerce.number().min(1).default(1).optional(),
+    limit: zod_1.z.coerce.number().min(1).max(100).default(20).optional(),
+    search: zod_1.z.string().optional(),
+    isActive: zod_1.z
+        .enum(["true", "false"])
+        .optional(),
+    from: zod_1.z
+        .string()
+        .optional(),
+    to: zod_1.z
+        .string()
+        .optional(),
+});
+/* ==========================================================
+   CLEANUP QUERY
+========================================================== */
+exports.cleanupSessionSchema = zod_1.z.object({
+    days: zod_1.z.coerce
+        .number()
+        .min(1)
+        .max(3650)
+        .default(90)
+        .optional(),
 });

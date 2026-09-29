@@ -1,4 +1,4 @@
-import prisma from "../../prisma/prisma";
+﻿import prisma from "../../prisma/prisma";
 import { Prisma } from "@prisma/client";
 
 interface DSAFilter {
@@ -9,9 +9,6 @@ interface DSAFilter {
 }
 
 class DSAService {
-  /**
-   * Register DSA
-   */
   async registerDSA(data: {
     name: string;
     email: string;
@@ -36,15 +33,12 @@ class DSAService {
     return prisma.user.create({
       data: {
         ...data,
-        role: "dsa",
+        role: "DSA",
         isVerified: false,
       },
     });
   }
 
-  /**
-   * Verify DSA
-   */
   async verifyDSA(dsaId: string) {
     return prisma.user.update({
       where: { id: dsaId },
@@ -54,18 +48,12 @@ class DSAService {
     });
   }
 
-  /**
-   * Get DSA Profile
-   */
   async getDSAProfile(dsaId: string) {
     return prisma.user.findUnique({
       where: { id: dsaId },
     });
   }
 
-  /**
-   * Update DSA Profile
-   */
   async updateDSA(
     dsaId: string,
     data: any
@@ -76,9 +64,6 @@ class DSAService {
     });
   }
 
-  /**
-   * DSA List
-   */
   async getDSAList(filters: DSAFilter) {
     const {
       page = 1,
@@ -89,7 +74,7 @@ class DSAService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = {
-      role: "dsa",
+      role: "DSA",
     };
 
     if (search) {
@@ -137,9 +122,6 @@ class DSAService {
     };
   }
 
-  /**
-   * Assign Lead
-   */
   async assignLead(
     dsaId: string,
     loanId: string
@@ -152,13 +134,20 @@ class DSAService {
     });
   }
 
-  /**
-   * DSA Loan Applications
-   */
   async getDSALoans(dsaId: string) {
     return prisma.loanApplication.findMany({
       where: {
         assignedTo: dsaId,
+      },
+      include: {
+        commissions: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+        documents: true,
+        user: true,
+        partner: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -166,69 +155,439 @@ class DSAService {
     });
   }
 
-  /**
-   * DSA Dashboard
-   */
   async getDSADashboard(dsaId: string) {
-    const [
-      totalLeads,
-      approvedLoans,
-      pendingLoans,
-      rejectedLoans,
-    ] = await Promise.all([
-      prisma.loanApplication.count({
-        where: {
-          assignedTo: dsaId,
-        },
-      }),
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
 
-      prisma.loanApplication.count({
-        where: {
-          assignedTo: dsaId,
-          status: "approved",
-        },
-      }),
+    const sixMonthsStart = new Date(
+      currentYear,
+      currentMonth - 5,
+      1
+    );
 
-      prisma.loanApplication.count({
-        where: {
-          assignedTo: dsaId,
-          status: "pending",
-        },
-      }),
+    const currentMonthStart = new Date(
+      currentYear,
+      currentMonth,
+      1
+    );
 
-      prisma.loanApplication.count({
-        where: {
-          assignedTo: dsaId,
-          status: "rejected",
-        },
-      }),
-    ]);
+    const previousMonthStart = new Date(
+      currentYear,
+      currentMonth - 1,
+      1
+    );
 
-    const earnings =
-      await prisma.commission.aggregate({
+    const totalLeads = await prisma.loanApplication.count({
+      where: { assignedTo: dsaId },
+    });
+
+    const approvedLoans = await prisma.loanApplication.count({
+      where: {
+        assignedTo: dsaId,
+        status: "APPROVED",
+      },
+    });
+
+    const pendingLoans = await prisma.loanApplication.count({
+      where: {
+        assignedTo: dsaId,
+        status: "PENDING",
+      },
+    });
+
+    const rejectedLoans = await prisma.loanApplication.count({
+      where: {
+        assignedTo: dsaId,
+        status: "REJECTED",
+      },
+    });
+
+    const applications = await prisma.loanApplication.findMany({
+      where: { assignedTo: dsaId },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        fullName: true,
+        loanType: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+        city: true,
+        state: true,
+        userId: true,
+      },
+    });
+
+    const totalLoanAmount = applications.reduce(
+      (sum, loan) => sum + Number(loan.amount || 0),
+      0
+    );
+
+    const approvedLoanAmount = applications
+      .filter((loan) => loan.status === "APPROVED")
+      .reduce(
+        (sum, loan) => sum + Number(loan.amount || 0),
+        0
+      );
+
+    const recentApplications = applications
+      .slice(0, 10)
+      .map((loan) => ({
+        id: loan.id,
+        fullName: loan.fullName,
+        loanType: loan.loanType,
+        amount: loan.amount,
+        status: loan.status,
+        createdAt: loan.createdAt,
+        city: loan.city,
+        state: loan.state,
+      }));
+
+    const totalCustomers = new Set(
+      applications
+        .map((loan) => loan.userId)
+        .filter(Boolean)
+    ).size;
+
+    const commissions = await prisma.commission.findMany({
+      where: { userId: dsaId },
+      select: {
+        amount: true,
+        commissionAmount: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    const approvedCommissions = commissions.filter(
+      (commission) => commission.status === "APPROVED"
+    );
+
+    const pendingCommissions = commissions.filter(
+      (commission) => commission.status === "PENDING"
+    );
+
+    const totalEarnings = approvedCommissions.reduce(
+      (sum, commission) =>
+        sum + Number(
+          commission.commissionAmount ??
+          commission.amount ??
+          0
+        ),
+      0
+    );
+
+    const pendingCommission = pendingCommissions.reduce(
+      (sum, commission) =>
+        sum + Number(
+          commission.commissionAmount ??
+          commission.amount ??
+          0
+        ),
+      0
+    );
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: dsaId },
+      select: {
+        balance: true,
+        cashback: true,
+        rewardBalance: true,
+        totalEarnings: true,
+        isFrozen: true,
+        isBlocked: true,
+      },
+    });
+
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId: dsaId,
+        isArchived: false,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 10,
+      select: {
+        id: true,
+        title: true,
+        message: true,
+        type: true,
+        priority: true,
+        isRead: true,
+        createdAt: true,
+      },
+    });
+
+    const unreadNotifications =
+      await prisma.notification.count({
         where: {
           userId: dsaId,
-          status: "APPROVED",
-        },
-        _sum: {
-          commissionAmount: true,
+          isArchived: false,
+          isRead: false,
         },
       });
 
+    const transactions = await prisma.transaction.findMany({
+      where: { dsaId },
+      select: {
+        amount: true,
+        commission: true,
+        cashback: true,
+      },
+    });
+
+    const transactionTotalAmount = transactions.reduce(
+      (sum, transaction) =>
+        sum + Number(transaction.amount || 0),
+      0
+    );
+
+    const transactionTotalCommission =
+      transactions.reduce(
+        (sum, transaction) =>
+          sum + Number(transaction.commission || 0),
+        0
+      );
+
+    const transactionTotalCashback =
+      transactions.reduce(
+        (sum, transaction) =>
+          sum + Number(transaction.cashback || 0),
+        0
+      );
+
+    const monthlyApplications =
+      applications.filter(
+        (loan) =>
+          new Date(loan.createdAt) >= sixMonthsStart
+      );
+
+    const monthlyTrend = Array.from(
+      { length: 6 },
+      (_, index) => {
+        const date = new Date(
+          currentYear,
+          currentMonth - (5 - index),
+          1
+        );
+
+        const year = date.getFullYear();
+        const month = date.getMonth();
+
+        const monthLoans = monthlyApplications.filter(
+          (loan) => {
+            const created = new Date(loan.createdAt);
+
+            return (
+              created.getFullYear() === year &&
+              created.getMonth() === month
+            );
+          }
+        );
+
+        return {
+          month: date.toLocaleString("en-IN", {
+            month: "short",
+          }),
+          applications: monthLoans.length,
+          approved: monthLoans.filter(
+            (loan) => loan.status === "APPROVED"
+          ).length,
+          pending: monthLoans.filter(
+            (loan) => loan.status === "PENDING"
+          ).length,
+          rejected: monthLoans.filter(
+            (loan) => loan.status === "REJECTED"
+          ).length,
+          loanAmount: monthLoans.reduce(
+            (sum, loan) =>
+              sum + Number(loan.amount || 0),
+            0
+          ),
+        };
+      }
+    );
+
+    const productMap: Record<
+      string,
+      { applications: number; amount: number }
+    > = {};
+
+    for (const loan of applications) {
+      const name =
+        String(loan.loanType || "Other").trim() ||
+        "Other";
+
+      if (!productMap[name]) {
+        productMap[name] = {
+          applications: 0,
+          amount: 0,
+        };
+      }
+
+      productMap[name].applications += 1;
+      productMap[name].amount += Number(
+        loan.amount || 0
+      );
+    }
+
+    const loanProducts = Object.entries(
+      productMap
+    ).map(([name, data]) => ({
+      name,
+      value: data.applications,
+      amount: data.amount,
+    }));
+
+    const commissionTrend = Array.from(
+      { length: 6 },
+      (_, index) => {
+        const date = new Date(
+          currentYear,
+          currentMonth - (5 - index),
+          1
+        );
+
+        const value = approvedCommissions
+          .filter((commission) => {
+            const created = new Date(
+              commission.createdAt
+            );
+
+            return (
+              created.getFullYear() ===
+                date.getFullYear() &&
+              created.getMonth() === date.getMonth()
+            );
+          })
+          .reduce(
+            (sum, commission) =>
+              sum +
+              Number(
+                commission.commissionAmount ??
+                commission.amount ??
+                0
+              ),
+            0
+          );
+
+        return {
+          month: date.toLocaleString("en-IN", {
+            month: "short",
+          }),
+          commission: value,
+        };
+      }
+    );
+
+    const currentMonthApplications =
+      applications.filter(
+        (loan) =>
+          new Date(loan.createdAt) >=
+          currentMonthStart
+      ).length;
+
+    const previousMonthApplications =
+      applications.filter((loan) => {
+        const created = new Date(loan.createdAt);
+
+        return (
+          created >= previousMonthStart &&
+          created < currentMonthStart
+        );
+      }).length;
+
+    const monthlyGrowth =
+      previousMonthApplications > 0
+        ? Number(
+            (
+              ((currentMonthApplications -
+                previousMonthApplications) /
+                previousMonthApplications) *
+              100
+            ).toFixed(2)
+          )
+        : null;
+
+    const approvalRate =
+      totalLeads > 0
+        ? Number(
+            (
+              (approvedLoans / totalLeads) *
+              100
+            ).toFixed(2)
+          )
+        : 0;
+
+    const ranking = await prisma.commission.groupBy({
+      by: ["userId"],
+      where: {
+        status: "APPROVED",
+      },
+      _sum: {
+        commissionAmount: true,
+      },
+      orderBy: {
+        _sum: {
+          commissionAmount: "desc",
+        },
+      },
+    });
+
+    const rankIndex = ranking.findIndex(
+      (item) => item.userId === dsaId
+    );
+
     return {
-      totalLeads,
-      approvedLoans,
-      pendingLoans,
-      rejectedLoans,
-      totalEarnings:
-        earnings._sum
-          .commissionAmount || 0,
+      summary: {
+        totalLeads,
+        approvedLoans,
+        pendingLoans,
+        rejectedLoans,
+        totalEarnings,
+        pendingCommission,
+        totalLoanAmount,
+        approvedLoanAmount,
+        approvalRate,
+        totalCustomers,
+      },
+
+      monthlyTrend,
+
+      commissionTrend,
+
+      loanProducts,
+
+      recentApplications,
+
+      notifications,
+
+      unreadNotifications,
+
+      wallet,
+
+      transactions: {
+        totalAmount: transactionTotalAmount,
+        totalCommission: transactionTotalCommission,
+        totalCashback: transactionTotalCashback,
+      },
+
+      performance: {
+        currentMonthApplications,
+        previousMonthApplications,
+        monthlyGrowth,
+      },
+
+      rank:
+        rankIndex >= 0
+          ? rankIndex + 1
+          : null,
+
+      currentMonthApplications,
     };
   }
-
-  /**
-   * DSA Performance Report
-   */
   async getPerformanceReport(
     dsaId: string
   ) {
@@ -243,26 +602,20 @@ class DSAService {
       await prisma.loanApplication.count({
         where: {
           assignedTo: dsaId,
-          status: "approved",
+          status: "APPROVED",
         },
       });
-
-    const conversionRate =
-      total > 0
-        ? (approved / total) * 100
-        : 0;
 
     return {
       totalLeads: total,
       approvedLeads: approved,
       conversionRate:
-        conversionRate.toFixed(2),
+        total > 0
+          ? ((approved / total) * 100).toFixed(2)
+          : "0.00",
     };
   }
 
-  /**
-   * Top Performing DSA
-   */
   async getTopDSA(limit = 10) {
     return prisma.commission.groupBy({
       by: ["userId"],
@@ -278,9 +631,6 @@ class DSAService {
     });
   }
 
-  /**
-   * Block DSA
-   */
   async blockDSA(dsaId: string) {
     return prisma.user.update({
       where: {
@@ -292,9 +642,6 @@ class DSAService {
     });
   }
 
-  /**
-   * Unblock DSA
-   */
   async unblockDSA(dsaId: string) {
     return prisma.user.update({
       where: {
@@ -308,3 +655,8 @@ class DSAService {
 }
 
 export default new DSAService();
+
+
+
+
+

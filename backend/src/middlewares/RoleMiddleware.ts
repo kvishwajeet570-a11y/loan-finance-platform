@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+﻿import { Request, Response, NextFunction } from "express";
 
 declare global {
   namespace Express {
@@ -7,6 +7,7 @@ declare global {
         id: string;
         role: string;
         email: string;
+        permissions: string[];
       };
     }
   }
@@ -14,11 +15,7 @@ declare global {
 
 const roleMiddleware =
   (...allowedRoles: string[]) =>
-  (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) => {
+  (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -27,20 +24,22 @@ const roleMiddleware =
         });
       }
 
-      const userRole = req.user.role;
-
-      if (!allowedRoles.includes(userRole)) {
+      if (!allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
           success: false,
           message: "Access denied",
-          role: userRole,
-          allowedRoles,
+          requiredRoles: allowedRoles,
         });
       }
 
       next();
     } catch (error) {
-      next(error);
+      console.error("Role Middleware Error:", error);
+
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error",
+      });
     }
   };
 

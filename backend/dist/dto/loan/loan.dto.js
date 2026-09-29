@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loanAnalyticsSchema = exports.loanFilterSchema = exports.disburseLoanSchema = exports.emiCalculatorSchema = exports.loanEligibilitySchema = exports.assignLoanSchema = exports.updateLoanStatusSchema = exports.updateLoanSchema = exports.createLoanSchema = exports.employmentTypeEnum = exports.loanStatusEnum = exports.loanTypeEnum = void 0;
+exports.loanAnalyticsSchema = exports.loanFilterSchema = exports.disburseLoanSchema = exports.emiCalculatorSchema = exports.loanEligibilitySchema = exports.assignLoanSchema = exports.updateLoanStatusSchema = exports.updateLoanSchema = exports.createLoanSchema = exports.loanStatusEnum = exports.loanTypeEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    LOAN TYPE
@@ -33,7 +33,7 @@ exports.loanStatusEnum = zod_1.z.enum([
 /* =========================================
    EMPLOYMENT TYPE
 ========================================= */
-exports.employmentTypeEnum = zod_1.z.enum([
+const employmentTypeEnum = zod_1.z.enum([
     "SALARIED",
     "SELF_EMPLOYED",
     "BUSINESS_OWNER",
@@ -62,7 +62,7 @@ exports.createLoanSchema = zod_1.z.object({
         .positive(),
     monthlyIncome: zod_1.z.number()
         .positive(),
-    employmentType: exports.employmentTypeEnum,
+    employmentType: employmentTypeEnum,
     city: zod_1.z.string().optional(),
     state: zod_1.z.string().optional(),
     pincode: zod_1.z.string().optional(),

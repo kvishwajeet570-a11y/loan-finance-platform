@@ -1,3 +1,4 @@
+import upload from "../../config/upload/multer";
 import { Router } from "express";
 
 import {
@@ -125,13 +126,11 @@ router.post(
   uploadProfileImage
 );
 
-router.post(
-  "/kyc",
-  uploadKycDocument
-);
+router.post("/kyc", upload.single("file"), uploadKycDocument);
 
 router.post(
   "/loan",
+  upload.single("file"),
   uploadLoanDocument
 );
 
@@ -144,15 +143,9 @@ router.post(
    ID DOCUMENTS
 ===================================== */
 
-router.post(
-  "/pan",
-  uploadPanCard
-);
+router.post("/pan", upload.single("file"), uploadPanCard);
 
-router.post(
-  "/aadhaar",
-  uploadAadhaarCard
-);
+router.post("/aadhaar", upload.single("file"), uploadAadhaarCard);
 
 router.post(
   "/passport",
@@ -350,3 +343,6 @@ router.post(
 );
 
 export default router;
+
+
+

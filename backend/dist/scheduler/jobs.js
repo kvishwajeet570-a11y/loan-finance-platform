@@ -5,8 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fraudDetectionJob = exports.reportGenerationJob = exports.databaseBackupJob = exports.walletJob = exports.analyticsSnapshotJob = exports.documentCleanupJob = exports.kycExpiryJob = exports.commissionSettlementJob = exports.referralSettlementJob = exports.dailyEmiReminderJob = void 0;
 const node_cron_1 = __importDefault(require("node-cron"));
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma_1 = __importDefault(require("../prisma/prisma"));
 /* =========================================
    DAILY LOAN EMI CHECK
 ========================================= */
@@ -14,7 +13,7 @@ exports.dailyEmiReminderJob = node_cron_1.default.schedule("0 9 * * *", async ()
     try {
         console.log("Running Daily EMI Reminder Job...");
         const today = new Date();
-        const loans = await prisma.loanApplication.findMany({
+        const loans = await prisma_1.default.loanApplication.findMany({
             where: {
                 status: "APPROVED",
             },
@@ -41,7 +40,7 @@ exports.referralSettlementJob = node_cron_1.default.schedule("0 1 * * *", async 
 ========================================= */
 exports.commissionSettlementJob = node_cron_1.default.schedule("30 1 * * *", async () => {
     try {
-        const commissions = await prisma.commission.findMany({
+        const commissions = await prisma_1.default.commission.findMany({
             where: {
                 status: "APPROVED",
             },
@@ -57,7 +56,7 @@ exports.commissionSettlementJob = node_cron_1.default.schedule("30 1 * * *", asy
 ========================================= */
 exports.kycExpiryJob = node_cron_1.default.schedule("0 2 * * *", async () => {
     try {
-        await prisma.kyc.updateMany({
+        await prisma_1.default.kYC.updateMany({
             where: {
                 expiryDate: {
                     lte: new Date(),
@@ -88,9 +87,9 @@ exports.documentCleanupJob = node_cron_1.default.schedule("0 3 * * 0", async () 
 ========================================= */
 exports.analyticsSnapshotJob = node_cron_1.default.schedule("55 23 * * *", async () => {
     try {
-        const totalUsers = await prisma.user.count();
-        const totalLoans = await prisma.loanApplication.count();
-        await prisma.analytics.create({
+        const totalUsers = await prisma_1.default.user.count();
+        const totalLoans = await prisma_1.default.loanApplication.count();
+        await prisma_1.default.analytics.create({
             data: {
                 totalUsers,
                 totalLoans,

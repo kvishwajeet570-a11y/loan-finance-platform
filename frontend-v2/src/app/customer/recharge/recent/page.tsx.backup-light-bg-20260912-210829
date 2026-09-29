@@ -1,0 +1,1222 @@
+﻿"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowDownUp,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Copy,
+  CreditCard,
+  IndianRupee,
+  Loader2,
+  LockKeyhole,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Tag,
+  TrendingUp,
+  Tv,
+  Wallet,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import api from "@/lib/api";
+
+type User = {
+  id: string;
+  name?: string;
+  fullName?: string;
+};
+
+type Recharge = {
+  id: string;
+  mobileNumber?: string;
+  operator?: string;
+  amount?: number;
+  rechargeType?: string;
+  status?: string;
+  createdAt?: string;
+  paymentMethod?: string;
+};
+
+const money = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+const maskNumber = (value = "") => {
+  if (value.length <= 4) return value;
+  return `${"*".repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;
+};
+
+const formatDate = (date?: string) => {
+  if (!date) return "—";
+
+  const d = new Date(date);
+
+  if (Number.isNaN(d.getTime())) return "—";
+
+  return d.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const normalizeStatus = (status?: string) =>
+  String(status || "PENDING").toUpperCase();
+
+const operatorIcon = (operator?: string) => {
+  const value = String(operator || "").toUpperCase();
+
+  if (value.includes("JIO")) return "J";
+  if (value.includes("AIRTEL")) return "A";
+  if (value.includes("VI")) return "Vi";
+  if (value.includes("BSNL")) return "B";
+  if (value.includes("TATA")) return "T";
+  if (value.includes("ICICI")) return "i";
+  if (value.includes("HDFC")) return "H";
+  if (value.includes("SBI")) return "SBI";
+  if (value.includes("AXIS")) return "A";
+  if (value.includes("IDFC")) return "F";
+  if (value.includes("DISH")) return "D";
+  if (value.includes("D2H")) return "d2h";
+
+  return "R";
+};
+
+const operatorTone = (operator?: string) => {
+  const value = String(operator || "").toUpperCase();
+
+  if (value.includes("JIO")) return "from-blue-500 to-cyan-400";
+  if (value.includes("AIRTEL")) return "from-red-500 to-rose-600";
+  if (value.includes("VI")) return "from-red-500 to-pink-500";
+  if (value.includes("BSNL")) return "from-blue-600 to-indigo-600";
+  if (value.includes("TATA")) return "from-red-500 to-orange-500";
+  if (value.includes("ICICI")) return "from-orange-500 to-red-600";
+  if (value.includes("HDFC")) return "from-red-600 to-red-800";
+  if (value.includes("SBI")) return "from-blue-600 to-cyan-500";
+
+  return "from-indigo-600 to-violet-600";
+};
+
+export default function RecentRechargePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [recharges, setRecharges] = useState<Recharge[]>([]);
+  const [wallet, setWallet] = useState(0);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [typeFilter, setTypeFilter] = useState("ALL");
+  const [sortOrder, setSortOrder] = useState("newest");
+
+  const [selectedRecharge, setSelectedRecharge] =
+    useState<Recharge | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("loan_finance_token");
+      const stored = localStorage.getItem("loan_finance_user");
+
+      if (!token || !stored) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const currentUser = JSON.parse(stored) as User;
+      setUser(currentUser);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      };
+
+      const [rechargeRes, walletRes] = await Promise.all([
+        api.get(`/recharge/user/${currentUser.id}`, config),
+        api.get("/wallet/balance", config),
+      ]);
+
+      const raw =
+        rechargeRes?.data?.data ||
+        rechargeRes?.data?.recharges ||
+        [];
+
+      const walletData =
+        walletRes?.data?.data ||
+        walletRes?.data?.wallet ||
+        walletRes?.data ||
+        {};
+
+      setRecharges(Array.isArray(raw) ? raw : []);
+      setWallet(Number(walletData?.balance || 0));
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      setMessage(
+        error?.response?.data?.message ||
+          "Unable to load recharge history."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const stats = useMemo(() => {
+    const successful = recharges.filter(
+      (item) => normalizeStatus(item.status) === "SUCCESS"
+    );
+
+    const pending = recharges.filter((item) =>
+      ["PENDING", "PROCESSING"].includes(
+        normalizeStatus(item.status)
+      )
+    );
+
+    const failed = recharges.filter((item) =>
+      ["FAILED", "CANCELLED", "REFUNDED"].includes(
+        normalizeStatus(item.status)
+      )
+    );
+
+    const totalValue = successful.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0
+    );
+
+    const mobile = recharges.filter(
+      (item) =>
+        String(item.rechargeType || "").toUpperCase() === "MOBILE"
+    ).length;
+
+    const dth = recharges.filter(
+      (item) =>
+        String(item.rechargeType || "").toUpperCase() === "DTH"
+    ).length;
+
+    const fastag = recharges.filter(
+      (item) =>
+        String(item.rechargeType || "").toUpperCase() === "FASTAG"
+    ).length;
+
+    return {
+      total: recharges.length,
+      successful: successful.length,
+      pending: pending.length,
+      failed: failed.length,
+      totalValue,
+      mobile,
+      dth,
+      fastag,
+    };
+  }, [recharges]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    const result = recharges.filter((item) => {
+      const status = normalizeStatus(item.status);
+      const type = String(item.rechargeType || "").toUpperCase();
+
+      const searchMatch =
+        !q ||
+        [
+          item.operator,
+          item.mobileNumber,
+          item.amount,
+          item.rechargeType,
+          item.status,
+          item.paymentMethod,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+
+      const statusMatch =
+        statusFilter === "ALL" || status === statusFilter;
+
+      const typeMatch =
+        typeFilter === "ALL" || type === typeFilter;
+
+      return searchMatch && statusMatch && typeMatch;
+    });
+
+    return [...result].sort((a, b) => {
+      const first = new Date(a.createdAt || 0).getTime();
+      const second = new Date(b.createdAt || 0).getTime();
+
+      if (sortOrder === "oldest") return first - second;
+      if (sortOrder === "amountHigh") {
+        return Number(b.amount || 0) - Number(a.amount || 0);
+      }
+      if (sortOrder === "amountLow") {
+        return Number(a.amount || 0) - Number(b.amount || 0);
+      }
+
+      return second - first;
+    });
+  }, [
+    recharges,
+    search,
+    statusFilter,
+    typeFilter,
+    sortOrder,
+  ]);
+
+  const copyReference = async (id: string) => {
+    try {
+      await navigator.clipboard.writeText(id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
+  const statusBadge = (status?: string) => {
+    const value = normalizeStatus(status);
+
+    if (value === "SUCCESS") {
+      return {
+        text: "SUCCESS",
+        icon: <CheckCircle2 size={12} />,
+        cls: "border-emerald-500/20 bg-emerald-500/10 text-emerald-400",
+      };
+    }
+
+    if (["PENDING", "PROCESSING"].includes(value)) {
+      return {
+        text: value,
+        icon: <Clock3 size={12} />,
+        cls: "border-amber-500/20 bg-amber-500/10 text-amber-400",
+      };
+    }
+
+    return {
+      text: value,
+      icon: <XCircle size={12} />,
+      cls: "border-red-500/20 bg-red-500/10 text-red-400",
+    };
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center bg-[#03091f]">
+        <div className="flex items-center gap-3 rounded-2xl border border-blue-900 bg-[#081637] px-6 py-4 text-white shadow-2xl">
+          <Loader2
+            size={22}
+            className="animate-spin text-cyan-400"
+          />
+          <span className="font-bold">
+            Loading Recharge Center...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#03091f] text-white">
+      <div className="mx-auto max-w-[1650px] px-4 py-5 md:px-6">
+
+        {/* TOP */}
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+              <Link
+                href="/customer/dashboard"
+                className="hover:text-cyan-400"
+              >
+                Dashboard
+              </Link>
+
+              <ChevronRight size={13} />
+
+              <span>Recharge</span>
+
+              <ChevronRight size={13} />
+
+              <span className="font-black text-cyan-400">
+                Recharge History
+              </span>
+            </div>
+
+            <h1 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">
+              Recharge Center
+            </h1>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Manage, search and track all your recharge activity.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/customer/recharge/mobile"
+              className="hidden rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-[10px] font-black shadow-lg shadow-indigo-900/30 hover:from-violet-600 hover:to-purple-600 sm:block"
+            >
+              + New Recharge
+            </Link>
+
+            <button
+              onClick={() => {
+                setRefreshing(true);
+                loadData();
+              }}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-xl border border-blue-900 bg-[#081637] px-4 py-3 text-[10px] font-black text-slate-300 hover:border-cyan-500 hover:text-cyan-400"
+            >
+              <RefreshCw
+                size={14}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-[30px] border border-blue-800/60 bg-gradient-to-br from-[#0c237d] via-[#1834c9] to-[#6720d2] shadow-[0_30px_100px_rgba(37,99,235,.22)]">
+          <div className="absolute -right-24 -top-32 h-96 w-96 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute -bottom-40 left-[40%] h-[500px] w-[500px] rounded-full bg-fuchsia-500/15 blur-3xl" />
+
+          <div className="relative grid gap-7 p-6 md:p-9 lg:grid-cols-[1fr_420px]">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[9px] font-black text-cyan-100 backdrop-blur">
+                <Sparkles size={12} />
+                SMART RECHARGE ANALYTICS
+              </div>
+
+              <h2 className="mt-5 max-w-2xl text-4xl font-black leading-[.98] md:text-6xl">
+                Every Recharge.
+                <span className="block bg-gradient-to-r from-white via-cyan-200 to-violet-300 bg-clip-text text-transparent">
+                  One Smart History.
+                </span>
+              </h2>
+
+              <p className="mt-5 max-w-xl text-sm leading-6 text-blue-100">
+                View your complete recharge activity, track status,
+                review spending and quickly repeat your favourite
+                recharge.
+              </p>
+
+              <div className="mt-7 grid max-w-2xl grid-cols-2 gap-3 md:grid-cols-4">
+                {[
+                  {
+                    icon: <Zap size={16} />,
+                    value: stats.total,
+                    label: "Total",
+                  },
+                  {
+                    icon: <CheckCircle2 size={16} />,
+                    value: stats.successful,
+                    label: "Successful",
+                  },
+                  {
+                    icon: <Clock3 size={16} />,
+                    value: stats.pending,
+                    label: "Pending",
+                  },
+                  {
+                    icon: <IndianRupee size={16} />,
+                    value: money(stats.totalValue),
+                    label: "Value",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur-xl"
+                  >
+                    <div className="text-cyan-200">
+                      {item.icon}
+                    </div>
+
+                    <p className="mt-2 text-lg font-black">
+                      {item.value}
+                    </p>
+
+                    <p className="text-[8px] font-bold text-blue-100">
+                      {item.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* HERO SUMMARY */}
+            <div className="relative flex items-center justify-center">
+              <div className="w-full rounded-[28px] border border-white/15 bg-black/15 p-5 shadow-2xl backdrop-blur-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-wider text-cyan-200">
+                      Wallet Balance
+                    </p>
+
+                    <p className="mt-2 text-4xl font-black">
+                      {money(wallet)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <Wallet size={24} />
+                  </div>
+                </div>
+
+                <div className="mt-5 h-px bg-white/10" />
+
+                <div className="mt-5 grid grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-white/5 p-3 text-center">
+                    <p className="text-lg font-black">
+                      {stats.mobile}
+                    </p>
+                    <p className="text-[8px] text-blue-100">
+                      Mobile
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white/5 p-3 text-center">
+                    <p className="text-lg font-black">
+                      {stats.dth}
+                    </p>
+                    <p className="text-[8px] text-blue-100">
+                      DTH
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl bg-white/5 p-3 text-center">
+                    <p className="text-lg font-black">
+                      {stats.fastag}
+                    </p>
+                    <p className="text-[8px] text-blue-100">
+                      FASTag
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/customer/wallet/balance"
+                  className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-[10px] font-black text-indigo-700 hover:bg-cyan-50"
+                >
+                  Manage Wallet
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* MESSAGE */}
+        {message && (
+          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs font-black text-amber-300">
+            <ShieldCheck size={17} />
+            {message}
+          </div>
+        )}
+
+        {/* KPI CARDS */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {[
+            {
+              title: "Total Recharge",
+              value: stats.total,
+              sub: "All transactions",
+              icon: <Zap size={19} />,
+              cls: "text-cyan-400 bg-cyan-400/10",
+            },
+            {
+              title: "Successful",
+              value: stats.successful,
+              sub: "Completed",
+              icon: <CheckCircle2 size={19} />,
+              cls: "text-emerald-400 bg-emerald-400/10",
+            },
+            {
+              title: "Pending",
+              value: stats.pending,
+              sub: "In progress",
+              icon: <Clock3 size={19} />,
+              cls: "text-amber-400 bg-amber-400/10",
+            },
+            {
+              title: "Failed / Refund",
+              value: stats.failed,
+              sub: "Needs attention",
+              icon: <XCircle size={19} />,
+              cls: "text-red-400 bg-red-400/10",
+            },
+            {
+              title: "Total Value",
+              value: money(stats.totalValue),
+              sub: "Successful value",
+              icon: <TrendingUp size={19} />,
+              cls: "text-violet-400 bg-violet-400/10",
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="rounded-[23px] border border-blue-900/70 bg-[#081637] p-4 shadow-xl"
+            >
+              <div className="flex items-center justify-between">
+                <div
+                  className={`rounded-xl p-2.5 ${item.cls}`}
+                >
+                  {item.icon}
+                </div>
+
+                <ArrowUpRight
+                  size={14}
+                  className="text-slate-700"
+                />
+              </div>
+
+              <p className="mt-4 text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                {item.title}
+              </p>
+
+              <p className="mt-1 text-2xl font-black">
+                {item.value}
+              </p>
+
+              <p className="mt-1 text-[9px] text-slate-600">
+                {item.sub}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* FILTERS */}
+        <section className="mt-6 rounded-[28px] border border-blue-900/70 bg-[#081637] p-5 shadow-2xl md:p-6">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-wider text-cyan-400">
+                Smart Filters
+              </p>
+
+              <h2 className="mt-1 text-xl font-black">
+                Find a Recharge
+              </h2>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative">
+                <Search
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                />
+
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search operator, number, amount..."
+                  className="w-full rounded-xl border border-blue-900 bg-[#0b1c3d] py-3 pl-9 pr-4 text-[10px] font-bold text-white outline-none focus:border-cyan-500 sm:w-72"
+                />
+              </div>
+
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-xl border border-blue-900 bg-[#0b1c3d] px-4 py-3 text-[10px] font-black text-white outline-none focus:border-cyan-500"
+              >
+                <option value="ALL">All Status</option>
+                <option value="SUCCESS">Success</option>
+                <option value="PENDING">Pending</option>
+                <option value="PROCESSING">Processing</option>
+                <option value="FAILED">Failed</option>
+                <option value="REFUNDED">Refunded</option>
+              </select>
+
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="rounded-xl border border-blue-900 bg-[#0b1c3d] px-4 py-3 text-[10px] font-black text-white outline-none focus:border-cyan-500"
+              >
+                <option value="ALL">All Services</option>
+                <option value="MOBILE">Mobile</option>
+                <option value="DTH">DTH</option>
+                <option value="FASTAG">FASTag</option>
+              </select>
+
+              <button
+                onClick={() =>
+                  setSortOrder(
+                    sortOrder === "newest"
+                      ? "oldest"
+                      : sortOrder === "oldest"
+                        ? "amountHigh"
+                        : sortOrder === "amountHigh"
+                          ? "amountLow"
+                          : "newest"
+                  )
+                }
+                className="flex items-center justify-center gap-2 rounded-xl border border-blue-900 bg-[#0b1c3d] px-4 py-3 text-[10px] font-black text-slate-300 hover:border-cyan-500 hover:text-cyan-400"
+              >
+                <ArrowDownUp size={13} />
+                Sort
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {[
+              ["ALL", "All"],
+              ["SUCCESS", "Successful"],
+              ["PENDING", "Pending"],
+              ["MOBILE", "Mobile"],
+              ["DTH", "DTH"],
+              ["FASTAG", "FASTag"],
+            ].map(([value, label]) => {
+              const active =
+                statusFilter === value || typeFilter === value;
+
+              return (
+                <button
+                  key={value}
+                  onClick={() => {
+                    if (["MOBILE", "DTH", "FASTAG"].includes(value)) {
+                      setTypeFilter(
+                        typeFilter === value ? "ALL" : value
+                      );
+                    } else {
+                      setStatusFilter(
+                        statusFilter === value ? "ALL" : value
+                      );
+                    }
+                  }}
+                  className={`rounded-full border px-4 py-2 text-[9px] font-black transition ${
+                    active
+                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
+                      : "border-blue-900 bg-[#0b1c3d] text-slate-500 hover:border-cyan-600 hover:text-cyan-400"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* CONTENT */}
+        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_330px]">
+
+          {/* TRANSACTIONS */}
+          <section className="rounded-[28px] border border-blue-900/70 bg-[#081637] p-5 shadow-2xl md:p-6">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-wider text-cyan-400">
+                  Transactions
+                </p>
+
+                <h2 className="mt-1 text-xl font-black">
+                  Recharge Activity
+                </h2>
+
+                <p className="mt-1 text-[10px] text-slate-500">
+                  {filtered.length} transaction
+                  {filtered.length !== 1 ? "s" : ""} found
+                </p>
+              </div>
+
+              <span className="hidden text-[9px] font-bold text-slate-600 md:block">
+                Latest activity
+              </span>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {filtered.length ? (
+                filtered.map((item, index) => {
+                  const status = statusBadge(item.status);
+                  const type = String(
+                    item.rechargeType || "RECHARGE"
+                  ).toUpperCase();
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="group relative overflow-hidden rounded-[22px] border border-blue-900 bg-[#0b1c3d] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-indigo-600 hover:shadow-xl hover:shadow-indigo-950/30"
+                    >
+                      {index === 0 && (
+                        <div className="absolute right-0 top-0 rounded-bl-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-3 py-1 text-[7px] font-black">
+                          LATEST
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                        <div
+                          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${operatorTone(
+                            item.operator
+                          )} text-sm font-black text-white shadow-lg`}
+                        >
+                          {operatorIcon(item.operator)}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-sm font-black">
+                              {item.operator || type}
+                            </h3>
+
+                            <span className="rounded-full border border-indigo-500/20 bg-indigo-500/10 px-2 py-1 text-[7px] font-black text-indigo-300">
+                              {type}
+                            </span>
+
+                            <span
+                              className={`flex items-center gap-1 rounded-full border px-2 py-1 text-[7px] font-black ${status.cls}`}
+                            >
+                              {status.icon}
+                              {status.text}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[9px] text-slate-500">
+                            <span>
+                              {maskNumber(item.mobileNumber)}
+                            </span>
+
+                            <span>
+                              {formatDate(item.createdAt)}
+                            </span>
+
+                            <span>
+                              {item.paymentMethod || "Wallet"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-4 md:block md:text-right">
+                          <div>
+                            <p className="text-xl font-black">
+                              {money(Number(item.amount || 0))}
+                            </p>
+
+                            <p className="mt-1 text-[8px] text-slate-600">
+                              Recharge Amount
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() =>
+                              setSelectedRecharge(item)
+                            }
+                            className="rounded-xl border border-blue-900 bg-[#10244c] px-3 py-2 text-[8px] font-black text-slate-400 hover:border-cyan-500 hover:text-cyan-400"
+                          >
+                            Details
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-blue-900/70 pt-3">
+                        <div className="flex items-center gap-2 text-[8px] text-slate-600">
+                          <CreditCard size={12} />
+                          Ref: {String(item.id).slice(0, 16)}...
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() =>
+                              copyReference(item.id)
+                            }
+                            className="flex items-center gap-1.5 rounded-lg border border-blue-900 px-3 py-2 text-[8px] font-black text-slate-500 hover:border-cyan-500 hover:text-cyan-400"
+                          >
+                            {copied ? (
+                              <Check size={11} />
+                            ) : (
+                              <Copy size={11} />
+                            )}
+                            Copy Ref
+                          </button>
+
+                          <Link
+                            href={
+                              type === "DTH"
+                                ? "/customer/recharge/dth"
+                                : type === "FASTAG"
+                                  ? "/customer/recharge/fastag"
+                                  : "/customer/recharge/mobile"
+                            }
+                            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-2 text-[8px] font-black text-white hover:bg-violet-600"
+                          >
+                            Repeat
+                            <ArrowRight size={11} />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-[24px] border border-dashed border-blue-900 p-12 text-center">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-400">
+                    <Search size={26} />
+                  </div>
+
+                  <h3 className="mt-4 font-black">
+                    No Recharge Found
+                  </h3>
+
+                  <p className="mt-1 text-[10px] text-slate-600">
+                    Try changing your search or filters.
+                  </p>
+
+                  <button
+                    onClick={() => {
+                      setSearch("");
+                      setStatusFilter("ALL");
+                      setTypeFilter("ALL");
+                    }}
+                    className="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-[9px] font-black"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* SIDE */}
+          <aside className="space-y-5">
+
+            {/* SERVICE BREAKDOWN */}
+            <section className="rounded-[28px] border border-blue-900/70 bg-[#081637] p-5 shadow-2xl">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-wider text-cyan-400">
+                  Service Mix
+                </p>
+
+                <h3 className="mt-1 font-black">
+                  Recharge Breakdown
+                </h3>
+              </div>
+
+              <div className="mt-5 space-y-4">
+                {[
+                  {
+                    label: "Mobile Recharge",
+                    value: stats.mobile,
+                    icon: "📱",
+                  },
+                  {
+                    label: "DTH Recharge",
+                    value: stats.dth,
+                    icon: "📺",
+                  },
+                  {
+                    label: "FASTag Recharge",
+                    value: stats.fastag,
+                    icon: "🚗",
+                  },
+                ].map((item) => {
+                  const percentage = stats.total
+                    ? Math.round((item.value / stats.total) * 100)
+                    : 0;
+
+                  return (
+                    <div key={item.label}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">
+                            {item.icon}
+                          </span>
+
+                          <span className="text-[9px] font-black">
+                            {item.label}
+                          </span>
+                        </div>
+
+                        <span className="text-[9px] font-black text-cyan-400">
+                          {item.value}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-blue-950">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-violet-500"
+                          style={{
+                            width: `${percentage}%`,
+                          }}
+                        />
+                      </div>
+
+                      <p className="mt-1 text-right text-[7px] text-slate-600">
+                        {percentage}%
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* QUICK RECHARGE */}
+            <section className="relative overflow-hidden rounded-[28px] border border-violet-500/20 bg-gradient-to-br from-violet-700 via-indigo-700 to-blue-700 p-5 shadow-2xl">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-400/20 blur-2xl" />
+
+              <div className="relative">
+                <div className="flex items-center gap-2 text-[9px] font-black text-cyan-200">
+                  <Zap size={13} />
+                  QUICK ACTION
+                </div>
+
+                <h3 className="mt-3 text-2xl font-black">
+                  Recharge Again
+                </h3>
+
+                <p className="mt-1 text-[10px] leading-5 text-indigo-100">
+                  Start a new recharge in just a few clicks.
+                </p>
+
+                <Link
+                  href="/customer/recharge/mobile"
+                  className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-white py-3 text-[10px] font-black text-indigo-700 hover:bg-cyan-50"
+                >
+                  Start Recharge
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            </section>
+
+            {/* WALLET */}
+            <section className="rounded-[28px] border border-blue-900/70 bg-[#081637] p-5 shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-emerald-400/10 p-3 text-emerald-400">
+                  <Wallet size={19} />
+                </div>
+
+                <div>
+                  <p className="text-[9px] text-slate-500">
+                    AVAILABLE WALLET
+                  </p>
+
+                  <p className="mt-1 text-2xl font-black">
+                    {money(wallet)}
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/customer/wallet/balance"
+                className="mt-5 flex items-center justify-between rounded-xl border border-blue-900 bg-[#0b1c3d] px-4 py-3 text-[9px] font-black text-slate-300 hover:border-cyan-500 hover:text-cyan-400"
+              >
+                Manage Wallet
+                <ArrowRight size={13} />
+              </Link>
+            </section>
+
+            {/* SECURITY */}
+            <section className="rounded-[28px] border border-emerald-500/15 bg-emerald-500/5 p-5">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-emerald-500/10 p-3 text-emerald-400">
+                  <ShieldCheck size={18} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-emerald-300">
+                    Secure Recharge History
+                  </p>
+
+                  <p className="mt-1 text-[9px] leading-5 text-slate-500">
+                    Your recharge activity is linked with your
+                    account and wallet records.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        {/* FOOTER */}
+        <div className="mt-7 flex flex-wrap items-center justify-center gap-5 border-t border-blue-900/60 py-6 text-[8px] font-bold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <LockKeyhole size={11} />
+            SECURE PAYMENTS
+          </span>
+
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck size={11} />
+            PROTECTED ACCOUNT
+          </span>
+
+          <span className="flex items-center gap-1.5">
+            <TrendingUp size={11} />
+            SMART HISTORY
+          </span>
+
+          <span>LOANFINANCE RECHARGE CENTER</span>
+        </div>
+      </div>
+
+      {/* DETAILS MODAL */}
+      {selectedRecharge && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
+          onClick={() => setSelectedRecharge(null)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-[28px] border border-blue-900 bg-[#081637] shadow-[0_30px_100px_rgba(0,0,0,.6)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative overflow-hidden bg-gradient-to-r from-indigo-700 to-violet-700 p-6">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-400/20 blur-2xl" />
+
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-wider text-indigo-100">
+                    Transaction Details
+                  </p>
+
+                  <h3 className="mt-2 text-2xl font-black">
+                    Recharge Receipt
+                  </h3>
+                </div>
+
+                <button
+                  onClick={() => setSelectedRecharge(null)}
+                  className="rounded-xl bg-white/10 p-2 text-white hover:bg-white/20"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="flex items-center gap-4 rounded-2xl border border-blue-900 bg-[#0b1c3d] p-4">
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br ${operatorTone(
+                    selectedRecharge.operator
+                  )} text-sm font-black`}
+                >
+                  {operatorIcon(selectedRecharge.operator)}
+                </div>
+
+                <div className="min-w-0 flex-1">
+                  <p className="font-black">
+                    {selectedRecharge.operator ||
+                      selectedRecharge.rechargeType ||
+                      "Recharge"}
+                  </p>
+
+                  <p className="mt-1 text-[9px] text-slate-500">
+                    {maskNumber(selectedRecharge.mobileNumber)}
+                  </p>
+                </div>
+
+                <p className="text-xl font-black">
+                  {money(Number(selectedRecharge.amount || 0))}
+                </p>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-[#0b1c3d] p-4">
+                  <p className="text-[8px] font-bold text-slate-600">
+                    SERVICE
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {String(
+                      selectedRecharge.rechargeType || "RECHARGE"
+                    ).toUpperCase()}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#0b1c3d] p-4">
+                  <p className="text-[8px] font-bold text-slate-600">
+                    STATUS
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-emerald-400">
+                    {normalizeStatus(selectedRecharge.status)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#0b1c3d] p-4">
+                  <p className="text-[8px] font-bold text-slate-600">
+                    PAYMENT
+                  </p>
+
+                  <p className="mt-1 text-sm font-black">
+                    {selectedRecharge.paymentMethod ||
+                      "Wallet"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-[#0b1c3d] p-4">
+                  <p className="text-[8px] font-bold text-slate-600">
+                    DATE
+                  </p>
+
+                  <p className="mt-1 text-[10px] font-black">
+                    {formatDate(selectedRecharge.createdAt)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-blue-900 bg-[#0b1c3d] p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-[8px] font-bold text-slate-600">
+                      TRANSACTION ID
+                    </p>
+
+                    <p className="mt-1 break-all text-[10px] font-black text-slate-300">
+                      {selectedRecharge.id}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      copyReference(selectedRecharge.id)
+                    }
+                    className="shrink-0 rounded-xl bg-indigo-600 p-2.5 text-white"
+                  >
+                    {copied ? (
+                      <Check size={14} />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <Link
+                href={
+                  String(
+                    selectedRecharge.rechargeType || ""
+                  ).toUpperCase() === "DTH"
+                    ? "/customer/recharge/dth"
+                    : String(
+                          selectedRecharge.rechargeType || ""
+                        ).toUpperCase() === "FASTAG"
+                      ? "/customer/recharge/fastag"
+                      : "/customer/recharge/mobile"
+                }
+                className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-4 text-[10px] font-black"
+              >
+                Recharge Again
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+

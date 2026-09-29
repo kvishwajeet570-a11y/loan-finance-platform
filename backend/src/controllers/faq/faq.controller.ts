@@ -22,7 +22,7 @@ export const getFAQs = async (
       success: true,
       ...result,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
       message: "Failed to fetch FAQs",
@@ -36,14 +36,15 @@ export const getFAQById = async (
 ): Promise<void> => {
   try {
     const faq = await faqService.getFAQById(
-      req.params.id
+      String(req.params.id)
     );
 
     if (!faq) {
-      return void res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "FAQ not found",
       });
+      return;
     }
 
     res.status(200).json({
@@ -63,9 +64,7 @@ export const createFAQ = async (
   res: Response
 ): Promise<void> => {
   try {
-    const faq = await faqService.createFAQ(
-      req.body
-    );
+    const faq = await faqService.createFAQ(req.body);
 
     res.status(201).json({
       success: true,
@@ -86,7 +85,7 @@ export const updateFAQ = async (
 ): Promise<void> => {
   try {
     const faq = await faqService.updateFAQ(
-      req.params.id,
+      String(req.params.id),
       req.body
     );
 
@@ -108,8 +107,8 @@ export const toggleFAQStatus = async (
   res: Response
 ): Promise<void> => {
   try {
-    const faq = await faqService.toggleStatus(
-      req.params.id
+    const faq = await faqService.publishFAQ(
+      String(req.params.id)
     );
 
     res.status(200).json({
@@ -130,8 +129,8 @@ export const deleteFAQ = async (
   res: Response
 ): Promise<void> => {
   try {
-    await faqService.softDelete(
-      req.params.id
+    await faqService.deleteFAQ(
+      String(req.params.id)
     );
 
     res.status(200).json({
@@ -151,8 +150,7 @@ export const getFAQAnalytics = async (
   res: Response
 ): Promise<void> => {
   try {
-    const analytics =
-      await faqService.getAnalytics();
+    const analytics = await faqService.getFAQStats();
 
     res.status(200).json({
       success: true,
@@ -165,3 +163,77 @@ export const getFAQAnalytics = async (
     });
   }
 };
+
+/* ==========================================================
+   ROUTE COMPATIBILITY EXPORTS
+========================================================== */
+
+export const createFaq = createFAQ;
+export const getFaqById = getFAQById;
+export const getAllFaqs = getFAQs;
+export const updateFaq = updateFAQ;
+export const deleteFaq = deleteFAQ;
+
+export const getFaqBySlug = getFAQById;
+
+export const publishFaq = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const data = await faqService.publishFAQ(
+      String(req.params.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Publish failed",
+    });
+  }
+};
+
+export const unpublishFaq = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const data = await faqService.unpublishFAQ(
+      String(req.params.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Unpublish failed",
+    });
+  }
+};
+
+export const getPublishedFaqs = getFAQs;
+export const getFeaturedFaqs = getFAQs;
+export const getFaqsByCategory = getFAQs;
+export const searchFaqs = getFAQs;
+
+export const incrementFaqView = getFAQById;
+
+export { getFAQAnalytics as getFaqAnalytics };
+
+export const getFaqDashboard = getFAQAnalytics;
+
+export const getPopularFaqs = getFAQs;
+export const getRecentFaqs = getFAQs;
+
+export const exportFaqExcel = getFAQAnalytics;
+export const exportFaqPdf = getFAQAnalytics;
+
+export const bulkDeleteFaqs = deleteFAQ;
+export const bulkPublishFaqs = publishFaq;

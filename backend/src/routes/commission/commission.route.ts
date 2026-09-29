@@ -1,19 +1,5 @@
 import { Router } from "express";
-
-import {
-  createCommission,
-  getCommissionById,
-  getUserCommissions,
-  getPendingCommissions,
-  approveCommission,
-  rejectCommission,
-  markCommissionPaid,
-  getAllCommissions,
-  searchCommissions,
-  getCommissionAnalytics,
-  getTopEarners,
-  getMonthlyCommission,
-} from "../../controllers/commission/commission.controller";
+import CommissionController from "../../controllers/commission/commission.controller";
 
 const router = Router();
 
@@ -23,17 +9,17 @@ const router = Router();
 
 router.get(
   "/analytics",
-  getCommissionAnalytics
+  CommissionController.getCommissionAnalytics
 );
 
 router.get(
   "/top-earners",
-  getTopEarners
+  CommissionController.getTopEarners
 );
 
 router.get(
   "/monthly",
-  getMonthlyCommission
+  CommissionController.getMonthlyCommission
 );
 
 /* ========================================
@@ -42,32 +28,32 @@ router.get(
 
 router.post(
   "/",
-  createCommission
+  CommissionController.createCommission
 );
 
 router.get(
   "/",
-  getAllCommissions
+  CommissionController.getAllCommissions
 );
 
 router.get(
   "/pending",
-  getPendingCommissions
+  CommissionController.getPendingCommissions
 );
 
 router.get(
   "/search",
-  searchCommissions
+  CommissionController.searchCommissions
 );
 
 router.get(
   "/user/:userId",
-  getUserCommissions
+  CommissionController.getUserCommissions
 );
 
 router.get(
   "/:id",
-  getCommissionById
+  CommissionController.getCommissionById
 );
 
 /* ========================================
@@ -76,17 +62,17 @@ router.get(
 
 router.patch(
   "/:id/approve",
-  approveCommission
+  CommissionController.approveCommission
 );
 
 router.patch(
   "/:id/reject",
-  rejectCommission
+  CommissionController.rejectCommission
 );
 
 router.patch(
   "/:id/pay",
-  markCommissionPaid
+  CommissionController.markCommissionPaid
 );
 
 export default router;

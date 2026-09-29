@@ -62,53 +62,71 @@ exports.whatsappLanguageEnum = zod_1.z.enum([
    CREATE TEMPLATE
 ========================================= */
 exports.createWhatsappTemplateSchema = zod_1.z.object({
-    name: zod_1.z.string()
+    name: zod_1.z
+        .string()
         .min(2)
         .max(100),
     category: exports.whatsappTemplateCategoryEnum,
     type: exports.whatsappTemplateTypeEnum,
     language: exports.whatsappLanguageEnum,
-    templateBody: zod_1.z.string()
+    templateBody: zod_1.z
+        .string()
         .min(5)
         .max(5000),
-    variables: zod_1.z.array(zod_1.z.string())
+    variables: zod_1.z
+        .array(zod_1.z.string())
         .optional(),
-    mediaUrl: zod_1.z.string()
+    mediaUrl: zod_1.z
+        .string()
         .url()
         .optional(),
-    active: zod_1.z.boolean()
+    active: zod_1.z
+        .boolean()
         .default(true),
 });
 /* =========================================
    UPDATE TEMPLATE
 ========================================= */
 exports.updateWhatsappTemplateSchema = zod_1.z.object({
-    templateId: zod_1.z.string().cuid(),
-    name: zod_1.z.string()
+    templateId: zod_1.z
+        .string()
+        .cuid(),
+    name: zod_1.z
+        .string()
         .max(100)
         .optional(),
-    templateBody: zod_1.z.string()
+    templateBody: zod_1.z
+        .string()
         .max(5000)
         .optional(),
-    mediaUrl: zod_1.z.string()
+    mediaUrl: zod_1.z
+        .string()
         .url()
         .optional(),
-    active: zod_1.z.boolean()
+    active: zod_1.z
+        .boolean()
         .optional(),
 });
 /* =========================================
    APPROVE TEMPLATE
 ========================================= */
 exports.approveWhatsappTemplateSchema = zod_1.z.object({
-    templateId: zod_1.z.string().cuid(),
-    approvedBy: zod_1.z.string().cuid(),
+    templateId: zod_1.z
+        .string()
+        .cuid(),
+    approvedBy: zod_1.z
+        .string()
+        .cuid(),
 });
 /* =========================================
    REJECT TEMPLATE
 ========================================= */
 exports.rejectWhatsappTemplateSchema = zod_1.z.object({
-    templateId: zod_1.z.string().cuid(),
-    reason: zod_1.z.string()
+    templateId: zod_1.z
+        .string()
+        .cuid(),
+    reason: zod_1.z
+        .string()
         .min(3)
         .max(1000),
 });
@@ -116,20 +134,31 @@ exports.rejectWhatsappTemplateSchema = zod_1.z.object({
    SEND TEST MESSAGE
 ========================================= */
 exports.sendTestWhatsappSchema = zod_1.z.object({
-    templateId: zod_1.z.string().cuid(),
-    mobileNumber: zod_1.z.string()
+    templateId: zod_1.z
+        .string()
+        .cuid(),
+    mobileNumber: zod_1.z
+        .string()
         .min(10)
         .max(15),
-    variables: zod_1.z.record(zod_1.z.any())
+    variables: zod_1.z
+        .record(zod_1.z.string(), zod_1.z.any())
         .optional(),
 });
 /* =========================================
    BULK CAMPAIGN
 ========================================= */
 exports.bulkWhatsappCampaignSchema = zod_1.z.object({
-    templateId: zod_1.z.string().cuid(),
-    recipients: zod_1.z.array(zod_1.z.string()).min(1),
-    scheduledAt: zod_1.z.string()
+    templateId: zod_1.z
+        .string()
+        .cuid(),
+    recipients: zod_1.z
+        .array(zod_1.z.string()
+        .min(10)
+        .max(15))
+        .min(1),
+    scheduledAt: zod_1.z
+        .string()
         .optional(),
 });
 /* =========================================
@@ -144,11 +173,17 @@ exports.whatsappTemplateFilterSchema = zod_1.z.object({
         .optional(),
     language: exports.whatsappLanguageEnum
         .optional(),
-    active: zod_1.z.boolean()
+    active: zod_1.z
+        .boolean()
         .optional(),
-    page: zod_1.z.coerce.number()
+    page: zod_1.z.coerce
+        .number()
+        .int()
+        .min(1)
         .default(1),
-    limit: zod_1.z.coerce.number()
+    limit: zod_1.z.coerce
+        .number()
+        .int()
         .min(1)
         .max(100)
         .default(20),

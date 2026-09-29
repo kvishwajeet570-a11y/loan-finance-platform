@@ -1,98 +1,141 @@
 import { Request, Response } from "express";
 import insuranceService from "../../services/insurance/insurance.service";
 
-export const getPolicies = async (
+/* =========================================
+   INSURANCE POLICY CRUD
+========================================= */
+
+export const createInsurance = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 10);
-    const search = String(req.query.search || "");
-    const type = String(req.query.type || "");
+    const insurance = await insuranceService.createInsurance(req.body);
 
-    const result = await insuranceService.getPolicies({
-      page,
-      limit,
-      search,
-      type,
+    res.status(201).json({
+      success: true,
+      message: "Insurance policy created successfully",
+      data: insurance,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error?.message || "Failed to create insurance",
+    });
+  }
+};
+
+export const getAllInsurances = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const result = await insuranceService.getInsurances({
+      page: Number(req.query.page || 1),
+      limit: Number(req.query.limit || 10),
+      search: String(req.query.search || ""),
+      type: String(req.query.type || ""),
     });
 
     res.status(200).json({
       success: true,
       ...result,
     });
-  } catch (error) {
+  } catch {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch policies",
+      message: "Failed to fetch insurances",
     });
   }
 };
 
-export const getPolicyById = async (
+export const getInsuranceById = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const policy = await insuranceService.getPolicyById(
-      req.params.id
+    const insurance = await insuranceService.getInsuranceById(
+      String(req.params.id)
     );
 
-    if (!policy) {
+    if (!insurance) {
       return void res.status(404).json({
         success: false,
-        message: "Policy not found",
+        message: "Insurance not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      data: policy,
+      data: insurance,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch policy",
+      message: "Failed to fetch insurance",
     });
   }
 };
 
-export const createPolicy = async (
+export const updateInsurance = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const policy = await insuranceService.createPolicy(
+    const insurance = await insuranceService.updateInsurance(
+      String(req.params.id),
       req.body
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "Policy created successfully",
-      data: policy,
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-};
-
-export const approvePolicy = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const policy = await insuranceService.approvePolicy(
-      req.params.id
     );
 
     res.status(200).json({
       success: true,
-      message: "Policy approved successfully",
-      data: policy,
+      message: "Insurance updated successfully",
+      data: insurance,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update insurance",
+    });
+  }
+};
+
+export const deleteInsurance = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    await insuranceService.deleteInsurance(String(req.params.id));
+
+    res.status(200).json({
+      success: true,
+      message: "Insurance deleted successfully",
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete insurance",
+    });
+  }
+};
+
+/* =========================================
+   APPLICATIONS
+========================================= */
+
+export const approveInsurance = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const result = await insuranceService.approveInsurance(
+      String(req.params.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Application approved",
+      data: result,
     });
   } catch {
     res.status(500).json({
@@ -102,20 +145,20 @@ export const approvePolicy = async (
   }
 };
 
-export const rejectPolicy = async (
+export const rejectInsurance = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const policy = await insuranceService.rejectPolicy(
-      req.params.id,
+    const result = await insuranceService.rejectInsurance(
+      String(req.params.id),
       req.body.reason
     );
 
     res.status(200).json({
       success: true,
-      message: "Policy rejected",
-      data: policy,
+      message: "Application rejected",
+      data: result,
     });
   } catch {
     res.status(500).json({
@@ -125,27 +168,121 @@ export const rejectPolicy = async (
   }
 };
 
-export const renewPolicy = async (
+export const getUserPolicies = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const policy = await insuranceService.renewPolicy(
-      req.params.id
+    const policies = await insuranceService.getUserPolicies(
+      String(req.params.userId)
     );
 
     res.status(200).json({
       success: true,
-      message: "Policy renewed successfully",
-      data: policy,
+      data: policies,
     });
   } catch {
     res.status(500).json({
       success: false,
-      message: "Renewal failed",
+      message: "Failed to fetch policies",
     });
   }
 };
+
+/* =========================================
+   CLAIMS
+========================================= */
+
+export const createClaim = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const claim = await insuranceService.createClaim({
+      applicationId: String(req.params.id),
+      ...req.body,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Claim created successfully",
+      data: claim,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to create claim",
+    });
+  }
+};
+
+export const getPolicyClaims = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const claims = await insuranceService.getPolicyClaims(
+      String(req.params.id)
+    );
+
+    res.status(200).json({
+      success: true,
+      data: claims,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch claims",
+    });
+  }
+};
+
+export const approveClaim = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const claim = await insuranceService.approveClaim(
+      String(req.params.claimId)
+    );
+
+    res.status(200).json({
+      success: true,
+      data: claim,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Claim approval failed",
+    });
+  }
+};
+
+export const rejectClaim = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const claim = await insuranceService.rejectClaim(
+      String(req.params.claimId),
+      req.body.reason
+    );
+
+    res.status(200).json({
+      success: true,
+      data: claim,
+    });
+  } catch {
+    res.status(500).json({
+      success: false,
+      message: "Claim rejection failed",
+    });
+  }
+};
+
+/* =========================================
+   ANALYTICS
+========================================= */
 
 export const getInsuranceAnalytics = async (
   req: Request,
@@ -153,7 +290,7 @@ export const getInsuranceAnalytics = async (
 ): Promise<void> => {
   try {
     const analytics =
-      await insuranceService.getAnalytics();
+      await insuranceService.getInsuranceAnalytics();
 
     res.status(200).json({
       success: true,
@@ -162,7 +299,7 @@ export const getInsuranceAnalytics = async (
   } catch {
     res.status(500).json({
       success: false,
-      message: "Analytics failed",
+      message: "Failed to fetch analytics",
     });
   }
 };

@@ -1,10 +1,9 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class BlogRepository {
-
-  /* =========================
-      CREATE BLOG
-  ========================= */
+  // ========================================
+  // CREATE BLOG
+  // ========================================
 
   static async createBlog(data: {
     title: string;
@@ -13,338 +12,354 @@ export class BlogRepository {
     content: string;
     featuredImage?: string;
     category?: string;
-    tags?: string;
-    authorId?: string;
-    authorName?: string;
-    seoTitle?: string;
-    seoDescription?: string;
-    seoKeywords?: string;
+    tags?: string[];
+    metaTitle?: string;
+    metaDescription?: string;
+    isPublished?: boolean;
+    publishedAt?: Date;
   }) {
-
-    return prisma.blog.create({
-      data
+    return prisma.blogPost.create({
+      data,
     });
   }
 
-  /* =========================
-      GET BLOG BY ID
-  ========================= */
+  // ========================================
+  // GET BLOG BY ID
+  // ========================================
 
-  static async getBlogById(
-    blogId: string
-  ) {
-
-    return prisma.blog.findUnique({
+  static async getBlogById(blogId: string) {
+    return prisma.blogPost.findUnique({
       where: {
-        id: blogId
-      }
+        id: blogId,
+      },
     });
   }
 
-  /* =========================
-      GET BLOG BY SLUG
-  ========================= */
+  // ========================================
+  // GET BLOG BY SLUG
+  // ========================================
 
-  static async getBlogBySlug(
-    slug: string
-  ) {
-
-    return prisma.blog.findUnique({
+  static async getBlogBySlug(slug: string) {
+    return prisma.blogPost.findUnique({
       where: {
-        slug
-      }
+        slug,
+      },
     });
   }
 
-  /* =========================
-      GET ALL BLOGS
-  ========================= */
+  // ========================================
+  // GET ALL BLOGS
+  // ========================================
 
   static async getAllBlogs(
-    page = 1,
-    limit = 10
+    page: number = 1,
+    limit: number = 10
   ) {
-
     const skip = (page - 1) * limit;
 
-    const [blogs, total] =
-      await Promise.all([
+    const [blogs, total] = await Promise.all([
+      prisma.blogPost.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
 
-        prisma.blog.findMany({
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
-
-        prisma.blog.count()
-      ]);
+      prisma.blogPost.count(),
+    ]);
 
     return {
+      success: true,
       total,
       page,
       limit,
-      blogs
+      totalPages: Math.ceil(total / limit),
+      blogs,
     };
   }
 
-  /* =========================
-      GET PUBLISHED BLOGS
-  ========================= */
+  // ========================================
+  // GET PUBLISHED BLOGS
+  // ========================================
 
-  static async getPublishedBlogs() {
+  static async getPublishedBlogs(
+    page: number = 1,
+    limit: number = 10
+  ) {
+    const skip = (page - 1) * limit;
 
-    return prisma.blog.findMany({
-      where: {
-        status: "PUBLISHED"
-      },
-      orderBy: {
-        publishedAt: "desc"
-      }
-    });
+    const [blogs, total] = await Promise.all([
+      prisma.blogPost.findMany({
+        where: {
+          isPublished: true,
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          publishedAt: "desc",
+        },
+      }),
+
+      prisma.blogPost.count({
+        where: {
+          isPublished: true,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      blogs,
+    };
   }
-
-  /* =========================
-      FEATURED BLOGS
-  ========================= */
-
-  static async getFeaturedBlogs() {
-
-    return prisma.blog.findMany({
-      where: {
-        isFeatured: true,
-        status: "PUBLISHED"
-      },
-      orderBy: {
-        publishedAt: "desc"
-      }
-    });
-  }
-
-  /* =========================
-      BLOG BY CATEGORY
-  ========================= */
+    // ========================================
+  // GET BLOGS BY CATEGORY
+  // ========================================
 
   static async getBlogsByCategory(
-    category: string
+    category: string,
+    page: number = 1,
+    limit: number = 10
   ) {
+    const skip = (page - 1) * limit;
 
-    return prisma.blog.findMany({
-      where: {
-        category,
-        status: "PUBLISHED"
-      }
-    });
+    const [blogs, total] = await Promise.all([
+      prisma.blogPost.findMany({
+        where: {
+          category,
+          isPublished: true,
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          publishedAt: "desc",
+        },
+      }),
+
+      prisma.blogPost.count({
+        where: {
+          category,
+          isPublished: true,
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      blogs,
+    };
   }
 
-  /* =========================
-      SEARCH BLOGS
-  ========================= */
+  // ========================================
+  // SEARCH BLOGS
+  // ========================================
 
   static async searchBlogs(
-    search: string
+    search: string,
+    page: number = 1,
+    limit: number = 10
   ) {
+    const skip = (page - 1) * limit;
 
-    return prisma.blog.findMany({
-      where: {
-        OR: [
-          {
-            title: {
-              contains: search,
-              mode: "insensitive"
-            }
+    const where = {
+      isPublished: true,
+      OR: [
+        {
+          title: {
+            contains: search,
+            mode: "insensitive" as const,
           },
-          {
-            content: {
-              contains: search,
-              mode: "insensitive"
-            }
+        },
+        {
+          excerpt: {
+            contains: search,
+            mode: "insensitive" as const,
           },
-          {
-            category: {
-              contains: search,
-              mode: "insensitive"
-            }
-          }
-        ]
-      }
-    });
+        },
+        {
+          content: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        },
+        {
+          category: {
+            contains: search,
+            mode: "insensitive" as const,
+          },
+        },
+      ],
+    };
+
+    const [blogs, total] = await Promise.all([
+      prisma.blogPost.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          publishedAt: "desc",
+        },
+      }),
+
+      prisma.blogPost.count({
+        where,
+      }),
+    ]);
+
+    return {
+      success: true,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      blogs,
+    };
   }
 
-  /* =========================
-      UPDATE BLOG
-  ========================= */
+  // ========================================
+  // UPDATE BLOG
+  // ========================================
 
   static async updateBlog(
     blogId: string,
-    data: any
+    data: {
+      title?: string;
+      slug?: string;
+      excerpt?: string;
+      content?: string;
+      featuredImage?: string;
+      category?: string;
+      tags?: string[];
+      metaTitle?: string;
+      metaDescription?: string;
+      isPublished?: boolean;
+      publishedAt?: Date | null;
+    }
   ) {
-
-    return prisma.blog.update({
+    return prisma.blogPost.update({
       where: {
-        id: blogId
+        id: blogId,
       },
-      data
+      data,
     });
   }
+    // ========================================
+  // PUBLISH BLOG
+  // ========================================
 
-  /* =========================
-      PUBLISH BLOG
-  ========================= */
-
-  static async publishBlog(
-    blogId: string
-  ) {
-
-    return prisma.blog.update({
+  static async publishBlog(blogId: string) {
+    return prisma.blogPost.update({
       where: {
-        id: blogId
-      },
-      data: {
-        status: "PUBLISHED",
-        publishedAt: new Date()
-      }
-    });
-  }
-
-  /* =========================
-      UNPUBLISH BLOG
-  ========================= */
-
-  static async unpublishBlog(
-    blogId: string
-  ) {
-
-    return prisma.blog.update({
-      where: {
-        id: blogId
+        id: blogId,
       },
       data: {
-        status: "DRAFT"
-      }
+        isPublished: true,
+        publishedAt: new Date(),
+      },
     });
   }
 
-  /* =========================
-      FEATURE BLOG
-  ========================= */
+  // ========================================
+  // UNPUBLISH BLOG
+  // ========================================
 
-  static async markFeatured(
-    blogId: string
-  ) {
-
-    return prisma.blog.update({
+  static async unpublishBlog(blogId: string) {
+    return prisma.blogPost.update({
       where: {
-        id: blogId
+        id: blogId,
       },
       data: {
-        isFeatured: true
-      }
+        isPublished: false,
+        publishedAt: null,
+      },
     });
   }
 
-  /* =========================
-      REMOVE FEATURED
-  ========================= */
+  // ========================================
+  // INCREMENT BLOG VIEW
+  // ========================================
 
-  static async removeFeatured(
-    blogId: string
-  ) {
-
-    return prisma.blog.update({
+  static async incrementView(blogId: string) {
+    return prisma.blogPost.update({
       where: {
-        id: blogId
+        id: blogId,
       },
       data: {
-        isFeatured: false
-      }
-    });
-  }
-
-  /* =========================
-      INCREMENT VIEW
-  ========================= */
-
-  static async incrementView(
-    blogId: string
-  ) {
-
-    return prisma.blog.update({
-      where: {
-        id: blogId
+        views: {
+          increment: 1,
+        },
       },
-      data: {
-        viewCount: {
-          increment: 1
-        }
-      }
     });
   }
 
-  /* =========================
-      DELETE BLOG
-  ========================= */
+  // ========================================
+  // DELETE BLOG
+  // ========================================
 
-  static async deleteBlog(
-    blogId: string
-  ) {
-
-    return prisma.blog.delete({
+  static async deleteBlog(blogId: string) {
+    return prisma.blogPost.delete({
       where: {
-        id: blogId
-      }
+        id: blogId,
+      },
     });
   }
-
-  /* =========================
-      BLOG ANALYTICS
-  ========================= */
+    // ========================================
+  // BLOG ANALYTICS
+  // ========================================
 
   static async getBlogAnalytics() {
-
     const [
       totalBlogs,
       publishedBlogs,
       draftBlogs,
-      featuredBlogs,
-      totalViews
+      totalViews,
+      totalLikes,
     ] = await Promise.all([
+      prisma.blogPost.count(),
 
-      prisma.blog.count(),
-
-      prisma.blog.count({
+      prisma.blogPost.count({
         where: {
-          status: "PUBLISHED"
-        }
+          isPublished: true,
+        },
       }),
 
-      prisma.blog.count({
+      prisma.blogPost.count({
         where: {
-          status: "DRAFT"
-        }
+          isPublished: false,
+        },
       }),
 
-      prisma.blog.count({
-        where: {
-          isFeatured: true
-        }
-      }),
-
-      prisma.blog.aggregate({
+      prisma.blogPost.aggregate({
         _sum: {
-          viewCount: true
-        }
-      })
+          views: true,
+        },
+      }),
+
+      prisma.blogPost.aggregate({
+        _sum: {
+          likes: true,
+        },
+      }),
     ]);
 
     return {
-      totalBlogs,
-      publishedBlogs,
-      draftBlogs,
-      featuredBlogs,
-      totalViews:
-        totalViews._sum.viewCount || 0
+      success: true,
+      analytics: {
+        totalBlogs,
+        publishedBlogs,
+        draftBlogs,
+        totalViews: totalViews._sum.views ?? 0,
+        totalLikes: totalLikes._sum.likes ?? 0,
+      },
     };
   }
 }

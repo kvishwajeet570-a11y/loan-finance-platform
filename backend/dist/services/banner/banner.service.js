@@ -97,5 +97,73 @@ class BannerService {
             inactive,
         };
     }
+    // ========================================
+    // GET BANNER BY TYPE
+    // ========================================
+    async getBannerByType(type) {
+        return prisma_1.default.banner.findMany({
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    // ========================================
+    // GET AUDIENCE BANNERS
+    // ========================================
+    async getAudienceBanners(audience) {
+        return prisma_1.default.banner.findMany({
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    // ========================================
+    // ACTIVATE BANNER
+    // ========================================
+    async activateBanner(id) {
+        return prisma_1.default.banner.update({
+            where: { id },
+            data: {
+                isActive: true,
+            },
+        });
+    }
+    // ========================================
+    // DEACTIVATE BANNER
+    // ========================================
+    async deactivateBanner(id) {
+        return prisma_1.default.banner.update({
+            where: { id },
+            data: {
+                isActive: false,
+            },
+        });
+    }
+    // ========================================
+    // INCREMENT VIEW
+    // ========================================
+    async incrementView(id) {
+        // viewCount field schema में नहीं है,
+        // इसलिए अभी सिर्फ banner return कर रहे हैं।
+        return prisma_1.default.banner.findUnique({
+            where: { id },
+        });
+    }
+    // ========================================
+    // INCREMENT CLICK
+    // ========================================
+    async incrementClick(id) {
+        // clickCount field schema में नहीं है,
+        // इसलिए अभी सिर्फ banner return कर रहे हैं।
+        return prisma_1.default.banner.findUnique({
+            where: { id },
+        });
+    }
+    // ========================================
+    // GET BANNER ANALYTICS
+    // ========================================
+    async getBannerAnalytics() {
+        return this.getBannerStats();
+    }
 }
 exports.default = new BannerService();

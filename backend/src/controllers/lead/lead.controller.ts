@@ -1,3 +1,4 @@
+﻿import prisma from "../../prisma/prisma";
 import { Request, Response } from "express";
 import leadService from "../../services/lead/lead.service";
 
@@ -56,7 +57,7 @@ export const getLeadById = async (
 ): Promise<void> => {
   try {
     const lead = await leadService.getLeadById(
-      req.params.id
+      String(req.params.id)
     );
 
     if (!lead) {
@@ -85,7 +86,7 @@ export const assignLead = async (
 ): Promise<void> => {
   try {
     const lead = await leadService.assignLead({
-      leadId: req.params.id,
+      leadId: String(req.params.id),
       assignedTo: req.body.assignedTo,
     });
 
@@ -108,9 +109,9 @@ export const updateLeadStatus = async (
 ): Promise<void> => {
   try {
     const lead = await leadService.updateStatus({
-      leadId: req.params.id,
-      status: req.body.status,
-    });
+  leadId: String(req.params.id),
+  status: req.body.status,
+});
 
     res.status(200).json({
       success: true,
@@ -131,7 +132,7 @@ export const deleteLead = async (
 ): Promise<void> => {
   try {
     await leadService.softDelete(
-      req.params.id
+      String(req.params.id)
     );
 
     res.status(200).json({
@@ -145,6 +146,251 @@ export const deleteLead = async (
     });
   }
 };
+
+export const getSubAgentLeads = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const dsaId = String(req.params.dsaId || "");
+
+    if (!dsaId) {
+      res.status(400).json({
+        success: false,
+        message: "DSA ID is required",
+      });
+      return;
+    }
+
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
+    const search = String(req.query.search || "").trim();
+    const status = String(req.query.status || "").trim();
+    const subAgentId = String(req.query.subAgentId || "").trim();
+
+    console.log("[DIRECT-SUB-AGENT-LEADS] DSA:", dsaId);
+
+    // Get real Sub Agents directly from PostgreSQL.
+    const allSubAgents = await prisma.user.findMany({
+      where: {
+        parentDsaId: dsaId,
+        role: "SUB_AGENT",
+        isDeleted: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phoneNo: true,
+        role: true,
+        city: true,
+        state: true,
+        pincode: true,
+        isVerified: true,
+        isActive: true,
+        isBlocked: true,
+        parentDsaId: true,
+        createdAt: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const subAgents = subAgentId
+      ? allSubAgents.filter((agent) => agent.id === subAgentId)
+      : allSubAgents;
+
+    const subAgentIds = subAgents.map((agent) => agent.id);
+
+    console.log(
+      "[DIRECT-SUB-AGENT-LEADS] Sub Agents:",
+      subAgentIds
+    );
+
+    if (subAgentIds.length === 0) {
+      res.status(200).json({
+        success: true,
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+        stats: {
+          totalLeads: 0,
+          newLeads: 0,
+          contactedLeads: 0,
+          convertedLeads: 0,
+          highPriorityLeads: 0,
+          totalLoanAmount: 0,
+        },
+        subAgents: [],
+      });
+      return;
+    }
+
+    const where: any = {
+      isDeleted: false,
+      assignedTo: {
+        in: subAgentIds,
+      },
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (search) {
+      where.OR = [
+        {
+          fullName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          mobileNumber: {
+            contains: search,
+          },
+        },
+        {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          city: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          state: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          productType: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    console.log(
+      "[DIRECT-SUB-AGENT-LEADS] WHERE:",
+      JSON.stringify(where)
+    );
+
+    const [
+      data,
+      totalLeads,
+      newLeads,
+      contactedLeads,
+      convertedLeads,
+      highPriorityLeads,
+      loanAggregate,
+    ] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+
+      prisma.lead.count({
+        where,
+      }),
+
+      prisma.lead.count({
+        where: {
+          ...where,
+          status: "NEW",
+        },
+      }),
+
+      prisma.lead.count({
+        where: {
+          ...where,
+          status: "CONTACTED",
+        },
+      }),
+
+      prisma.lead.count({
+        where: {
+          ...where,
+          status: {
+            in: ["CONVERTED", "APPROVED", "DISBURSED"],
+          },
+        },
+      }),
+
+      prisma.lead.count({
+        where: {
+          ...where,
+          priority: "HIGH",
+        },
+      }),
+
+      prisma.lead.aggregate({
+        where,
+        _sum: {
+          loanAmount: true,
+        },
+      }),
+    ]);
+
+    const agentMap = new Map(
+      allSubAgents.map((agent) => [agent.id, agent])
+    );
+
+    const enrichedData = data.map((lead) => ({
+      ...lead,
+      assignedAgent: lead.assignedTo
+        ? agentMap.get(lead.assignedTo) || null
+        : null,
+    }));
+
+    console.log(
+      "[DIRECT-SUB-AGENT-LEADS] Leads found:",
+      totalLeads
+    );
+
+    res.status(200).json({
+      success: true,
+      data: enrichedData,
+      total: totalLeads,
+      page,
+      limit,
+      totalPages: Math.ceil(totalLeads / limit),
+      stats: {
+        totalLeads,
+        newLeads,
+        contactedLeads,
+        convertedLeads,
+        highPriorityLeads,
+        totalLoanAmount: loanAggregate._sum.loanAmount || 0,
+      },
+      subAgents,
+    });
+  } catch (error: any) {
+    console.error(
+      "[DIRECT-SUB-AGENT-LEADS] ERROR:",
+      error
+    );
+
+    res.status(500).json({
+      success: false,
+      message: error?.message || "Failed to fetch Sub Agent leads",
+    });
+  }
+};
+
 
 export const getLeadAnalytics = async (
   req: Request,
@@ -165,3 +411,4 @@ export const getLeadAnalytics = async (
     });
   }
 };
+

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import deviceService from "../../services/device/device.service";
+import deviceService from "../../device/device.service";
 
 export const getDevices = async (
   req: Request,
@@ -8,13 +8,12 @@ export const getDevices = async (
   try {
     const page = Number(req.query.page || 1);
     const limit = Number(req.query.limit || 10);
-    const search = String(req.query.search || "");
 
-    const devices = await deviceService.getDevices({
-      page,
-      limit,
-      search,
-    });
+    const devices =
+      await deviceService.getAllDevices(
+        page,
+        limit
+      );
 
     res.status(200).json({
       success: true,
@@ -35,9 +34,10 @@ export const getDeviceById = async (
   res: Response
 ): Promise<void> => {
   try {
-    const device = await deviceService.getDeviceById(
-      req.params.id
-    );
+    const device =
+      await deviceService.getDeviceById(
+        String(req.params.id)
+      );
 
     if (!device) {
       res.status(404).json({
@@ -51,7 +51,9 @@ export const getDeviceById = async (
       success: true,
       data: device,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch device",
@@ -66,14 +68,16 @@ export const getUserDevices = async (
   try {
     const devices =
       await deviceService.getUserDevices(
-        req.params.userId
+        String(req.params.userId)
       );
 
     res.status(200).json({
       success: true,
       data: devices,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch user devices",
@@ -88,7 +92,7 @@ export const blockDevice = async (
   try {
     const device =
       await deviceService.blockDevice(
-        req.params.id
+        String(req.params.id)
       );
 
     res.status(200).json({
@@ -96,7 +100,9 @@ export const blockDevice = async (
       message: "Device blocked successfully",
       data: device,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to block device",
@@ -111,7 +117,7 @@ export const unblockDevice = async (
   try {
     const device =
       await deviceService.unblockDevice(
-        req.params.id
+        String(req.params.id)
       );
 
     res.status(200).json({
@@ -119,7 +125,9 @@ export const unblockDevice = async (
       message: "Device unblocked successfully",
       data: device,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to unblock device",
@@ -133,14 +141,16 @@ export const deleteDevice = async (
 ): Promise<void> => {
   try {
     await deviceService.deleteDevice(
-      req.params.id
+      String(req.params.id)
     );
 
     res.status(200).json({
       success: true,
       message: "Device removed successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to remove device",
@@ -154,13 +164,15 @@ export const getDeviceAnalytics = async (
 ): Promise<void> => {
   try {
     const analytics =
-      await deviceService.getAnalytics();
+      await deviceService.getDeviceAnalytics();
 
     res.status(200).json({
       success: true,
       data: analytics,
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Failed to fetch analytics",

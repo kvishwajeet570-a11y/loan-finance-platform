@@ -73,15 +73,16 @@ class WalletService {
         });
 
         await tx.transaction.create({
-          data: {
-            userId,
-            amount,
-            type: "CREDIT",
-            category,
-            remark,
-            status: "SUCCESS",
-          },
-        });
+  data: {
+    transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    userId,
+    amount,
+    type: "CREDIT",
+    category,
+    remark,
+    status: "SUCCESS",
+  },
+});
 
         return tx.wallet.findUnique({
           where: { userId },
@@ -133,15 +134,16 @@ class WalletService {
         });
 
         await tx.transaction.create({
-          data: {
-            userId,
-            amount,
-            type: "DEBIT",
-            category,
-            remark,
-            status: "SUCCESS",
-          },
-        });
+  data: {
+    transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    userId,
+    amount,
+    type: "DEBIT",
+    category,
+    remark,
+    status: "SUCCESS",
+  },
+});
 
         return tx.wallet.findUnique({
           where: { userId },
@@ -151,98 +153,86 @@ class WalletService {
   }
 
   /**
-   * Transfer Wallet Balance
-   */
-  async transferBalance(
-    senderId: string,
-    receiverId: string,
-    amount: number
-  ) {
+ * Transfer Wallet Balance
+ */
+async transferBalance(
+  senderId: string,
+  receiverId: string,
+  amount: number
+) {
+  return prisma.$transaction(async (tx) => {
+    const sender = await tx.wallet.findUnique({
+      where: {
+        userId: senderId,
+      },
+    });
 
-    return prisma.$transaction(
-      async (tx) => {
+    if (!sender) {
+      throw new Error("Sender wallet not found");
+    }
 
-        const sender =
-          await tx.wallet.findUnique({
-            where: {
-              userId: senderId,
-            },
-          });
+    if (sender.balance < amount) {
+      throw new Error("Insufficient balance");
+    }
 
-        if (!sender) {
-          throw new Error(
-            "Sender wallet not found"
-          );
-        }
+    // Debit Sender
+    await tx.wallet.update({
+      where: {
+        userId: senderId,
+      },
+      data: {
+        balance: {
+          decrement: amount,
+        },
+      },
+    });
 
-        if (
-          sender.balance < amount
-        ) {
-          throw new Error(
-            "Insufficient balance"
-          );
-        }
+    // Credit Receiver
+    await tx.wallet.upsert({
+      where: {
+        userId: receiverId,
+      },
+      update: {
+        balance: {
+          increment: amount,
+        },
+      },
+      create: {
+        userId: receiverId,
+        balance: amount,
+      },
+    });
 
-        await tx.wallet.update({
-          where: {
-            userId: senderId,
-          },
-
-          data: {
-            balance: {
-              decrement: amount,
-            },
-          },
-        });
-
-        await tx.wallet.upsert({
-          where: {
-            userId: receiverId,
-          },
-
-          update: {
-            balance: {
-              increment: amount,
-            },
-          },
-
-          create: {
-            userId: receiverId,
-            balance: amount,
-          },
-        });
-
-        await tx.transaction.createMany({
-          data: [
-            {
-              userId: senderId,
-              amount,
-              type: "DEBIT",
-              category: "TRANSFER",
-              remark:
-                "Wallet Transfer Sent",
-              status: "SUCCESS",
-            },
-
-            {
-              userId: receiverId,
-              amount,
-              type: "CREDIT",
-              category: "TRANSFER",
-              remark:
-                "Wallet Transfer Received",
-              status: "SUCCESS",
-            },
-          ],
-        });
-
-        return {
-          success: true,
+    // Create Transaction History
+    await tx.transaction.createMany({
+      data: [
+        {
+          transactionId: `TXN-${Date.now()}-1`,
+          userId: senderId,
           amount,
-        };
-      }
-    );
-  }
+          type: "DEBIT",
+          category: "TRANSFER",
+          remark: "Wallet Transfer Sent",
+          status: "SUCCESS",
+        },
+        {
+          transactionId: `TXN-${Date.now()}-2`,
+          userId: receiverId,
+          amount,
+          type: "CREDIT",
+          category: "TRANSFER",
+          remark: "Wallet Transfer Received",
+          status: "SUCCESS",
+        },
+      ],
+    });
+
+    return {
+      success: true,
+      amount,
+    };
+  });
+}
 
   /**
    * Loan Disbursement

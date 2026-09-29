@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoanRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class LoanRepository {
     /* ==========================
        GET ALL LOANS
@@ -34,7 +37,7 @@ class LoanRepository {
             ];
         }
         const [loans, total] = await Promise.all([
-            prisma_1.prisma.loanApplication.findMany({
+            prisma_1.default.loanApplication.findMany({
                 where,
                 skip,
                 take: limit,
@@ -45,7 +48,7 @@ class LoanRepository {
                     user: true,
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where,
             }),
         ]);
@@ -61,7 +64,7 @@ class LoanRepository {
        GET LOAN BY ID
     ========================== */
     static async getLoanById(loanId) {
-        return prisma_1.prisma.loanApplication.findUnique({
+        return prisma_1.default.loanApplication.findUnique({
             where: {
                 id: loanId,
             },
@@ -74,7 +77,7 @@ class LoanRepository {
        APPROVE LOAN
     ========================== */
     static async approveLoan(loanId) {
-        return prisma_1.prisma.loanApplication.update({
+        return prisma_1.default.loanApplication.update({
             where: {
                 id: loanId,
             },
@@ -87,7 +90,7 @@ class LoanRepository {
        REJECT LOAN
     ========================== */
     static async rejectLoan(loanId, reason) {
-        return prisma_1.prisma.loanApplication.update({
+        return prisma_1.default.loanApplication.update({
             where: {
                 id: loanId,
             },
@@ -101,7 +104,7 @@ class LoanRepository {
        PENDING LOANS
     ========================== */
     static async getPendingLoans() {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             where: {
                 status: "PENDING",
             },
@@ -114,7 +117,7 @@ class LoanRepository {
        APPROVED LOANS
     ========================== */
     static async getApprovedLoans() {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             where: {
                 status: "APPROVED",
             },
@@ -127,7 +130,7 @@ class LoanRepository {
        REJECTED LOANS
     ========================== */
     static async getRejectedLoans() {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             where: {
                 status: "REJECTED",
             },
@@ -140,7 +143,7 @@ class LoanRepository {
        RECENT LOANS
     ========================== */
     static async getRecentLoans(limit = 10) {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc",
@@ -155,23 +158,23 @@ class LoanRepository {
     ========================== */
     static async getLoanAnalytics() {
         const [totalLoans, approvedLoans, pendingLoans, rejectedLoans, totalAmount,] = await Promise.all([
-            prisma_1.prisma.loanApplication.count(),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "APPROVED",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "PENDING",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "REJECTED",
                 },
             }),
-            prisma_1.prisma.loanApplication.aggregate({
+            prisma_1.default.loanApplication.aggregate({
                 _sum: {
                     amount: true,
                 },
@@ -189,7 +192,7 @@ class LoanRepository {
        LOAN TYPE ANALYTICS
     ========================== */
     static async getLoanTypeAnalytics() {
-        return prisma_1.prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["loanType"],
             _count: {
                 id: true,
@@ -203,7 +206,7 @@ class LoanRepository {
        USER LOANS
     ========================== */
     static async getUserLoans(userId) {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             where: {
                 userId,
             },

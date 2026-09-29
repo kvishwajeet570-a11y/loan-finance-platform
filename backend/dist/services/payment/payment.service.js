@@ -3,15 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const prisma_1 = __importDefault(require("../../prisma/prisma"));
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 class PaymentService {
-    /**
-     * Create Payment
-     */
+    /* ========================================
+       CREATE PAYMENT
+    ======================================== */
     async createPayment(data) {
         return prisma_1.default.payment.create({
             data: {
+                paymentId: `PAY-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
                 userId: data.userId,
+                loanApplicationId: data.loanApplicationId,
                 amount: data.amount,
                 paymentMethod: data.paymentMethod,
                 purpose: data.purpose,
@@ -20,9 +22,70 @@ class PaymentService {
             },
         });
     }
-    /**
-     * Verify Payment
-     */
+    /* ========================================
+       GET ALL PAYMENTS
+    ======================================== */
+    async getAllPayments(page = 1, limit = 20) {
+        const skip = (page - 1) * limit;
+        const [payments, total] = await Promise.all([
+            prisma_1.default.payment.findMany({
+                skip,
+                take: limit,
+                include: {
+                    user: true,
+                    loanApplication: true,
+                },
+                orderBy: {
+                    createdAt: "desc",
+                },
+            }),
+            prisma_1.default.payment.count(),
+        ]);
+        return {
+            payments,
+            total,
+            page,
+            pages: Math.ceil(total / limit),
+        };
+    }
+    /* ========================================
+       GET PAYMENT BY ID
+    ======================================== */
+    async getPaymentById(paymentId) {
+        return prisma_1.default.payment.findUnique({
+            where: {
+                id: paymentId,
+            },
+            include: {
+                user: true,
+                loanApplication: true,
+            },
+        });
+    }
+    /* ========================================
+       UPDATE PAYMENT
+    ======================================== */
+    async updatePayment(paymentId, data) {
+        return prisma_1.default.payment.update({
+            where: {
+                id: paymentId,
+            },
+            data,
+        });
+    }
+    /* ========================================
+       DELETE PAYMENT
+    ======================================== */
+    async deletePayment(paymentId) {
+        return prisma_1.default.payment.delete({
+            where: {
+                id: paymentId,
+            },
+        });
+    }
+    /* ========================================
+       VERIFY PAYMENT
+    ======================================== */
     async verifyPayment(paymentId, gatewayTxnId) {
         return prisma_1.default.payment.update({
             where: {
@@ -35,9 +98,9 @@ class PaymentService {
             },
         });
     }
-    /**
-     * Failed Payment
-     */
+    /* ========================================
+       FAIL PAYMENT
+    ======================================== */
     async failPayment(paymentId, reason) {
         return prisma_1.default.payment.update({
             where: {
@@ -49,9 +112,9 @@ class PaymentService {
             },
         });
     }
-    /**
-     * Refund Payment
-     */
+    /* ========================================
+       REFUND PAYMENT
+    ======================================== */
     async refundPayment(paymentId, refundAmount) {
         const payment = await prisma_1.default.payment.findUnique({
             where: {
@@ -72,12 +135,13 @@ class PaymentService {
             },
         });
     }
-    /**
-     * Loan EMI Payment
-     */
+    /* ========================================
+       EMI PAYMENT
+    ======================================== */
     async payEMI(loanId, amount, userId) {
         const payment = await prisma_1.default.payment.create({
             data: {
+                paymentId: `EMI-${Date.now()}`,
                 userId,
                 amount,
                 purpose: "LOAN_EMI",
@@ -88,17 +152,19 @@ class PaymentService {
         });
         await prisma_1.default.transaction.create({
             data: {
+                transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                 userId,
                 amount,
                 type: "DEBIT",
+                category: "EMI",
                 remark: "Loan EMI Payment",
-            },
+            }
         });
         return payment;
     }
-    /**
-     * Wallet Recharge
-     */
+    /* ========================================
+       WALLET RECHARGE
+    ======================================== */
     async walletRecharge(userId, amount) {
         const wallet = await prisma_1.default.wallet.findUnique({
             where: {
@@ -120,10 +186,13 @@ class PaymentService {
         });
         await prisma_1.default.transaction.create({
             data: {
+                transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                 userId,
                 amount,
                 type: "CREDIT",
+                category: "WALLET",
                 remark: "Wallet Recharge",
+                status: "SUCCESS",
             },
         });
         return {
@@ -131,9 +200,9 @@ class PaymentService {
             amount,
         };
     }
-    /**
-     * Commission Payout
-     */
+    /* ========================================
+       COMMISSION PAYOUT
+    ======================================== */
     async commissionPayout(userId, amount) {
         await prisma_1.default.wallet.update({
             where: {
@@ -147,63 +216,84 @@ class PaymentService {
         });
         await prisma_1.default.transaction.create({
             data: {
+                transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
                 userId,
                 amount,
                 type: "CREDIT",
+                category: "COMMISSION",
                 remark: "Commission Payout",
+                status: "SUCCESS",
             },
         });
         return {
             success: true,
         };
     }
-    /**
-     * Payment History
-     */
-    async getPaymentHistory(userId, page = 1, limit = 20) {
-        const skip = (page - 1) * limit;
-        const [payments, total] = await Promise.all([
-            prisma_1.default.payment.findMany({
-                where: {
-                    userId,
-                },
-                skip,
-                take: limit,
-                orderBy: {
-                    createdAt: "desc",
-                },
-            }),
-            prisma_1.default.payment.count({
-                where: {
-                    userId,
-                },
-            }),
-        ]);
-        return {
-            payments,
-            total,
-            page,
-            pages: Math.ceil(total / limit),
-        };
-    }
-    /**
-     * Payment By ID
-     */
-    async getPaymentById(paymentId) {
-        return prisma_1.default.payment.findUnique({
+    /* ========================================
+       USER PAYMENTS
+    ======================================== */
+    async getUserPayments(userId) {
+        return prisma_1.default.payment.findMany({
             where: {
-                id: paymentId,
+                userId,
             },
             include: {
                 user: true,
             },
+            orderBy: {
+                createdAt: "desc",
+            },
         });
     }
-    /**
-     * Admin Analytics
-     */
+    /* ========================================
+       LOAN PAYMENTS
+    ======================================== */
+    async getLoanPayments(loanId) {
+        return prisma_1.default.payment.findMany({
+            where: {
+                loanApplicationId: loanId,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    /* ========================================
+       PENDING PAYMENTS
+    ======================================== */
+    async getPendingPayments() {
+        return prisma_1.default.payment.findMany({
+            where: {
+                status: "PENDING",
+            },
+        });
+    }
+    async getSuccessPayments() {
+        return prisma_1.default.payment.findMany({
+            where: {
+                status: "SUCCESS",
+            },
+        });
+    }
+    async getFailedPayments() {
+        return prisma_1.default.payment.findMany({
+            where: {
+                status: "FAILED",
+            },
+        });
+    }
+    async getRefundedPayments() {
+        return prisma_1.default.payment.findMany({
+            where: {
+                status: "REFUNDED",
+            },
+        });
+    }
+    /* ========================================
+       ANALYTICS
+    ======================================== */
     async getPaymentAnalytics() {
-        const [totalPayments, successPayments, failedPayments, totalRevenue,] = await Promise.all([
+        const [totalPayments, successPayments, failedPayments, pendingPayments, refundedPayments, totalRevenue,] = await Promise.all([
             prisma_1.default.payment.count(),
             prisma_1.default.payment.count({
                 where: {
@@ -213,6 +303,16 @@ class PaymentService {
             prisma_1.default.payment.count({
                 where: {
                     status: "FAILED",
+                },
+            }),
+            prisma_1.default.payment.count({
+                where: {
+                    status: "PENDING",
+                },
+            }),
+            prisma_1.default.payment.count({
+                where: {
+                    status: "REFUNDED",
                 },
             }),
             prisma_1.default.payment.aggregate({
@@ -228,13 +328,15 @@ class PaymentService {
             totalPayments,
             successPayments,
             failedPayments,
+            pendingPayments,
+            refundedPayments,
             revenue: totalRevenue._sum
                 .amount || 0,
         };
     }
-    /**
-     * Daily Collection Report
-     */
+    /* ========================================
+       DAILY COLLECTION
+    ======================================== */
     async dailyCollection() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -250,9 +352,9 @@ class PaymentService {
             },
         });
     }
-    /**
-     * Monthly Revenue Report
-     */
+    /* ========================================
+       MONTHLY REPORT
+    ======================================== */
     async monthlyRevenue() {
         const currentYear = new Date().getFullYear();
         return prisma_1.default.$queryRaw `
@@ -267,9 +369,9 @@ class PaymentService {
       ORDER BY month ASC
     `;
     }
-    /**
-     * Top Paying Customers
-     */
+    /* ========================================
+       TOP CUSTOMERS
+    ======================================== */
     async topCustomers() {
         return prisma_1.default.payment.groupBy({
             by: ["userId"],

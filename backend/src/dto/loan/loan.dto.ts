@@ -36,7 +36,7 @@ export const loanStatusEnum = z.enum([
    EMPLOYMENT TYPE
 ========================================= */
 
-export const employmentTypeEnum = z.enum([
+const employmentTypeEnum = z.enum([
   "SALARIED",
   "SELF_EMPLOYED",
   "BUSINESS_OWNER",

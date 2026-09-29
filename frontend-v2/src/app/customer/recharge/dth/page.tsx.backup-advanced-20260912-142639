@@ -1,0 +1,1233 @@
+﻿"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  Copy,
+  Crown,
+  IndianRupee,
+  Loader2,
+  LockKeyhole,
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  Tv,
+  Wallet,
+  Zap,
+} from "lucide-react";
+import api from "@/lib/api";
+
+type User = {
+  id: string;
+  name?: string;
+  fullName?: string;
+};
+
+type Operator = {
+  id: string;
+  name: string;
+  logo: string;
+  subtitle: string;
+};
+
+type Plan = {
+  id: string;
+  operator: string;
+  name: string;
+  price: number;
+  channels: number;
+  hd: number;
+  validity: string;
+  category: string;
+  language: string;
+  description: string;
+  popular?: boolean;
+  featured?: boolean;
+};
+
+type Recharge = {
+  id: string;
+  mobileNumber?: string;
+  operator?: string;
+  amount?: number;
+  rechargeType?: string;
+  status?: string;
+  createdAt?: string;
+};
+
+const operators: Operator[] = [
+  {
+    id: "TATA_PLAY",
+    name: "Tata Play",
+    logo: "TATA",
+    subtitle: "Entertainment & regional",
+  },
+  {
+    id: "AIRTEL_DTH",
+    name: "Airtel DTH",
+    logo: "airtel",
+    subtitle: "HD, family & sports",
+  },
+  {
+    id: "DISH_TV",
+    name: "Dish TV",
+    logo: "dish",
+    subtitle: "Family & regional",
+  },
+  {
+    id: "D2H",
+    name: "Videocon d2h",
+    logo: "d2h",
+    subtitle: "Entertainment & combo",
+  },
+  {
+    id: "SUN_DIRECT",
+    name: "Sun Direct",
+    logo: "SUN",
+    subtitle: "South & regional",
+  },
+];
+
+const plans: Plan[] = [
+  {
+    id: "tp1",
+    operator: "TATA_PLAY",
+    name: "Hindi Dhamaaka",
+    price: 235,
+    channels: 65,
+    hd: 1,
+    validity: "1 Month",
+    category: "Entertainment",
+    language: "Hindi",
+    description: "TV shows, movies, news, music, kids & lifestyle",
+    popular: true,
+  },
+  {
+    id: "tp2",
+    operator: "TATA_PLAY",
+    name: "Marathi Super Value",
+    price: 83,
+    channels: 13,
+    hd: 0,
+    validity: "1 Month",
+    category: "Regional",
+    language: "Marathi",
+    description: "Popular Marathi entertainment and news",
+  },
+  {
+    id: "tp3",
+    operator: "TATA_PLAY",
+    name: "Netflix Basic Combo",
+    price: 199,
+    channels: 18,
+    hd: 0,
+    validity: "1 Month",
+    category: "OTT",
+    language: "Multi",
+    description: "Entertainment pack with Netflix Basic",
+    featured: true,
+  },
+  {
+    id: "air1",
+    operator: "AIRTEL_DTH",
+    name: "Family Sports HD",
+    price: 399,
+    channels: 100,
+    hd: 40,
+    validity: "1 Month",
+    category: "Sports",
+    language: "Hindi",
+    description: "Family entertainment, kids & sports",
+    popular: true,
+  },
+  {
+    id: "air2",
+    operator: "AIRTEL_DTH",
+    name: "Hindi Basic HD",
+    price: 249,
+    channels: 47,
+    hd: 47,
+    validity: "1 Month",
+    category: "HD Packs",
+    language: "Hindi",
+    description: "Hindi entertainment, news and movies",
+  },
+  {
+    id: "air3",
+    operator: "AIRTEL_DTH",
+    name: "Hindi Entertainment",
+    price: 329,
+    channels: 56,
+    hd: 56,
+    validity: "1 Month",
+    category: "Entertainment",
+    language: "Hindi",
+    description: "Premium Hindi entertainment channels",
+  },
+  {
+    id: "dish1",
+    operator: "DISH_TV",
+    name: "Super Family Pack",
+    price: 299,
+    channels: 75,
+    hd: 15,
+    validity: "1 Month",
+    category: "Family",
+    language: "Multi",
+    description: "Movies, sports, news & regional entertainment",
+    popular: true,
+  },
+  {
+    id: "dish2",
+    operator: "DISH_TV",
+    name: "Family HSM",
+    price: 219,
+    channels: 39,
+    hd: 0,
+    validity: "1 Month",
+    category: "Family",
+    language: "Hindi",
+    description: "News, entertainment and movies",
+  },
+  {
+    id: "d2h1",
+    operator: "D2H",
+    name: "Entertainment Plus",
+    price: 249,
+    channels: 60,
+    hd: 8,
+    validity: "1 Month",
+    category: "Entertainment",
+    language: "Multi",
+    description: "Entertainment, news, movies and kids",
+    popular: true,
+  },
+  {
+    id: "d2h2",
+    operator: "D2H",
+    name: "Sports HD Combo",
+    price: 399,
+    channels: 85,
+    hd: 20,
+    validity: "1 Month",
+    category: "Sports",
+    language: "Multi",
+    description: "Sports, entertainment and news",
+  },
+  {
+    id: "sun1",
+    operator: "SUN_DIRECT",
+    name: "Tamil Ultimate",
+    price: 165,
+    channels: 23,
+    hd: 23,
+    validity: "1 Month",
+    category: "Regional",
+    language: "Tamil",
+    description: "Popular Tamil entertainment channels",
+  },
+  {
+    id: "sun2",
+    operator: "SUN_DIRECT",
+    name: "Telugu Joy",
+    price: 208,
+    channels: 16,
+    hd: 0,
+    validity: "1 Month",
+    category: "Regional",
+    language: "Telugu",
+    description: "Popular Telugu entertainment pack",
+  },
+];
+
+const categories = [
+  "All Plans",
+  "Popular",
+  "HD Packs",
+  "Sports",
+  "Entertainment",
+  "Regional",
+  "Family",
+  "OTT",
+  "Kids",
+  "News",
+];
+
+const money = (value: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+const mask = (value = "") =>
+  value.length > 4
+    ? `${"*".repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`
+    : value;
+
+function statusStyle(status?: string) {
+  const s = String(status || "").toUpperCase();
+
+  if (s === "SUCCESS") {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+
+  if (s === "FAILED") {
+    return "border-rose-200 bg-rose-50 text-rose-700";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700";
+}
+
+export default function DthRechargePage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [wallet, setWallet] = useState(0);
+  const [customerId, setCustomerId] = useState("");
+  const [operator, setOperator] = useState("TATA_PLAY");
+  const [category, setCategory] = useState("All Plans");
+  const [search, setSearch] = useState("");
+  const [amount, setAmount] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [recent, setRecent] = useState<Recharge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const loadData = useCallback(async () => {
+    try {
+      setMessage("");
+
+      const token = localStorage.getItem("loan_finance_token");
+      const stored = localStorage.getItem("loan_finance_user");
+
+      if (!token || !stored) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const currentUser = JSON.parse(stored) as User;
+      setUser(currentUser);
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        withCredentials: true,
+      };
+
+      const [walletRes, rechargeRes] = await Promise.all([
+        api.get("/wallet/balance", config),
+        api.get(`/recharge/user/${currentUser.id}`, config),
+      ]);
+
+      const walletData =
+        walletRes?.data?.data ||
+        walletRes?.data?.wallet ||
+        walletRes?.data ||
+        {};
+
+      setWallet(Number(walletData?.balance || 0));
+
+      const raw =
+        rechargeRes?.data?.data ||
+        rechargeRes?.data?.recharges ||
+        [];
+
+      const list = Array.isArray(raw) ? raw : [];
+
+      setRecent(
+        list
+          .filter(
+            (x: Recharge) =>
+              String(x.rechargeType || "").toUpperCase() === "DTH"
+          )
+          .slice(0, 6)
+      );
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      setMessage(
+        error?.response?.data?.message ||
+          "Unable to load DTH recharge data."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const filteredPlans = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return plans.filter((plan) => {
+      if (plan.operator !== operator) return false;
+
+      const categoryMatch =
+        category === "All Plans"
+          ? true
+          : category === "Popular"
+            ? !!plan.popular
+            : category === "HD Packs"
+              ? plan.hd > 0
+              : plan.category === category;
+
+      if (!categoryMatch) return false;
+
+      if (!q) return true;
+
+      return (
+        plan.name.toLowerCase().includes(q) ||
+        plan.language.toLowerCase().includes(q) ||
+        plan.category.toLowerCase().includes(q) ||
+        plan.description.toLowerCase().includes(q)
+      );
+    });
+  }, [operator, category, search]);
+
+  const currentOperator =
+    operators.find((x) => x.id === operator) || operators[0];
+
+  const choosePlan = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setAmount(String(plan.price));
+    setMessage("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const copyId = async () => {
+    if (!customerId) return;
+
+    try {
+      await navigator.clipboard.writeText(customerId);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+
+  const recharge = async () => {
+    const value = Number(amount);
+
+    if (!customerId.trim()) {
+      setMessage("Please enter your DTH Customer / Subscriber ID.");
+      return;
+    }
+
+    if (!/^[A-Za-z0-9]{6,15}$/.test(customerId.trim())) {
+      setMessage("Please enter a valid Customer / Subscriber ID.");
+      return;
+    }
+
+    if (!value || value < 10) {
+      setMessage("Minimum recharge amount is ₹10.");
+      return;
+    }
+
+    if (value > wallet) {
+      setMessage("Insufficient wallet balance.");
+      return;
+    }
+
+    if (!user?.id) {
+      setMessage("User session expired. Please login again.");
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      setMessage("");
+
+      const token = localStorage.getItem("loan_finance_token");
+
+      const response = await api.post(
+        "/recharge",
+        {
+          userId: user.id,
+          mobileNumber: customerId.trim(),
+          operator,
+          amount: value,
+          rechargeType: "DTH",
+          paymentMethod: "Wallet",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      if (!response?.data?.success) {
+        throw new Error(
+          response?.data?.message || "Recharge failed."
+        );
+      }
+
+      setAmount("");
+      setSelectedPlan(null);
+
+      setMessage(
+        `DTH recharge of ${money(value)} completed successfully.`
+      );
+
+      await loadData();
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      setMessage(
+        error?.response?.data?.message ||
+          error?.message ||
+          "DTH recharge failed."
+      );
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl bg-white px-6 py-4 shadow-xl">
+          <Loader2 size={22} className="animate-spin text-indigo-600" />
+          <span className="font-bold text-slate-700">
+            Loading DTH Recharge...
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f7ff]">
+      <div className="mx-auto max-w-[1550px] px-4 py-5 md:px-6">
+
+        {/* HEADER */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <Link href="/customer/dashboard">Dashboard</Link>
+              <ChevronRight size={13} />
+              <span className="font-bold text-indigo-600">Recharge</span>
+              <ChevronRight size={13} />
+              <span className="font-bold text-slate-700">DTH Recharge</span>
+            </div>
+
+            <h1 className="mt-2 text-2xl font-black text-slate-950">
+              DTH Recharge
+            </h1>
+          </div>
+
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              loadData();
+            }}
+            disabled={refreshing}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:border-indigo-300 hover:text-indigo-600 disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={refreshing ? "animate-spin" : ""}
+            />
+            Refresh
+          </button>
+        </div>
+
+        {/* HERO */}
+        <section className="relative overflow-hidden rounded-[30px] bg-gradient-to-r from-[#09134f] via-[#3125b8] to-[#6424d8] p-6 text-white shadow-2xl md:p-8">
+          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
+          <div className="absolute bottom-[-100px] left-[35%] h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
+
+          <div className="relative grid items-center gap-8 lg:grid-cols-[1fr_1.1fr_.35fr]">
+
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-black backdrop-blur">
+                <Tv size={14} />
+                DTH RECHARGE
+              </div>
+
+              <h2 className="mt-4 text-4xl font-black leading-[1.05] md:text-5xl">
+                Entertainment
+                <span className="block bg-gradient-to-r from-cyan-300 to-pink-300 bg-clip-text text-transparent">
+                  Never Stops!
+                </span>
+              </h2>
+
+              <p className="mt-4 max-w-md text-sm leading-6 text-indigo-100">
+                Recharge your DTH connection instantly and enjoy
+                your favourite TV shows, movies, sports and more.
+              </p>
+
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ["⚡", "Instant", "Recharge"],
+                  ["✓", "100%", "Secure"],
+                  ["★", "Best", "Plans"],
+                  ["TV", "HD", "Entertainment"],
+                ].map(([icon, title, sub]) => (
+                  <div
+                    key={title}
+                    className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur"
+                  >
+                    <div className="text-xl">{icon}</div>
+                    <p className="mt-1 text-xs font-black">{title}</p>
+                    <p className="text-[10px] text-indigo-100">{sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative hidden h-[210px] items-center justify-center lg:flex">
+              <div className="absolute h-44 w-72 rounded-[35px] bg-gradient-to-br from-cyan-400/30 to-fuchsia-500/30 blur-2xl" />
+
+              <div className="relative w-[310px] rounded-[20px] border-4 border-slate-900 bg-slate-950 p-2 shadow-[0_25px_70px_rgba(0,0,0,.45)]">
+                <div className="overflow-hidden rounded-xl bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 p-4">
+                  <div className="grid grid-cols-3 gap-2">
+                    {["MOVIE", "SPORTS", "NEWS", "KIDS", "MUSIC", "LIVE"].map(
+                      (x) => (
+                        <div
+                          key={x}
+                          className="flex h-12 items-center justify-center rounded-lg bg-white/20 text-[9px] font-black backdrop-blur"
+                        >
+                          {x}
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden space-y-2 xl:block">
+              {operators.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 backdrop-blur"
+                >
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white text-[9px] font-black text-indigo-700">
+                    {item.logo}
+                  </div>
+                  <span className="text-[11px] font-bold">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* MESSAGE */}
+        {message && (
+          <div
+            className={`mt-5 flex items-center gap-3 rounded-2xl border p-4 text-sm font-bold ${
+              message.toLowerCase().includes("success")
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-amber-200 bg-amber-50 text-amber-700"
+            }`}
+          >
+            <CheckCircle2 size={18} />
+            {message}
+          </div>
+        )}
+
+        {/* OPERATORS */}
+        <section className="mt-6 rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+          <div className="mb-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-slate-950">
+              <span className="rounded-xl bg-indigo-100 p-2 text-indigo-600">
+                <Tv size={19} />
+              </span>
+              Choose Your DTH Operator
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Select your TV service provider
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {operators.map((item) => {
+              const active = operator === item.id;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setOperator(item.id);
+                    setSelectedPlan(null);
+                    setAmount("");
+                  }}
+                  className={`relative rounded-2xl border p-4 text-left transition ${
+                    active
+                      ? "border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-100"
+                      : "border-slate-200 bg-white hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg"
+                  }`}
+                >
+                  {active && (
+                    <span className="absolute right-3 top-3 rounded-full bg-indigo-600 p-1 text-white">
+                      <Check size={12} />
+                    </span>
+                  )}
+
+                  <div className="flex h-12 items-center justify-center rounded-xl bg-slate-50 text-xl font-black text-indigo-600">
+                    {item.logo}
+                  </div>
+
+                  <p className="mt-3 font-black text-slate-900">
+                    {item.name}
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-4 text-slate-500">
+                    {item.subtitle}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* MAIN GRID */}
+        <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+
+          <div className="space-y-6">
+
+            {/* CUSTOMER ID */}
+            <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-black text-slate-950">
+                    <span className="rounded-xl bg-blue-100 p-2 text-blue-600">
+                      <Tv size={19} />
+                    </span>
+                    DTH Customer Details
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    Enter your Customer ID, Subscriber ID or registered number.
+                  </p>
+                </div>
+
+                <div className="hidden items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-black text-emerald-700 sm:flex">
+                  <ShieldCheck size={15} />
+                  Secure & Safe
+                </div>
+              </div>
+
+              <div className="relative mt-5">
+                <Tv
+                  size={19}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400"
+                />
+
+                <input
+                  value={customerId}
+                  onChange={(e) => {
+                    setCustomerId(
+                      e.target.value
+                        .replace(/[^A-Za-z0-9]/g, "")
+                        .slice(0, 15)
+                    );
+                    setMessage("");
+                  }}
+                  placeholder="Enter DTH Customer ID"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-4 pl-12 pr-14 font-semibold outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-100"
+                />
+
+                {customerId && (
+                  <button
+                    onClick={copyId}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl p-2 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600"
+                  >
+                    {copied ? (
+                      <CheckCircle2
+                        size={18}
+                        className="text-emerald-600"
+                      />
+                    ) : (
+                      <Copy size={18} />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <p className="mt-2 text-xs text-slate-400">
+                ✓ Make sure to enter the correct Customer ID to avoid failed
+                transactions.
+              </p>
+            </section>
+
+            {/* PLANS */}
+            <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-xl font-black text-slate-950">
+                    <span className="rounded-xl bg-orange-100 p-2 text-orange-500">
+                      <Crown size={19} />
+                    </span>
+                    {currentOperator.name} Plans
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Choose a pack or enter your own recharge amount.
+                  </p>
+                </div>
+
+                <div className="relative w-full lg:w-64">
+                  <Search
+                    size={17}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+
+                  <input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search plans, channels..."
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-3 text-sm outline-none focus:border-indigo-500 focus:bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
+                {categories.map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => setCategory(item)}
+                    className={`whitespace-nowrap rounded-xl border px-4 py-2 text-xs font-bold transition ${
+                      category === item
+                        ? "border-indigo-600 bg-indigo-600 text-white shadow-md"
+                        : "border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-600"
+                    }`}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filteredPlans.map((plan) => (
+                  <div
+                    key={plan.id}
+                    className={`group relative overflow-hidden rounded-2xl border p-4 transition hover:-translate-y-1 hover:shadow-xl ${
+                      selectedPlan?.id === plan.id
+                        ? "border-indigo-500 bg-indigo-50"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute left-3 top-3 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 px-2.5 py-1 text-[9px] font-black text-white">
+                        MOST POPULAR
+                      </div>
+                    )}
+
+                    {plan.featured && (
+                      <div className="absolute left-3 top-3 rounded-full bg-violet-100 px-2.5 py-1 text-[9px] font-black text-violet-700">
+                        FEATURED
+                      </div>
+                    )}
+
+                    <button className="absolute right-3 top-3 text-slate-300 hover:text-indigo-600">
+                      <Star size={17} />
+                    </button>
+
+                    <div className="mt-8">
+                      <div className="flex h-9 items-center text-sm font-black text-indigo-600">
+                        {currentOperator.logo}
+                      </div>
+
+                      <h3 className="mt-2 text-lg font-black text-slate-900">
+                        {plan.name}
+                      </h3>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {plan.channels} Channels • {plan.hd} HD
+                      </p>
+                    </div>
+
+                    <div className="mt-4 flex items-end justify-between">
+                      <div>
+                        <p className="text-2xl font-black text-slate-950">
+                          {money(plan.price)}
+                        </p>
+
+                        <p className="text-[11px] text-slate-400">
+                          {plan.validity}
+                        </p>
+                      </div>
+
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-600">
+                        {plan.language}
+                      </span>
+                    </div>
+
+                    <p className="mt-3 min-h-[35px] text-xs leading-5 text-slate-500">
+                      {plan.description}
+                    </p>
+
+                    <button
+                      onClick={() => choosePlan(plan)}
+                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 py-3 text-xs font-black text-white shadow-lg shadow-indigo-100 transition hover:from-indigo-600 hover:to-purple-700"
+                    >
+                      Select Plan
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                ))}
+
+                {!filteredPlans.length && (
+                  <div className="col-span-full rounded-2xl border border-dashed border-slate-300 p-10 text-center">
+                    <Tv size={35} className="mx-auto text-slate-300" />
+                    <p className="mt-3 font-black text-slate-700">
+                      No plans found
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Try another category or search term.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT */}
+          <aside className="space-y-5">
+
+            {/* WALLET */}
+            <section className="sticky top-5 overflow-hidden rounded-[28px] bg-gradient-to-br from-[#1726b8] via-[#4430d9] to-[#7424db] p-5 text-white shadow-2xl">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-bold text-indigo-100">
+                    Wallet Balance
+                  </p>
+
+                  <p className="mt-2 text-3xl font-black">
+                    {money(wallet)}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-white/15 p-3">
+                  <Wallet size={23} />
+                </div>
+              </div>
+
+              <Link
+                href="/customer/wallet/statement"
+                className="mt-4 block text-xs font-bold text-indigo-100 hover:text-white"
+              >
+                View Statement →
+              </Link>
+
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <Link
+                  href="/customer/wallet/balance"
+                  className="rounded-xl bg-white/10 px-3 py-2 text-center text-[10px] font-black hover:bg-white/20"
+                >
+                  Wallet
+                </Link>
+
+                <Link
+                  href="/customer/wallet/transactions"
+                  className="rounded-xl bg-white/10 px-3 py-2 text-center text-[10px] font-black hover:bg-white/20"
+                >
+                  Transactions
+                </Link>
+              </div>
+
+              <div className="my-5 h-px bg-white/15" />
+
+              <p className="text-xs font-black text-indigo-100">
+                Complete Recharge
+              </p>
+
+              <p className="mt-1 font-black">
+                {currentOperator.name}
+              </p>
+
+              <div className="mt-4">
+                <label className="mb-2 block text-[11px] font-bold text-indigo-100">
+                  Recharge Amount
+                </label>
+
+                <div className="relative">
+                  <IndianRupee
+                    size={17}
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-indigo-300"
+                  />
+
+                  <input
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(
+                        e.target.value.replace(/[^\d.]/g, "")
+                      );
+                      setSelectedPlan(null);
+                      setMessage("");
+                    }}
+                    placeholder="Enter amount"
+                    inputMode="decimal"
+                    className="w-full rounded-xl border border-white/15 bg-white/10 py-4 pl-10 pr-3 text-xl font-black text-white outline-none placeholder:text-indigo-200 focus:bg-white/15"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {[100, 200, 300, 500].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => {
+                      setAmount(String(value));
+                      setSelectedPlan(null);
+                    }}
+                    className="rounded-xl border border-white/10 bg-white/10 py-2 text-[11px] font-black hover:bg-white/20"
+                  >
+                    ₹{value}
+                  </button>
+                ))}
+              </div>
+
+              {selectedPlan && (
+                <div className="mt-4 rounded-2xl bg-white/10 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-xl bg-white/15 p-2">
+                      <Crown size={17} />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-black">
+                        {selectedPlan.name}
+                      </p>
+
+                      <p className="text-[10px] text-indigo-100">
+                        {selectedPlan.channels} Channels •{" "}
+                        {selectedPlan.validity}
+                      </p>
+                    </div>
+
+                    <p className="font-black">
+                      {money(selectedPlan.price)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={recharge}
+                disabled={processing}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-4 text-sm font-black text-indigo-700 shadow-xl transition hover:bg-indigo-50 disabled:opacity-60"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 size={17} className="animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={17} />
+                    Recharge Now
+                  </>
+                )}
+              </button>
+
+              <div className="mt-4 flex items-center justify-center gap-2 text-[10px] font-semibold text-indigo-100">
+                <LockKeyhole size={13} />
+                Secure wallet payment
+              </div>
+            </section>
+
+            {/* OFFER */}
+            <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-r from-pink-500 via-orange-500 to-yellow-400 p-5 text-white shadow-lg">
+              <div className="absolute -right-6 -top-6 text-7xl opacity-20">
+                %
+              </div>
+
+              <div className="relative">
+                <p className="text-xs font-black">SPECIAL OFFER</p>
+
+                <h3 className="mt-1 text-xl font-black">
+                  Get up to 5% Cashback
+                </h3>
+
+                <p className="mt-1 text-xs text-white/80">
+                  On selected DTH recharge plans
+                </p>
+
+                <button className="mt-4 rounded-xl bg-white px-4 py-2 text-xs font-black text-pink-600">
+                  View Offers →
+                </button>
+              </div>
+            </div>
+
+            {/* RECENT */}
+            <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-slate-950">
+                  Recent DTH Recharge
+                </h3>
+
+                <Link
+                  href="/customer/recharge/recent"
+                  className="text-xs font-black text-indigo-600"
+                >
+                  View All →
+                </Link>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {recent.length ? (
+                  recent.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-xs font-black text-indigo-600">
+                        TV
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-black text-slate-900">
+                          {item.operator || "DTH"}
+                        </p>
+
+                        <p className="text-[9px] text-slate-400">
+                          ID: {mask(item.mobileNumber)}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-xs font-black text-slate-900">
+                          {money(Number(item.amount || 0))}
+                        </p>
+
+                        <span
+                          className={`mt-1 inline-block rounded-full border px-2 py-0.5 text-[8px] font-black ${statusStyle(
+                            item.status
+                          )}`}
+                        >
+                          {String(item.status || "PENDING")}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-8 text-center">
+                    <Clock3
+                      size={28}
+                      className="mx-auto text-slate-300"
+                    />
+                    <p className="mt-2 text-xs font-bold text-slate-500">
+                      No DTH recharge yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* QUICK SERVICES */}
+            <section className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="font-black text-slate-950">
+                  Quick Services
+                </h3>
+
+                <span className="text-xs font-black text-indigo-600">
+                  Services
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <Link
+                  href="/customer/recharge/mobile"
+                  className="rounded-xl bg-blue-50 p-3 text-center hover:bg-blue-100"
+                >
+                  <div className="text-lg">M</div>
+                  <p className="mt-1 text-[10px] font-black text-slate-700">
+                    Mobile
+                  </p>
+                </Link>
+
+                <Link
+                  href="/customer/recharge/fastag"
+                  className="rounded-xl bg-orange-50 p-3 text-center hover:bg-orange-100"
+                >
+                  <div className="text-lg">F</div>
+                  <p className="mt-1 text-[10px] font-black text-slate-700">
+                    FASTag
+                  </p>
+                </Link>
+
+                <Link
+                  href="/customer/recharge/recent"
+                  className="rounded-xl bg-violet-50 p-3 text-center hover:bg-violet-100"
+                >
+                  <div className="text-lg">R</div>
+                  <p className="mt-1 text-[10px] font-black text-slate-700">
+                    History
+                  </p>
+                </Link>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        {/* BENEFITS */}
+        <section className="mt-6 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm md:p-5">
+          <div className="grid gap-4 md:grid-cols-4">
+            {[
+              {
+                icon: <Zap size={20} />,
+                title: "Instant Recharge",
+                text: "Fast recharge experience",
+              },
+              {
+                icon: <ShieldCheck size={20} />,
+                title: "Safe & Secure",
+                text: "Protected wallet payment",
+              },
+              {
+                icon: <Tv size={20} />,
+                title: "Multiple Operators",
+                text: "5 major DTH providers",
+              },
+              {
+                icon: <Sparkles size={20} />,
+                title: "Premium Experience",
+                text: "Simple, fast & reliable",
+              },
+            ].map((item) => (
+              <div
+                key={item.title}
+                className="flex items-center gap-3 border-b border-slate-100 pb-3 last:border-0 md:border-b-0 md:border-r md:pb-0 md:last:border-0"
+              >
+                <div className="rounded-full bg-indigo-50 p-3 text-indigo-600">
+                  {item.icon}
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-slate-900">
+                    {item.title}
+                  </p>
+
+                  <p className="mt-1 text-[10px] text-slate-400">
+                    {item.text}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,764 @@
+﻿"use client";
+
+import { useState } from "react";
+
+type Lender = {
+  name: string;
+  code: string;
+  amount: string;
+  rate: string;
+  fee: string;
+  tenure: string;
+  category: string;
+  featured?: boolean;
+};
+
+const lenders: Lender[] = [
+  {
+    name: "Poonawalla Fincorp",
+    code: "PF",
+    amount: "Up to ₹50,00,000",
+    rate: "Starting from 11.8%",
+    fee: "1% to 1.2% + GST",
+    tenure: "Up to 3 Years",
+    category: "Personal Loan",
+    featured: true,
+  },
+  {
+    name: "Aditya Birla Capital",
+    code: "AB",
+    amount: "Up to ₹50,00,000",
+    rate: "Starting from 12.25%",
+    fee: "1.2% to 1.4% + GST",
+    tenure: "Up to 4 Years",
+    category: "Personal Loan",
+  },
+  {
+    name: "Prefr",
+    code: "PR",
+    amount: "Up to ₹50,00,000",
+    rate: "Starting from 12.99%",
+    fee: "1% to 1.5% + GST",
+    tenure: "Up to 3 Years",
+    category: "Personal Loan",
+  },
+  {
+    name: "Unity Small Finance Bank",
+    code: "UNITY",
+    amount: "Up to ₹50,00,000",
+    rate: "Starting from 13%",
+    fee: "1.3% to 1.5% + GST",
+    tenure: "Up to 60 Months",
+    category: "Bank",
+  },
+  {
+    name: "Tata Capital",
+    code: "TC",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Bajaj Finserv",
+    code: "BF",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "HDFC Bank",
+    code: "HDFC",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "ICICI Bank",
+    code: "ICICI",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "Axis Bank",
+    code: "AXIS",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "Kotak Mahindra Bank",
+    code: "KOTAK",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "IDFC FIRST Bank",
+    code: "IDFC",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "IndusInd Bank",
+    code: "INDUS",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "Federal Bank",
+    code: "FED",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "RBL Bank",
+    code: "RBL",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "YES BANK",
+    code: "YES",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Bank",
+  },
+  {
+    name: "L&T Finance",
+    code: "L&T",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Mahindra Finance",
+    code: "MF",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Cholamandalam Finance",
+    code: "CHOLA",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Hero FinCorp",
+    code: "HERO",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Piramal Finance",
+    code: "PIRAMAL",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Shriram Finance",
+    code: "SHRIRAM",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Muthoot Finance",
+    code: "MUTHOOT",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "IIFL Finance",
+    code: "IIFL",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Finance",
+  },
+  {
+    name: "Navi",
+    code: "NAVI",
+    amount: "Up to ₹50,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Digital Lending",
+  },
+  {
+    name: "KreditBee",
+    code: "KB",
+    amount: "Up to ₹5,00,000",
+    rate: "Check current offer",
+    fee: "As per eligibility",
+    tenure: "Flexible",
+    category: "Digital Lending",
+  },
+];
+
+const categories = [
+  "All",
+  "Personal Loan",
+  "Bank",
+  "Finance",
+  "Digital Lending",
+];
+
+export default function DsaApplyLoanPage() {
+  const [category, setCategory] = useState("All");
+  const [open, setOpen] = useState<string | null>(null);
+
+  const [selectedLender, setSelectedLender] = useState<Lender | null>(null);
+
+  const [applyForm, setApplyForm] = useState({
+    fullName: "",
+    phone: "",
+    pan: "",
+    accepted: false,
+  });
+
+  const filtered =
+    category === "All"
+      ? lenders
+      : lenders.filter((item) => item.category === category);
+
+  const handleApply = (lender: Lender) => {
+    setSelectedLender(lender);
+
+    setApplyForm({
+      fullName: "",
+      phone: "",
+      pan: "",
+      accepted: false,
+    });
+  };
+
+  const closeApplyModal = () => {
+    setSelectedLender(null);
+  };
+
+  const handleApplySubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!applyForm.fullName.trim()) {
+      alert("Please enter your full name.");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(applyForm.phone)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(applyForm.pan.toUpperCase())) {
+      alert("Please enter a valid PAN number.");
+      return;
+    }
+
+    if (!applyForm.accepted) {
+      alert("Please accept Privacy Policy and Terms & Conditions.");
+      return;
+    }
+
+    alert(
+      `Application started for ${selectedLender?.name}.`
+    );
+  };
+
+  return (
+    <main className="min-h-screen bg-[#f6f8fc]">
+
+      {/* TOP HEADER */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-5 md:px-8">
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-lg font-black text-white shadow-lg">
+                  D
+                </div>
+
+                <div>
+                  <p className="text-lg font-black text-[#071a3d]">
+                    DSA FinCorp
+                  </p>
+                  <p className="text-xs font-medium text-slate-500">
+                    Loan Distribution Platform
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-8 text-sm font-semibold text-slate-600 md:flex">
+              <span className="cursor-pointer hover:text-blue-600">
+                Instant Loans
+              </span>
+              <span className="cursor-pointer hover:text-blue-600">
+                Personal Loan
+              </span>
+              <span className="cursor-pointer hover:text-blue-600">
+                Business Loan
+              </span>
+              <span className="cursor-pointer hover:text-blue-600">
+                Credit Card
+              </span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* HERO */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-10 text-center md:px-8 md:pt-14">
+
+          <div className="mx-auto mb-4 w-fit rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-black uppercase tracking-wider text-blue-700">
+            Multiple Lending Partners
+          </div>
+
+          <h1 className="text-3xl font-black tracking-tight text-[#202124] md:text-5xl">
+            Find the Right{" "}
+            <span className="bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-700 bg-clip-text text-transparent">
+              Loan Offer
+            </span>
+          </h1>
+
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-500 md:text-base">
+            Explore loan options from multiple banking and financial partners
+            through DSA FinCorp.
+          </p>
+
+        </div>
+      </section>
+
+      {/* CATEGORY BAR */}
+      <section className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto max-w-7xl overflow-x-auto px-4 py-3 md:px-8">
+
+          <div className="flex min-w-max justify-center gap-2">
+
+            {categories.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setCategory(item)}
+                className={`rounded-xl px-5 py-3 text-sm font-bold transition ${
+                  category === item
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+
+          </div>
+        </div>
+      </section>
+
+      {/* LOAN OFFERS */}
+      <section className="mx-auto max-w-7xl px-4 py-8 md:px-8">
+
+        <div className="mb-6 flex items-end justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-widest text-blue-600">
+              Loan Marketplace
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black text-[#111827]">
+              Available Loan Partners
+            </h2>
+          </div>
+
+          <div className="rounded-full bg-white px-4 py-2 text-xs font-bold text-slate-500 shadow-sm ring-1 ring-slate-200">
+            {filtered.length} Partners
+          </div>
+        </div>
+
+        <div className="space-y-5">
+
+          {filtered.map((lender) => (
+            <article
+              key={lender.name}
+              className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+            >
+
+              <div className="p-5 md:p-7">
+
+                {/* CARD TOP */}
+                <div className="grid gap-6 md:grid-cols-[260px_1fr_150px] md:items-center">
+
+                  {/* COMPANY */}
+                  <div className="flex items-center gap-4">
+
+                    <div className="flex h-16 w-24 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 text-xs font-black text-blue-700 shadow-sm">
+                      {lender.code}
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-black text-slate-900">
+                        {lender.name}
+                      </h3>
+
+                      <p className="mt-1 text-xs font-semibold text-slate-400">
+                        {lender.category}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* BADGE */}
+                  <div className="hidden justify-center md:flex">
+                    <div className="flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 px-5 py-2 text-xs font-black text-white shadow-lg">
+                      <span className="text-sm">⚡</span>
+                      QUICK PROCESS
+                    </div>
+                  </div>
+
+                  {/* APPLY */}
+                  <button
+                    type="button"
+                    onClick={() => handleApply(lender)}
+                    className="rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 px-6 py-3 text-sm font-black text-white shadow-lg transition duration-300 hover:scale-105 hover:shadow-blue-200"
+                  >
+                    Apply Now
+                  </button>
+
+                </div>
+
+                {/* DETAILS */}
+                <div className="mt-7 grid grid-cols-2 gap-6 border-t border-slate-100 pt-6 md:grid-cols-4">
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">
+                      Loan Amount
+                    </p>
+                    <p className="mt-2 text-sm font-black text-slate-800">
+                      {lender.amount}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">
+                      Interest Rate
+                    </p>
+                    <p className="mt-2 text-sm font-black text-slate-800">
+                      {lender.rate}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">
+                      Processing Fee
+                    </p>
+                    <p className="mt-2 text-sm font-black text-slate-800">
+                      {lender.fee}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-400">
+                      Tenure
+                    </p>
+                    <p className="mt-2 text-sm font-black text-slate-800">
+                      {lender.tenure}
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* CARD FOOTER */}
+                <div className="mt-6 flex flex-col gap-3 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
+
+                  <p className="text-sm italic text-slate-500">
+                    View your loan eligibility quickly — just a few simple
+                    fields required.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpen(open === lender.name ? null : lender.name)
+                    }
+                    className="font-bold text-blue-700 transition hover:text-indigo-700"
+                  >
+                    {open === lender.name
+                      ? "Hide Offer Details ↑"
+                      : "Detailed Offers ↓"}
+                  </button>
+
+                </div>
+
+                {/* EXPANDABLE DETAILS */}
+                {open === lender.name && (
+                  <div className="mt-5 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-5">
+
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+                      <div>
+                        <p className="text-sm font-black text-blue-900">
+                          {lender.name}
+                        </p>
+
+                        <p className="mt-1 text-sm leading-6 text-slate-600">
+                          Final eligibility, interest rate, processing fee,
+                          tenure and approval are subject to applicable
+                          lender criteria and verification.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleApply(lender)}
+                        className="whitespace-nowrap rounded-xl bg-[#071a3d] px-6 py-3 text-sm font-black text-white shadow-lg hover:bg-blue-700"
+                      >
+                        Continue
+                      </button>
+
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </article>
+          ))}
+
+        </div>
+
+        {/* DISCLAIMER */}
+        <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+          <p className="text-xs leading-5 text-slate-500">
+            Loan approval, interest rate, processing fee, tenure and other
+            applicable terms are subject to lender eligibility, verification
+            and the respective lender's policies.
+          </p>
+        </div>
+
+      </section>
+
+      {/* APPLY NOW MODAL */}
+      {selectedLender && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              closeApplyModal();
+            }
+          }}
+        >
+          <div
+            className="relative w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {/* MODAL HEADER */}
+            <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-800 px-6 py-6 text-white">
+              <button
+                type="button"
+                onClick={closeApplyModal}
+                className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-xl font-bold text-white transition hover:bg-white/25"
+                aria-label="Close"
+              >
+                ×
+              </button>
+
+              <p className="mb-1 text-sm font-semibold text-blue-100">
+                DSA FinCorp
+              </p>
+
+              <h2 className="pr-10 text-2xl font-black">
+                Apply for {selectedLender.name}
+              </h2>
+
+              <div className="mt-3 flex items-center gap-3">
+                <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-bold">
+                  {selectedLender.category}
+                </span>
+
+                <span className="text-sm font-semibold text-blue-100">
+                  Interest Rate: {selectedLender.rate}
+                </span>
+              </div>
+            </div>
+
+            {/* FORM */}
+            <form
+              onSubmit={handleApplySubmit}
+              className="space-y-5 p-6 md:p-7"
+            >
+              {/* FULL NAME */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  value={applyForm.fullName}
+                  onChange={(e) =>
+                    setApplyForm({
+                      ...applyForm,
+                      fullName: e.target.value,
+                    })
+                  }
+                  placeholder="Enter your full name"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  required
+                />
+              </div>
+
+              {/* PHONE */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Phone
+                </label>
+
+                <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-slate-50 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                  <span className="flex items-center border-r border-slate-200 px-3 text-sm font-bold text-slate-600">
+                    +91
+                  </span>
+
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={applyForm.phone}
+                    onChange={(e) =>
+                      setApplyForm({
+                        ...applyForm,
+                        phone: e.target.value.replace(/\D/g, "").slice(0, 10),
+                      })
+                    }
+                    placeholder="Enter 10-digit mobile number"
+                    className="w-full bg-transparent px-4 py-3.5 text-sm font-medium text-slate-800 outline-none placeholder:text-slate-400"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* PAN */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  PAN
+                </label>
+
+                <input
+                  type="text"
+                  maxLength={10}
+                  value={applyForm.pan}
+                  onChange={(e) =>
+                    setApplyForm({
+                      ...applyForm,
+                      pan: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10),
+                    })
+                  }
+                  placeholder="Enter PAN number"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm font-bold uppercase tracking-wider text-slate-800 outline-none transition placeholder:font-medium placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  required
+                />
+              </div>
+
+              {/* TERMS */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl bg-slate-50 p-4">
+                <input
+                  type="checkbox"
+                  checked={applyForm.accepted}
+                  onChange={(e) =>
+                    setApplyForm({
+                      ...applyForm,
+                      accepted: e.target.checked,
+                    })
+                  }
+                  className="mt-1 h-4 w-4 accent-blue-600"
+                />
+
+                <span className="text-sm leading-6 text-slate-600">
+                  I accept{" "}
+                  <span className="font-bold text-blue-600">
+                    Privacy Policy
+                  </span>{" "}
+                  and{" "}
+                  <span className="font-bold text-blue-600">
+                    Terms & Conditions
+                  </span>
+                </span>
+              </label>
+
+              {/* SUBMIT */}
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 py-4 text-base font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                Apply / Login
+              </button>
+
+              <p className="text-center text-xs leading-5 text-slate-400">
+                Your information will be used for loan eligibility and
+                application processing.
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING BUTTON */}
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed bottom-7 right-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-sky-500 to-blue-700 text-xl text-white shadow-xl transition hover:scale-110"
+        aria-label="Back to top"
+      >
+        ↑
+      </button>
+
+    </main>
+  );
+}
+

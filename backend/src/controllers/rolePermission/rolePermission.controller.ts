@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
+import prisma from "../../prisma/prisma";
 
 /**
  * ASSIGN PERMISSION TO ROLE
@@ -11,13 +11,20 @@ export const assignPermission = async (
   try {
     const { roleId, permissionId } = req.body;
 
-    const exists =
-      await prisma.rolePermission.findFirst({
-        where: {
-          roleId,
-          permissionId,
-        },
+    if (!roleId || !permissionId) {
+      res.status(400).json({
+        success: false,
+        message: "roleId and permissionId are required",
       });
+      return;
+    }
+
+    const exists = await prisma.rolePermission.findFirst({
+      where: {
+        roleId,
+        permissionId,
+      },
+    });
 
     if (exists) {
       res.status(400).json({
@@ -27,24 +34,25 @@ export const assignPermission = async (
       return;
     }
 
-    const mapping =
-      await prisma.rolePermission.create({
-        data: {
-          roleId,
-          permissionId,
-          assignedBy: req.user?.id,
-        },
-        include: {
-          role: true,
-          permission: true,
-        },
-      });
+    const mapping = await prisma.rolePermission.create({
+  data: {
+    roleId,
+    permissionId,
+  },
+  include: {
+    Role: true,
+    permission: true,
+  },
+});
 
     res.status(201).json({
       success: true,
+      message: "Permission assigned successfully",
       data: mapping,
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Assignment failed",
@@ -60,18 +68,20 @@ export const bulkAssignPermissions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const {
-      roleId,
-      permissionIds,
-    } = req.body;
+    const { roleId, permissionIds } = req.body;
 
-    const data = permissionIds.map(
-      (permissionId: string) => ({
-        roleId,
-        permissionId,
-        assignedBy: req.user?.id,
-      })
-    );
+    if (!roleId || !Array.isArray(permissionIds)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid request",
+      });
+      return;
+    }
+
+    const data = permissionIds.map((permissionId: string) => ({
+      roleId,
+      permissionId,
+    }));
 
     await prisma.rolePermission.createMany({
       data,
@@ -80,10 +90,11 @@ export const bulkAssignPermissions = async (
 
     res.status(200).json({
       success: true,
-      message:
-        "Permissions assigned successfully",
+      message: "Permissions assigned successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Bulk assignment failed",
@@ -99,27 +110,34 @@ export const getRolePermissions = async (
   res: Response
 ): Promise<void> => {
   try {
-    const roleId = req.params.roleId;
+    const roleId = String(req.params.roleId);
 
-    const permissions =
-      await prisma.rolePermission.findMany({
-        where: {
-          roleId,
-        },
-        include: {
-          permission: true,
-        },
-      });
+    const permissions = await prisma.rolePermission.findMany({
+      where: {
+        roleId,
+      },
+      include: {
+    Role: true,
+    permission: true,
+},
+    });
 
     res.status(200).json({
       success: true,
+      message: "Role permissions fetched successfully",
+      count: permissions.length,
       data: permissions,
     });
-  } catch {
+  } catch (error) {
+    console.error("Get Role Permissions Error:", error);
+
     res.status(500).json({
       success: false,
-      message:
-        "Failed to fetch permissions",
+      message: "Failed to fetch role permissions",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Internal Server Error",
     });
   }
 };
@@ -132,8 +150,7 @@ export const removePermission = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { roleId, permissionId } =
-      req.body;
+    const { roleId, permissionId } = req.body;
 
     await prisma.rolePermission.deleteMany({
       where: {
@@ -144,79 +161,80 @@ export const removePermission = async (
 
     res.status(200).json({
       success: true,
-      message:
-        "Permission removed successfully",
+      message: "Permission removed successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
       message: "Removal failed",
     });
   }
 };
-
 /**
  * REMOVE ALL ROLE PERMISSIONS
  */
-export const removeAllPermissions =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const roleId =
-        req.params.roleId;
+export const removeAllPermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const roleId = String(req.params.roleId);
 
-      await prisma.rolePermission.deleteMany({
-        where: {
-          roleId,
-        },
-      });
+    const result = await prisma.rolePermission.deleteMany({
+      where: {
+        roleId,
+      },
+    });
 
-      res.status(200).json({
-        success: true,
-        message:
-          "All permissions removed",
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Operation failed",
-      });
-    }
-  };
+    res.status(200).json({
+      success: true,
+      message: "All permissions removed successfully",
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    console.error("Remove All Permissions Error:", error);
 
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove permissions",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Internal Server Error",
+    });
+  }
+};
 /**
  * ROLE PERMISSION ANALYTICS
  */
-export const rolePermissionAnalytics =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const [
-        totalMappings,
-        totalRoles,
-        totalPermissions,
-      ] = await Promise.all([
+export const rolePermissionAnalytics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const [totalMappings, totalRoles, totalPermissions] =
+      await Promise.all([
         prisma.rolePermission.count(),
         prisma.role.count(),
         prisma.permission.count(),
       ]);
 
-      res.status(200).json({
-        success: true,
-        data: {
-          totalMappings,
-          totalRoles,
-          totalPermissions,
-        },
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Analytics failed",
-      });
-    }
-  };
+    res.status(200).json({
+      success: true,
+      data: {
+        totalMappings,
+        totalRoles,
+        totalPermissions,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Analytics failed",
+    });
+  }
+};

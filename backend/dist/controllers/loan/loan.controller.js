@@ -11,10 +11,7 @@ const prisma_1 = __importDefault(require("../../prisma/prisma"));
 const applyLoan = async (req, res) => {
     try {
         console.log("REQ BODY =>", req.body);
-        const { userId, fullName, email, phone, loanType, amount, dob, panNo, aadhaarNo, monthlyIncome, employmentType, address, city, state, pincode, } = req.body;
-        /* ========================================
-           VALIDATION
-        ======================================== */
+        const { userId, fullName, email, phone, loanType, amount, dob, panNo, aadhaarNo, monthlyIncome, employmentType, address, city, state, pincode, purpose, } = req.body;
         if (!fullName ||
             !email ||
             !phone ||
@@ -27,110 +24,139 @@ const applyLoan = async (req, res) => {
                 message: "All required fields are mandatory",
             });
         }
-        /* ========================================
-           EMAIL VALIDATION
-        ======================================== */
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        const normalizedEmail = String(email)
+            .trim()
+            .toLowerCase();
+        const normalizedPhone = String(phone).trim();
+        const normalizedPan = String(panNo)
+            .trim()
+            .toUpperCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email address",
             });
         }
-        /* ========================================
-           PHONE VALIDATION
-        ======================================== */
-        if (phone.length < 10) {
+        if (!/^[6-9][0-9]{9}$/.test(normalizedPhone)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid phone number",
             });
         }
-        /* ========================================
-           PAN VALIDATION
-        ======================================== */
-        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
-        if (!panRegex.test(panNo)) {
+        if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(normalizedPan)) {
             return res.status(400).json({
                 success: false,
                 message: "Invalid PAN number",
             });
         }
-        /* ========================================
-           DUPLICATE LOAN CHECK
-        ======================================== */
+        const loanAmount = Number(amount);
+        if (!Number.isFinite(loanAmount) || loanAmount <= 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid loan amount",
+            });
+        }
+        const existingUser = await prisma_1.default.user.findUnique({
+            where: {
+                email: normalizedEmail,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                phoneNo: true,
+                isBlocked: true,
+            },
+        });
+        if (!existingUser) {
+            return res.status(404).json({
+                success: false,
+                message: "No registered customer account found with this email. Please login/register first.",
+            });
+        }
+        if (existingUser.isBlocked) {
+            return res.status(403).json({
+                success: false,
+                message: "Your customer account is blocked.",
+            });
+        }
+        const finalUserId = existingUser.id;
+        if (userId &&
+            String(userId) !== existingUser.id) {
+            return res.status(403).json({
+                success: false,
+                message: "Customer identity does not match the registered account.",
+            });
+        }
         const existingLoan = await prisma_1.default.loanApplication.findFirst({
             where: {
-                email,
-                status: "pending",
+                userId: finalUserId,
+                status: "PENDING",
             },
         });
         if (existingLoan) {
             return res.status(400).json({
                 success: false,
-                message: "Loan application already pending",
-            });
-        }
-        /* ========================================
-           CHECK USER
-        ======================================== */
-        const existingUser = await prisma_1.default.user.findUnique({
-            where: {
-                email,
-            },
-        });
-        /* ========================================
-           CREATE LOAN
-        ======================================== */
-        const loan = await prisma_1.default.loanApplication.create({
-            data: {
-                userId: userId || null,
-                fullName,
-                email,
-                phone,
-                loanType,
-                amount: Number(amount),
-                dob,
-                panNo,
-                aadhaarNo,
-                monthlyIncome: monthlyIncome
-                    ? Number(monthlyIncome)
-                    : null,
-                employmentType,
-                address,
-                city,
-                state,
-                zipCode: pincode,
-                status: "pending",
-            },
-        });
-        /* ========================================
-           CREATE NOTIFICATION
-        ======================================== */
-        if (existingUser) {
-            await prisma_1.default.notification.create({
+                message: "You already have a pending loan application.",
                 data: {
-                    userId: existingUser.id,
-                    title: "Loan Application Submitted",
-                    message: `Your ${loanType} loan application has been submitted successfully.`,
-                    type: "loan",
+                    loanId: existingLoan.id,
                 },
             });
         }
-        /* ========================================
-           RESPONSE
-        ======================================== */
+        const loan = await prisma_1.default.loanApplication.create({
+            data: {
+                userId: finalUserId,
+                fullName: String(fullName).trim(),
+                email: normalizedEmail,
+                phone: normalizedPhone,
+                loanType: String(loanType).trim(),
+                amount: loanAmount,
+                dob: String(dob).trim(),
+                panNo: normalizedPan,
+                aadhaarNo: aadhaarNo
+                    ? String(aadhaarNo).trim()
+                    : null,
+                monthlyIncome: monthlyIncome !== undefined &&
+                    monthlyIncome !== null &&
+                    monthlyIncome !== ""
+                    ? Number(monthlyIncome)
+                    : null,
+                employmentType: employmentType
+                    ? String(employmentType).trim()
+                    : null,
+                purpose: purpose
+                    ? String(purpose).trim()
+                    : null,
+                address: address
+                    ? String(address).trim()
+                    : null,
+                city: city
+                    ? String(city).trim()
+                    : null,
+                state: state
+                    ? String(state).trim()
+                    : null,
+                zipCode: pincode
+                    ? String(pincode).trim()
+                    : null,
+                status: "PENDING",
+            },
+        });
+        console.log("REAL LOAN CREATED =>", loan.id, "USER =>", finalUserId);
         return res.status(201).json({
             success: true,
-            message: "Loan application submitted successfully",
-            loan,
+            message: "Loan application submitted successfully.",
+            data: loan,
         });
     }
     catch (error) {
-        console.log("LOAN ERROR =>", error);
+        console.error("APPLY LOAN ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Internal Server Error",
+            message: "Failed to submit loan application.",
+            error: process.env.NODE_ENV === "development"
+                ? error
+                : undefined,
         });
     }
 };
@@ -144,23 +170,18 @@ const getAllLoans = async (req, res) => {
             orderBy: {
                 createdAt: "desc",
             },
-            include: {
-                user: true,
-                commissions: true,
-                emiPayments: true,
-            },
         });
         return res.status(200).json({
             success: true,
-            totalLoans: loans.length,
-            loans,
+            count: loans.length,
+            data: loans,
         });
     }
     catch (error) {
-        console.log(error);
+        console.error("GET ALL LOANS ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to fetch loans",
+            message: "Failed to fetch loans.",
         });
     }
 };
@@ -170,33 +191,28 @@ exports.getAllLoans = getAllLoans;
 ======================================== */
 const getSingleLoan = async (req, res) => {
     try {
-        const id = req.params.id;
+        const loanId = String(req.params.id);
         const loan = await prisma_1.default.loanApplication.findUnique({
             where: {
-                id,
-            },
-            include: {
-                user: true,
-                commissions: true,
-                emiPayments: true,
+                id: loanId,
             },
         });
         if (!loan) {
             return res.status(404).json({
                 success: false,
-                message: "Loan not found",
+                message: "Loan application not found.",
             });
         }
         return res.status(200).json({
             success: true,
-            loan,
+            data: loan,
         });
     }
     catch (error) {
-        console.log(error);
+        console.error("GET SINGLE LOAN ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to fetch loan",
+            message: "Failed to fetch loan application.",
         });
     }
 };
@@ -206,81 +222,37 @@ exports.getSingleLoan = getSingleLoan;
 ======================================== */
 const approveLoan = async (req, res) => {
     try {
-        const id = req.params.id;
-        /* ========================================
-           FIND LOAN
-        ======================================== */
+        const loanId = String(req.params.id);
         const existingLoan = await prisma_1.default.loanApplication.findUnique({
             where: {
-                id,
+                id: loanId,
             },
         });
         if (!existingLoan) {
             return res.status(404).json({
                 success: false,
-                message: "Loan not found",
+                message: "Loan application not found.",
             });
         }
-        if (existingLoan.status ===
-            "approved") {
-            return res.status(400).json({
-                success: false,
-                message: "Loan already approved",
-            });
-        }
-        /* ========================================
-           TRANSACTION
-        ======================================== */
-        const result = await prisma_1.default.$transaction(async (tx) => {
-            /* UPDATE LOAN */
-            const loan = await tx.loanApplication.update({
-                where: {
-                    id,
-                },
-                data: {
-                    status: "approved",
-                },
-            });
-            /* CREATE COMMISSION */
-            if (loan.userId) {
-                await tx.commission.create({
-                    data: {
-                        userId: loan.userId,
-                        amount: loan.amount * 0.02,
-                        loanId: loan.id,
-                    },
-                });
-            }
-            /* FIND USER */
-            const user = await tx.user.findFirst({
-                where: {
-                    email: loan.email,
-                },
-            });
-            /* CREATE NOTIFICATION */
-            if (user) {
-                await tx.notification.create({
-                    data: {
-                        userId: user.id,
-                        title: "Loan Approved",
-                        message: `Congratulations! Your ${loan.loanType} loan has been approved.`,
-                        type: "loan",
-                    },
-                });
-            }
-            return loan;
+        const loan = await prisma_1.default.loanApplication.update({
+            where: {
+                id: loanId,
+            },
+            data: {
+                status: "APPROVED",
+            },
         });
         return res.status(200).json({
             success: true,
-            message: "Loan approved successfully",
-            loan: result,
+            message: "Loan application approved successfully.",
+            data: loan,
         });
     }
     catch (error) {
-        console.log(error);
+        console.error("APPROVE LOAN ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Loan approval failed",
+            message: "Failed to approve loan application.",
         });
     }
 };
@@ -290,61 +262,37 @@ exports.approveLoan = approveLoan;
 ======================================== */
 const rejectLoan = async (req, res) => {
     try {
-        const id = req.params.id;
-        /* ========================================
-           FIND LOAN
-        ======================================== */
+        const loanId = String(req.params.id);
         const existingLoan = await prisma_1.default.loanApplication.findUnique({
             where: {
-                id,
+                id: loanId,
             },
         });
         if (!existingLoan) {
             return res.status(404).json({
                 success: false,
-                message: "Loan not found",
+                message: "Loan application not found.",
             });
         }
-        /* ========================================
-           UPDATE LOAN
-        ======================================== */
         const loan = await prisma_1.default.loanApplication.update({
             where: {
-                id,
+                id: loanId,
             },
             data: {
-                status: "rejected",
+                status: "REJECTED",
             },
         });
-        /* ========================================
-           CREATE NOTIFICATION
-        ======================================== */
-        const user = await prisma_1.default.user.findFirst({
-            where: {
-                email: loan.email,
-            },
-        });
-        if (user) {
-            await prisma_1.default.notification.create({
-                data: {
-                    userId: user.id,
-                    title: "Loan Rejected",
-                    message: `Your ${loan.loanType} loan application has been rejected.`,
-                    type: "loan",
-                },
-            });
-        }
         return res.status(200).json({
             success: true,
-            message: "Loan rejected successfully",
-            loan,
+            message: "Loan application rejected successfully.",
+            data: loan,
         });
     }
     catch (error) {
-        console.log(error);
+        console.error("REJECT LOAN ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Loan rejection failed",
+            message: "Failed to reject loan application.",
         });
     }
 };
@@ -354,34 +302,33 @@ exports.rejectLoan = rejectLoan;
 ======================================== */
 const deleteLoan = async (req, res) => {
     try {
-        const id = req.params.id;
-        const loan = await prisma_1.default.loanApplication.findUnique({
+        const loanId = String(req.params.id);
+        const existingLoan = await prisma_1.default.loanApplication.findUnique({
             where: {
-                id,
+                id: loanId,
             },
         });
-        if (!loan) {
+        if (!existingLoan) {
             return res.status(404).json({
                 success: false,
-                message: "Loan not found",
+                message: "Loan application not found.",
             });
         }
         await prisma_1.default.loanApplication.delete({
             where: {
-                id,
+                id: loanId,
             },
         });
         return res.status(200).json({
             success: true,
-            message: "Loan deleted successfully",
-            loan,
+            message: "Loan application deleted successfully.",
         });
     }
     catch (error) {
-        console.log(error);
+        console.error("DELETE LOAN ERROR =>", error);
         return res.status(500).json({
             success: false,
-            message: "Failed to delete loan",
+            message: "Failed to delete loan application.",
         });
     }
 };

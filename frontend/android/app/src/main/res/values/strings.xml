@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">India Loan Finance</string>
+    <string name="title_activity_main">India Loan Finance</string>
+    <string name="package_name">com.indialoanfinance.app</string>
+    <string name="custom_url_scheme">com.indialoanfinance.app</string>
+</resources>

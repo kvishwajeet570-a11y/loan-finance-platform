@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { prisma } from "../config/prisma";
+import prisma from "../prisma/prisma";
 
 /* =========================================
    DAILY EMI REMINDER
@@ -13,13 +13,12 @@ export const dailyEmiReminderJob = cron.schedule(
         "Running Daily EMI Reminder Job..."
       );
 
-      const today = new Date();
-
       const loans =
         await prisma.loanApplication.findMany({
           where: {
             status: "APPROVED",
           },
+
           select: {
             id: true,
             fullName: true,
@@ -31,9 +30,11 @@ export const dailyEmiReminderJob = cron.schedule(
       console.log(
         `EMI Reminder Sent: ${loans.length}`
       );
-
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Daily EMI Reminder Job Error:",
+        error
+      );
     }
   },
   {
@@ -43,6 +44,14 @@ export const dailyEmiReminderJob = cron.schedule(
 
 /* =========================================
    AUTO LOAN STATUS UPDATE
+
+   DISABLED LOGIC:
+   Current LoanStatus enum contains only:
+   PENDING
+   APPROVED
+   REJECTED
+
+   Therefore DISBURSED cannot be queried.
 ========================================= */
 
 export const loanStatusUpdateJob =
@@ -50,23 +59,18 @@ export const loanStatusUpdateJob =
     "0 */6 * * *",
     async () => {
       try {
-
-        await prisma.loanApplication.updateMany({
-          where: {
-            status: "DISBURSED",
-          },
-          data: {
-            updatedAt: new Date(),
-          },
-        });
-
         console.log(
-          "Loan Status Updated"
+          "Loan Status Update skipped: DISBURSED status is not available in current LoanStatus enum."
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Loan Status Update Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -79,7 +83,6 @@ export const referralSettlementJob =
     "0 1 * * *",
     async () => {
       try {
-
         const referrals =
           await prisma.referral.findMany({
             where: {
@@ -90,10 +93,15 @@ export const referralSettlementJob =
         console.log(
           `Referral Settlement: ${referrals.length}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Referral Settlement Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -106,7 +114,6 @@ export const commissionSettlementJob =
     "30 1 * * *",
     async () => {
       try {
-
         const commissions =
           await prisma.commission.findMany({
             where: {
@@ -117,10 +124,15 @@ export const commissionSettlementJob =
         console.log(
           `Commission Settlement: ${commissions.length}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Commission Settlement Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -133,17 +145,21 @@ export const walletReconciliationJob =
     "0 2 * * *",
     async () => {
       try {
-
         const wallets =
           await prisma.wallet.count();
 
         console.log(
           `Wallet Reconciliation: ${wallets}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Wallet Reconciliation Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -156,30 +172,40 @@ export const kycExpiryJob =
     "15 2 * * *",
     async () => {
       try {
-
-        await prisma.kyc.updateMany({
-          where: {
-            expiryDate: {
-              lt: new Date(),
+        const result =
+          await prisma.kYC.updateMany({
+            where: {
+              expiryDate: {
+                lt: new Date(),
+              },
             },
-          },
-          data: {
-            status: "EXPIRED",
-          },
-        });
+
+            data: {
+              status: "EXPIRED",
+            },
+          });
 
         console.log(
-          "Expired KYC Updated"
+          `Expired KYC Updated: ${result.count}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "KYC Expiry Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
 /* =========================================
    DOCUMENT EXPIRY CHECK
+
+   DISABLED:
+   Current Document model does not contain
+   expiryDate/status fields.
 ========================================= */
 
 export const documentExpiryJob =
@@ -187,21 +213,18 @@ export const documentExpiryJob =
     "30 2 * * *",
     async () => {
       try {
-
-        await prisma.document.updateMany({
-          where: {
-            expiryDate: {
-              lt: new Date(),
-            },
-          },
-          data: {
-            status: "EXPIRED",
-          },
-        });
-
+        console.log(
+          "Document Expiry Check skipped: Document model does not contain expiryDate/status fields."
+        );
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Document Expiry Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -214,25 +237,35 @@ export const analyticsSnapshotJob =
     "55 23 * * *",
     async () => {
       try {
-
-        const totalUsers =
-          await prisma.user.count();
-
-        const totalLoans =
-          await prisma.loanApplication.count();
-
-        const totalTransactions =
-          await prisma.transaction.count();
-
-        console.log({
+        const [
           totalUsers,
           totalLoans,
           totalTransactions,
-        });
+        ] = await Promise.all([
+          prisma.user.count(),
 
+          prisma.loanApplication.count(),
+
+          prisma.transaction.count(),
+        ]);
+
+        console.log(
+          "Daily Analytics Snapshot:",
+          {
+            totalUsers,
+            totalLoans,
+            totalTransactions,
+          }
+        );
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Analytics Snapshot Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -245,14 +278,23 @@ export const databaseBackupJob =
     "0 0 * * *",
     async () => {
       try {
-
         console.log(
           "Database Backup Started"
         );
 
+        /*
+         * Actual PostgreSQL backup logic
+         * can be added here later.
+         */
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Database Backup Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -265,14 +307,23 @@ export const reportGenerationJob =
     "0 4 * * *",
     async () => {
       try {
-
         console.log(
           "Generating Reports..."
         );
 
+        /*
+         * Report generation logic
+         * can be added here later.
+         */
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Report Generation Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -285,7 +336,6 @@ export const fraudDetectionJob =
     "*/30 * * * *",
     async () => {
       try {
-
         const suspiciousTransactions =
           await prisma.transaction.count({
             where: {
@@ -298,10 +348,15 @@ export const fraudDetectionJob =
         console.log(
           `Suspicious Transactions: ${suspiciousTransactions}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Fraud Detection Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
@@ -314,7 +369,6 @@ export const revenueJob =
     "0 23 * * *",
     async () => {
       try {
-
         const revenue =
           await prisma.transaction.aggregate({
             _sum: {
@@ -323,21 +377,25 @@ export const revenueJob =
           });
 
         console.log(
-          revenue._sum.amount || 0
+          `Daily Revenue: ${revenue._sum.amount || 0}`
         );
-
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Revenue Job Error:",
+          error
+        );
       }
+    },
+    {
+      timezone: "Asia/Kolkata",
     }
   );
 
 /* =========================================
-   START ALL JOBS
+   START ALL SCHEDULER JOBS
 ========================================= */
 
 export const startScheduler = () => {
-
   dailyEmiReminderJob.start();
 
   loanStatusUpdateJob.start();

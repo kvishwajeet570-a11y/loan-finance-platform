@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.profileAnalyticsSchema = exports.profileCompletenessSchema = exports.profileFilterSchema = exports.changePhoneSchema = exports.changeEmailSchema = exports.updateContactSchema = exports.updateAddressSchema = exports.updateProfileImageSchema = exports.updateProfileSchema = exports.employmentTypeEnum = exports.maritalStatusEnum = exports.genderEnum = void 0;
+exports.profileAnalyticsSchema = exports.profileCompletenessSchema = exports.profileFilterSchema = exports.changePhoneSchema = exports.changeEmailSchema = exports.updateContactSchema = exports.updateAddressSchema = exports.updateProfileImageSchema = exports.updateProfileSchema = exports.maritalStatusEnum = exports.profileGenderEnum = void 0;
 const zod_1 = require("zod");
 /* =========================================
    GENDER
 ========================================= */
-exports.genderEnum = zod_1.z.enum([
+exports.profileGenderEnum = zod_1.z.enum([
     "MALE",
     "FEMALE",
     "OTHER",
@@ -22,7 +22,7 @@ exports.maritalStatusEnum = zod_1.z.enum([
 /* =========================================
    EMPLOYMENT TYPE
 ========================================= */
-exports.employmentTypeEnum = zod_1.z.enum([
+const employmentTypeEnum = zod_1.z.enum([
     "SALARIED",
     "SELF_EMPLOYED",
     "BUSINESS_OWNER",
@@ -45,7 +45,7 @@ exports.updateProfileSchema = zod_1.z.object({
         .regex(/^[6-9]\d{9}$/)
         .optional(),
     dob: zod_1.z.string().optional(),
-    gender: exports.genderEnum.optional(),
+    gender: exports.profileGenderEnum.optional(),
     maritalStatus: exports.maritalStatusEnum.optional(),
     profileImage: zod_1.z.string().url().optional(),
     address: zod_1.z.string().optional(),
@@ -53,7 +53,7 @@ exports.updateProfileSchema = zod_1.z.object({
     state: zod_1.z.string().optional(),
     pincode: zod_1.z.string().optional(),
     occupation: zod_1.z.string().optional(),
-    employmentType: exports.employmentTypeEnum.optional(),
+    employmentType: employmentTypeEnum.optional(),
     monthlyIncome: zod_1.z.number()
         .positive()
         .optional(),
@@ -107,7 +107,7 @@ exports.profileFilterSchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
     city: zod_1.z.string().optional(),
     state: zod_1.z.string().optional(),
-    employmentType: exports.employmentTypeEnum.optional(),
+    employmentType: employmentTypeEnum.optional(),
     page: zod_1.z.coerce.number()
         .default(1),
     limit: zod_1.z.coerce.number()

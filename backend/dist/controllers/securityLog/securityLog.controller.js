@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.securityAnalytics = exports.cleanupSecurityLogs = exports.createSecurityLog = exports.getUserSecurityLogs = exports.getAllSecurityLogs = void 0;
-const prisma_1 = __importDefault(require("../../config/prisma"));
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 /**
  * GET ALL SECURITY LOGS
  */
@@ -59,7 +59,7 @@ const getUserSecurityLogs = async (req, res) => {
     try {
         const logs = await prisma_1.default.securityLog.findMany({
             where: {
-                userId: req.params.userId,
+                userId: String(req.params.userId),
             },
             orderBy: {
                 createdAt: "desc",

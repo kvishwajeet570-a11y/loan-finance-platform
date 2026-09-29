@@ -15,35 +15,26 @@ interface ApplyLoanDTO {
 }
 
 class LoanService {
-  /**
-   * Apply Loan
-   */
   async applyLoan(data: ApplyLoanDTO) {
-    const existingUser =
-      await prisma.user.findUnique({
-        where: {
-          id: data.userId,
-        },
-      });
+    const existingUser = await prisma.user.findUnique({
+      where: { id: data.userId },
+    });
 
     if (!existingUser) {
       throw new Error("User not found");
     }
 
-    const interestRate =
-      await this.calculateInterestRate(
-        data.amount
-      );
+    const interestRate = await this.calculateInterestRate(
+      data.amount
+    );
 
-    const tenure =
-      data.tenureMonths || 12;
+    const tenure = data.tenureMonths || 12;
 
-    const emi =
-      this.calculateEMI(
-        data.amount,
-        interestRate,
-        tenure
-      );
+    const emi = this.calculateEMI(
+      data.amount,
+      interestRate,
+      tenure
+    );
 
     return prisma.loanApplication.create({
       data: {
@@ -53,60 +44,41 @@ class LoanService {
         phone: data.phone,
         loanType: data.loanType,
         amount: data.amount,
-        monthlyIncome:
-          data.monthlyIncome,
+        monthlyIncome: data.monthlyIncome,
         panNo: data.panNo,
         dob: data.dob,
         tenureMonths: tenure,
         interestRate,
         monthlyEMI: emi,
-        status: "pending",
+        status: LoanStatus.PENDING,
       },
     });
   }
 
-  /**
-   * Get Loan By ID
-   */
-  async getLoanById(
-    loanId: string
-  ) {
+  async getLoanById(loanId: string) {
     return prisma.loanApplication.findUnique({
-      where: {
-        id: loanId,
-      },
+      where: { id: loanId },
       include: {
         user: true,
       },
     });
   }
 
-  /**
-   * User Loan History
-   */
-  async getUserLoans(
-    userId: string
-  ) {
+  async getUserLoans(userId: string) {
     return prisma.loanApplication.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
       orderBy: {
         createdAt: "desc",
       },
     });
   }
 
-  /**
-   * Get All Loans
-   */
   async getAllLoans(
     page = 1,
     limit = 20,
     search = ""
   ) {
-    const skip =
-      (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     const where = search
       ? {
@@ -114,7 +86,7 @@ class LoanService {
             {
               fullName: {
                 contains: search,
-                mode: "insensitive",
+                mode: "insensitive" as const,
               },
             },
             {
@@ -125,180 +97,140 @@ class LoanService {
             {
               email: {
                 contains: search,
-                mode: "insensitive",
+                mode: "insensitive" as const,
               },
             },
           ],
         }
       : {};
 
-    const [loans, total] =
-      await Promise.all([
-        prisma.loanApplication.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc",
-          },
-          include: {
-            user: true,
-          },
-        }),
+    const [loans, total] = await Promise.all([
+      prisma.loanApplication.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          user: true,
+        },
+      }),
 
-        prisma.loanApplication.count({
-          where,
-        }),
-      ]);
+      prisma.loanApplication.count({
+        where,
+      }),
+    ]);
 
     return {
       loans,
       total,
       page,
-      pages: Math.ceil(
-        total / limit
-      ),
+      pages: Math.ceil(total / limit),
     };
   }
 
-  /**
-   * Approve Loan
-   */
   async approveLoan(
     loanId: string,
     approvedBy: string
   ) {
     const loan =
       await prisma.loanApplication.findUnique({
-        where: {
-          id: loanId,
-        },
+        where: { id: loanId },
       });
 
     if (!loan) {
-      throw new Error(
-        "Loan not found"
-      );
+      throw new Error("Loan not found");
     }
 
     const updatedLoan =
       await prisma.loanApplication.update({
-        where: {
-          id: loanId,
-        },
+        where: { id: loanId },
         data: {
-          status: "approved",
+          status: LoanStatus.APPROVED,
           approvedAt: new Date(),
           approvedBy,
         },
       });
 
-    await prisma.notification.create({
-      data: {
-        userId: loan.userId,
-        title:
-          "Loan Approved",
-        message: `Your ₹${loan.amount} loan has been approved.`,
-      },
-    });
+    if (loan.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: loan.userId,
+          title: "Loan Approved",
+          message: `Your ₹${loan.amount} loan has been approved.`,
+        },
+      });
+    }
 
     return updatedLoan;
   }
 
-  /**
-   * Reject Loan
-   */
   async rejectLoan(
     loanId: string,
     reason: string
   ) {
     const loan =
       await prisma.loanApplication.findUnique({
-        where: {
-          id: loanId,
-        },
+        where: { id: loanId },
       });
 
     if (!loan) {
-      throw new Error(
-        "Loan not found"
-      );
+      throw new Error("Loan not found");
     }
 
     const updatedLoan =
       await prisma.loanApplication.update({
-        where: {
-          id: loanId,
-        },
+        where: { id: loanId },
         data: {
-          status: "rejected",
-          rejectionReason:
-            reason,
+          status: LoanStatus.REJECTED,
+          rejectionReason: reason,
         },
       });
 
-    await prisma.notification.create({
-      data: {
-        userId: loan.userId,
-        title:
-          "Loan Rejected",
-        message: reason,
-      },
-    });
+    if (loan.userId) {
+      await prisma.notification.create({
+        data: {
+          userId: loan.userId,
+          title: "Loan Rejected",
+          message: reason,
+        },
+      });
+    }
 
     return updatedLoan;
   }
 
-  /**
-   * Assign Loan To DSA
-   */
   async assignLoan(
     loanId: string,
     dsaId: string
   ) {
     return prisma.loanApplication.update({
-      where: {
-        id: loanId,
-      },
+      where: { id: loanId },
       data: {
         assignedTo: dsaId,
       },
     });
   }
 
-  /**
-   * Update Loan Status
-   */
   async updateLoanStatus(
     loanId: string,
     status: LoanStatus
   ) {
     return prisma.loanApplication.update({
-      where: {
-        id: loanId,
-      },
-      data: {
-        status,
-      },
+      where: { id: loanId },
+      data: { status },
     });
   }
 
-  /**
-   * Delete Loan
-   */
   async deleteLoan(
     loanId: string
   ) {
     return prisma.loanApplication.delete({
-      where: {
-        id: loanId,
-      },
+      where: { id: loanId },
     });
   }
 
-  /**
-   * Loan Dashboard Stats
-   */
   async getLoanStats() {
     const [
       totalLoans,
@@ -311,22 +243,19 @@ class LoanService {
 
       prisma.loanApplication.count({
         where: {
-          status:
-            "approved",
+          status: LoanStatus.APPROVED,
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status:
-            "rejected",
+          status: LoanStatus.REJECTED,
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status:
-            "pending",
+          status: LoanStatus.PENDING,
         },
       }),
 
@@ -343,14 +272,10 @@ class LoanService {
       rejectedLoans,
       pendingLoans,
       totalDisbursed:
-        totalAmount._sum
-          .amount || 0,
+        totalAmount._sum.amount || 0,
     };
   }
 
-  /**
-   * Monthly Loan Report
-   */
   async monthlyReport() {
     const currentYear =
       new Date().getFullYear();
@@ -367,59 +292,36 @@ class LoanService {
     `;
   }
 
-  /**
-   * EMI Calculator
-   */
   calculateEMI(
     amount: number,
     interest: number,
     months: number
   ) {
-    const r =
-      interest / 12 / 100;
+    const r = interest / 12 / 100;
 
     return Math.round(
       (amount *
         r *
-        Math.pow(
-          1 + r,
-          months
-        )) /
-        (Math.pow(
-          1 + r,
-          months
-        ) -
-          1)
+        Math.pow(1 + r, months)) /
+        (Math.pow(1 + r, months) - 1)
     );
   }
 
-  /**
-   * Dynamic Interest
-   */
   async calculateInterestRate(
     amount: number
   ) {
-    if (amount <= 100000)
-      return 11;
-
-    if (amount <= 500000)
-      return 10;
-
-    if (amount <= 1000000)
-      return 9;
-
+    if (amount <= 100000) return 11;
+    if (amount <= 500000) return 10;
+    if (amount <= 1000000) return 9;
     return 8;
   }
 
-  /**
-   * Top Performing DSA
-   */
   async topDSA() {
     return prisma.loanApplication.groupBy({
       by: ["assignedTo"],
 
       where: {
-        status: "approved",
+        status: LoanStatus.APPROVED,
       },
 
       _count: {

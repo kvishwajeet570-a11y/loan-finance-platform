@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getTopUsers = exports.getMonthlyRevenue = exports.getRevenueAnalytics = void 0;
-const prisma_1 = __importDefault(require("../prisma/prisma"));
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 /* ========================================
    GET REVENUE ANALYTICS
 ======================================== */
@@ -17,13 +17,13 @@ const getRevenueAnalytics = async (req, res) => {
         /* APPROVED LOANS */
         const approvedLoans = await prisma_1.default.loanApplication.count({
             where: {
-                status: "approved",
+                status: "APPROVED",
             },
         });
         /* PENDING LOANS */
         const pendingLoans = await prisma_1.default.loanApplication.count({
             where: {
-                status: "pending",
+                status: "PENDING",
             },
         });
         /* TOTAL RECHARGES */

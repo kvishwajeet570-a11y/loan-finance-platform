@@ -121,6 +121,81 @@ class BannerService {
       inactive,
     };
   }
+   // ========================================
+// GET BANNER BY TYPE
+// ========================================
+async getBannerByType(type: string) {
+  return prisma.banner.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// GET AUDIENCE BANNERS
+// ========================================
+async getAudienceBanners(audience: string) {
+  return prisma.banner.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// ACTIVATE BANNER
+// ========================================
+async activateBanner(id: string) {
+  return prisma.banner.update({
+    where: { id },
+    data: {
+      isActive: true,
+    },
+  });
+}
+
+// ========================================
+// DEACTIVATE BANNER
+// ========================================
+async deactivateBanner(id: string) {
+  return prisma.banner.update({
+    where: { id },
+    data: {
+      isActive: false,
+    },
+  });
+}
+
+// ========================================
+// INCREMENT VIEW
+// ========================================
+async incrementView(id: string) {
+  // viewCount field schema में नहीं है,
+  // इसलिए अभी सिर्फ banner return कर रहे हैं।
+  return prisma.banner.findUnique({
+    where: { id },
+  });
+}
+
+// ========================================
+// INCREMENT CLICK
+// ========================================
+async incrementClick(id: string) {
+  // clickCount field schema में नहीं है,
+  // इसलिए अभी सिर्फ banner return कर रहे हैं।
+  return prisma.banner.findUnique({
+    where: { id },
+  });
+}
+
+// ========================================
+// GET BANNER ANALYTICS
+// ========================================
+async getBannerAnalytics() {
+  return this.getBannerStats();
+}
+
 }
 
 export default new BannerService();

@@ -7,7 +7,7 @@ const router = (0, express_1.Router)();
    DASHBOARD & ANALYTICS
 ===================================== */
 router.get("/dashboard", role_controller_1.getRoleDashboard);
-router.get("/analytics", role_controller_1.getRoleAnalytics);
+router.get("/analytics", role_controller_1.roleAnalytics);
 router.get("/hierarchy", role_controller_1.getRoleHierarchy);
 router.get("/audit-logs", role_controller_1.getRoleAuditLogs);
 /* =====================================

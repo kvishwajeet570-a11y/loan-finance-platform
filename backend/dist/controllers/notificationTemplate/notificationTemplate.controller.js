@@ -3,16 +3,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.templateAnalytics = exports.deleteTemplate = exports.toggleTemplateStatus = exports.updateTemplate = exports.getTemplateById = exports.getAllTemplates = exports.createTemplate = void 0;
-const prisma_1 = __importDefault(require("../../config/prisma"));
+exports.updateDeliveryStats = exports.templateAnalytics = exports.approveTemplate = exports.toggleTemplateStatus = exports.deleteTemplate = exports.updateTemplate = exports.getTemplateById = exports.getAllTemplates = exports.createTemplate = void 0;
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
+/* =====================================================
+   CREATE TEMPLATE
+===================================================== */
 const createTemplate = async (req, res) => {
     try {
-        const { name, code, type, subject, content, variables, } = req.body;
-        const exists = await prisma_1.default.notificationTemplate.findUnique({
-            where: { code },
+        const { name, code, category, type, subject, content, variables, } = req.body;
+        const existing = await prisma_1.default.notificationTemplate.findUnique({
+            where: {
+                code: String(code).toUpperCase(),
+            },
         });
-        if (exists) {
-            res.status(400).json({
+        if (existing) {
+            res.status(409).json({
                 success: false,
                 message: "Template code already exists",
             });
@@ -21,12 +26,13 @@ const createTemplate = async (req, res) => {
         const template = await prisma_1.default.notificationTemplate.create({
             data: {
                 name,
-                code,
+                code: String(code).toUpperCase(),
+                category,
                 type,
                 subject,
                 content,
                 variables,
-                createdBy: req.user?.id,
+                createdBy: req.user?.id || null,
             },
         });
         res.status(201).json({
@@ -35,35 +41,62 @@ const createTemplate = async (req, res) => {
         });
     }
     catch (error) {
-        console.error(error);
         res.status(500).json({
             success: false,
-            message: "Failed to create template",
+            error,
         });
     }
 };
 exports.createTemplate = createTemplate;
+/* =====================================================
+   GET ALL TEMPLATES
+===================================================== */
 const getAllTemplates = async (req, res) => {
     try {
-        const page = Number(req.query.page || 1);
-        const limit = Number(req.query.limit || 20);
-        const search = String(req.query.search || "");
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const search = typeof req.query.search === "string"
+            ? req.query.search
+            : undefined;
+        const category = typeof req.query.category === "string"
+            ? req.query.category
+            : undefined;
+        const type = typeof req.query.type === "string"
+            ? req.query.type
+            : undefined;
+        const isActive = req.query.isActive === "true"
+            ? true
+            : req.query.isActive === "false"
+                ? false
+                : undefined;
         const where = {
-            OR: [
-                {
-                    name: {
-                        contains: search,
-                        mode: "insensitive",
+            ...(search && {
+                OR: [
+                    {
+                        name: {
+                            contains: search,
+                            mode: "insensitive",
+                        },
                     },
-                },
-                {
-                    code: {
-                        contains: search,
-                        mode: "insensitive",
+                    {
+                        code: {
+                            contains: search,
+                            mode: "insensitive",
+                        },
                     },
-                },
-            ],
+                ],
+            }),
+            ...(category && {
+                category,
+            }),
+            ...(type && {
+                type,
+            }),
+            ...(typeof isActive ===
+                "boolean" && {
+                isActive,
+            }),
         };
         const [templates, total] = await Promise.all([
             prisma_1.default.notificationTemplate.findMany({
@@ -80,25 +113,29 @@ const getAllTemplates = async (req, res) => {
         ]);
         res.status(200).json({
             success: true,
-            total,
             page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
             data: templates,
         });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Failed to fetch templates",
+            error,
         });
     }
 };
 exports.getAllTemplates = getAllTemplates;
+/* =====================================================
+   GET TEMPLATE BY ID
+===================================================== */
 const getTemplateById = async (req, res) => {
     try {
+        const id = String(req.params.id);
         const template = await prisma_1.default.notificationTemplate.findUnique({
-            where: {
-                id: req.params.id,
-            },
+            where: { id },
         });
         if (!template) {
             res.status(404).json({
@@ -112,45 +149,82 @@ const getTemplateById = async (req, res) => {
             data: template,
         });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Failed",
+            error,
         });
     }
 };
 exports.getTemplateById = getTemplateById;
+/* =====================================================
+   UPDATE TEMPLATE
+===================================================== */
 const updateTemplate = async (req, res) => {
     try {
-        const template = await prisma_1.default.notificationTemplate.update({
-            where: {
-                id: req.params.id,
-            },
+        const id = String(req.params.id);
+        const existing = await prisma_1.default.notificationTemplate.findUnique({
+            where: { id },
+        });
+        if (!existing) {
+            res.status(404).json({
+                success: false,
+                message: "Template not found",
+            });
+            return;
+        }
+        const updated = await prisma_1.default.notificationTemplate.update({
+            where: { id },
             data: {
                 ...req.body,
-                updatedBy: req.user?.id,
+                version: {
+                    increment: 1,
+                },
             },
         });
         res.status(200).json({
             success: true,
-            message: "Template updated",
-            data: template,
+            data: updated,
         });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Update failed",
+            error,
         });
     }
 };
 exports.updateTemplate = updateTemplate;
+/* =====================================================
+   DELETE TEMPLATE
+===================================================== */
+const deleteTemplate = async (req, res) => {
+    try {
+        const id = String(req.params.id);
+        await prisma_1.default.notificationTemplate.delete({
+            where: { id },
+        });
+        res.status(200).json({
+            success: true,
+            message: "Template deleted successfully",
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            error,
+        });
+    }
+};
+exports.deleteTemplate = deleteTemplate;
+/* =====================================================
+   TOGGLE TEMPLATE STATUS
+===================================================== */
 const toggleTemplateStatus = async (req, res) => {
     try {
+        const id = String(req.params.id);
         const template = await prisma_1.default.notificationTemplate.findUnique({
-            where: {
-                id: req.params.id,
-            },
+            where: { id },
         });
         if (!template) {
             res.status(404).json({
@@ -160,9 +234,7 @@ const toggleTemplateStatus = async (req, res) => {
             return;
         }
         const updated = await prisma_1.default.notificationTemplate.update({
-            where: {
-                id: req.params.id,
-            },
+            where: { id },
             data: {
                 isActive: !template.isActive,
             },
@@ -172,71 +244,92 @@ const toggleTemplateStatus = async (req, res) => {
             data: updated,
         });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Status update failed",
+            error,
         });
     }
 };
 exports.toggleTemplateStatus = toggleTemplateStatus;
-const deleteTemplate = async (req, res) => {
+/* =====================================================
+   APPROVE TEMPLATE
+===================================================== */
+const approveTemplate = async (req, res) => {
     try {
-        await prisma_1.default.notificationTemplate.delete({
-            where: {
-                id: req.params.id,
+        const id = String(req.params.id);
+        const template = await prisma_1.default.notificationTemplate.update({
+            where: { id },
+            data: {
+                approvedBy: req.user?.id ||
+                    "SYSTEM",
             },
         });
         res.status(200).json({
             success: true,
-            message: "Template deleted",
+            data: template,
         });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Delete failed",
+            error,
         });
     }
 };
-exports.deleteTemplate = deleteTemplate;
+exports.approveTemplate = approveTemplate;
+/* =====================================================
+   TEMPLATE ANALYTICS
+===================================================== */
 const templateAnalytics = async (req, res) => {
     try {
-        const [totalTemplates, activeTemplates, emailTemplates, smsTemplates, pushTemplates, whatsappTemplates,] = await Promise.all([
-            prisma_1.default.notificationTemplate.count(),
-            prisma_1.default.notificationTemplate.count({
-                where: { isActive: true },
-            }),
-            prisma_1.default.notificationTemplate.count({
-                where: { type: "EMAIL" },
-            }),
-            prisma_1.default.notificationTemplate.count({
-                where: { type: "SMS" },
-            }),
-            prisma_1.default.notificationTemplate.count({
-                where: { type: "PUSH" },
-            }),
-            prisma_1.default.notificationTemplate.count({
-                where: { type: "WHATSAPP" },
-            }),
-        ]);
-        res.status(200).json({
-            success: true,
-            data: {
-                totalTemplates,
-                activeTemplates,
-                emailTemplates,
-                smsTemplates,
-                pushTemplates,
-                whatsappTemplates,
+        const analytics = await prisma_1.default.notificationTemplate.aggregate({
+            _count: {
+                id: true,
+            },
+            _sum: {
+                totalSent: true,
+                totalDelivered: true,
+                totalFailed: true,
             },
         });
+        res.status(200).json({
+            success: true,
+            data: analytics,
+        });
     }
-    catch {
+    catch (error) {
         res.status(500).json({
             success: false,
-            message: "Analytics failed",
+            error,
         });
     }
 };
 exports.templateAnalytics = templateAnalytics;
+/* =====================================================
+   UPDATE DELIVERY STATS
+===================================================== */
+const updateDeliveryStats = async (templateId, delivered) => {
+    await prisma_1.default.notificationTemplate.update({
+        where: {
+            id: templateId,
+        },
+        data: {
+            totalSent: {
+                increment: 1,
+            },
+            ...(delivered
+                ? {
+                    totalDelivered: {
+                        increment: 1,
+                    },
+                }
+                : {
+                    totalFailed: {
+                        increment: 1,
+                    },
+                }),
+        },
+    });
+};
+exports.updateDeliveryStats = updateDeliveryStats;

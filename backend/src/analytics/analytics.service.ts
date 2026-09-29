@@ -1,8 +1,7 @@
-// src/services/analytics/analytics.service.ts
+﻿// src/services/analytics/analytics.service.ts
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { LoanStatus } from "@prisma/client";
+import prisma from "../prisma/prisma";
 
 class AnalyticsService {
   async getDashboardAnalytics() {
@@ -14,15 +13,25 @@ class AnalyticsService {
       pendingLoans,
     ] = await Promise.all([
       prisma.user.count(),
+
       prisma.loanApplication.count(),
+
       prisma.loanApplication.count({
-        where: { status: "approved" },
+        where: {
+          status: LoanStatus.APPROVED,
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "rejected" },
+        where: {
+          status: LoanStatus.REJECTED,
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "pending" },
+        where: {
+          status: LoanStatus.PENDING,
+        },
       }),
     ]);
 
@@ -47,11 +56,16 @@ class AnalyticsService {
       _count: {
         loanType: true,
       },
+      orderBy: {
+        _count: {
+          loanType: "desc",
+        },
+      },
     });
   }
 
   async getMonthlyLoanTrend() {
-    const loans = await prisma.loanApplication.findMany({
+    return prisma.loanApplication.findMany({
       select: {
         amount: true,
         createdAt: true,
@@ -60,26 +74,23 @@ class AnalyticsService {
         createdAt: "asc",
       },
     });
-
-    return loans;
   }
 
   async getRevenueAnalytics() {
     const approvedLoans =
       await prisma.loanApplication.findMany({
         where: {
-          status: "approved",
+          status: LoanStatus.APPROVED,
         },
         select: {
           amount: true,
         },
       });
 
-    const totalDisbursed =
-      approvedLoans.reduce(
-        (sum, loan) => sum + Number(loan.amount),
-        0
-      );
+    const totalDisbursed = approvedLoans.reduce(
+      (sum, loan) => sum + Number(loan.amount),
+      0
+    );
 
     const estimatedRevenue =
       totalDisbursed * 0.015;
@@ -109,3 +120,7 @@ class AnalyticsService {
 }
 
 export default new AnalyticsService();
+
+
+
+

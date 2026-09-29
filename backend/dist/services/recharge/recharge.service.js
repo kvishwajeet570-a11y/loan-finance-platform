@@ -5,29 +5,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class RechargeService {
-    /**
-     * Create Recharge Request
-     */
     async createRecharge(data) {
-        const recharge = await prisma_1.default.recharge.create({
+        return prisma_1.default.recharge.create({
             data: {
                 userId: data.userId,
                 operator: data.operator,
-                number: data.number,
+                mobileNumber: data.number,
                 amount: data.amount,
-                serviceType: data.serviceType,
+                rechargeType: data.serviceType,
                 status: "PENDING",
             },
         });
-        return recharge;
     }
-    /**
-     * Success Recharge
-     */
-    async markSuccess(rechargeId, operatorTxnId) {
-        const recharge = await prisma_1.default.recharge.update({
+    async markSuccess(id, operatorTxnId) {
+        return prisma_1.default.recharge.update({
             where: {
-                id: rechargeId,
+                id: id,
             },
             data: {
                 status: "SUCCESS",
@@ -35,15 +28,11 @@ class RechargeService {
                 completedAt: new Date(),
             },
         });
-        return recharge;
     }
-    /**
-     * Failed Recharge
-     */
-    async markFailed(rechargeId, reason) {
+    async markFailed(id, reason) {
         return prisma_1.default.recharge.update({
             where: {
-                id: rechargeId,
+                id: id,
             },
             data: {
                 status: "FAILED",
@@ -51,78 +40,11 @@ class RechargeService {
             },
         });
     }
-    /**
-     * Wallet Recharge
-     */
-    async walletRecharge(userId, amount) {
-        await prisma_1.default.wallet.update({
-            where: {
-                userId,
-            },
-            data: {
-                balance: {
-                    increment: amount,
-                },
-            },
-        });
-        await prisma_1.default.transaction.create({
-            data: {
-                userId,
-                amount,
-                type: "CREDIT",
-                remark: "Wallet Recharge",
-            },
-        });
-        return {
-            success: true,
-            amount,
-        };
-    }
-    /**
-     * Debit Wallet
-     */
-    async debitWallet(userId, amount) {
-        const wallet = await prisma_1.default.wallet.findUnique({
-            where: {
-                userId,
-            },
-        });
-        if (!wallet) {
-            throw new Error("Wallet not found");
-        }
-        if (wallet.balance < amount) {
-            throw new Error("Insufficient balance");
-        }
-        await prisma_1.default.wallet.update({
-            where: {
-                userId,
-            },
-            data: {
-                balance: {
-                    decrement: amount,
-                },
-            },
-        });
-        await prisma_1.default.transaction.create({
-            data: {
-                userId,
-                amount,
-                type: "DEBIT",
-                remark: "Recharge Payment",
-            },
-        });
-        return true;
-    }
-    /**
-     * Recharge History
-     */
     async getRechargeHistory(userId, page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [recharges, total] = await Promise.all([
             prisma_1.default.recharge.findMany({
-                where: {
-                    userId,
-                },
+                where: { userId },
                 skip,
                 take: limit,
                 orderBy: {
@@ -130,9 +52,7 @@ class RechargeService {
                 },
             }),
             prisma_1.default.recharge.count({
-                where: {
-                    userId,
-                },
+                where: { userId },
             }),
         ]);
         return {
@@ -142,9 +62,6 @@ class RechargeService {
             pages: Math.ceil(total / limit),
         };
     }
-    /**
-     * Recharge Details
-     */
     async getRechargeById(rechargeId) {
         return prisma_1.default.recharge.findUnique({
             where: {
@@ -155,13 +72,10 @@ class RechargeService {
             },
         });
     }
-    /**
-     * Commission Distribution
-     */
-    async distributeCommission(rechargeId, commissionAmount) {
+    async distributeCommission(id, commissionAmount) {
         const recharge = await prisma_1.default.recharge.findUnique({
             where: {
-                id: rechargeId,
+                id: id,
             },
         });
         if (!recharge) {
@@ -170,15 +84,14 @@ class RechargeService {
         return prisma_1.default.commission.create({
             data: {
                 userId: recharge.userId,
+                amount: commissionAmount,
                 commissionAmount,
+                loanAmount: 0,
                 source: "RECHARGE",
                 status: "APPROVED",
             },
         });
     }
-    /**
-     * Today's Recharge
-     */
     async todayRechargeReport() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -197,9 +110,6 @@ class RechargeService {
             },
         });
     }
-    /**
-     * Monthly Recharge Report
-     */
     async monthlyRechargeReport() {
         const year = new Date().getFullYear();
         return prisma_1.default.$queryRaw `
@@ -213,9 +123,6 @@ class RechargeService {
       ORDER BY month ASC
     `;
     }
-    /**
-     * Top Recharge Users
-     */
     async topRechargeUsers() {
         return prisma_1.default.recharge.groupBy({
             by: ["userId"],
@@ -233,9 +140,6 @@ class RechargeService {
             take: 10,
         });
     }
-    /**
-     * Recharge Analytics
-     */
     async getRechargeStats() {
         const [totalRecharge, successRecharge, failedRecharge, totalBusiness,] = await Promise.all([
             prisma_1.default.recharge.count(),
@@ -259,8 +163,7 @@ class RechargeService {
             totalRecharge,
             successRecharge,
             failedRecharge,
-            totalBusiness: totalBusiness._sum
-                .amount || 0,
+            totalBusiness: totalBusiness._sum.amount || 0,
         };
     }
 }

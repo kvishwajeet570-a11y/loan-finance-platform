@@ -1,258 +1,87 @@
 import { z } from "zod";
 
 /* =========================================
-   REVENUE SOURCE
+   ENUMS
 ========================================= */
 
-export const revenueSourceEnum = z.enum([
-  "LOAN_PROCESSING_FEE",
-  "LOAN_INTEREST",
-  "INSURANCE_COMMISSION",
-  "CREDIT_CARD_COMMISSION",
-  "FASTAG_COMMISSION",
-  "INVESTMENT_COMMISSION",
-  "RECHARGE_COMMISSION",
-  "REFERRAL_INCOME",
-  "PARTNER_COMMISSION",
-  "SERVICE_CHARGE",
-  "OTHER",
+export const roleSortByEnum = z.enum([
+  "name",
+  "code",
+  "createdAt",
+  "updatedAt",
 ]);
 
-/* =========================================
-   REVENUE STATUS
-========================================= */
-
-export const revenueStatusEnum = z.enum([
-  "PENDING",
-  "RECEIVED",
-  "SETTLED",
-  "CANCELLED",
-  "REFUNDED",
-]);
+export const sortOrderEnum = z.enum(["asc", "desc"]);
 
 /* =========================================
-   REVENUE TYPE
+   CREATE ROLE
 ========================================= */
 
-export const revenueTypeEnum = z.enum([
-  "DIRECT",
-  "INDIRECT",
-  "RECURRING",
-  "ONE_TIME",
-]);
+export const createRoleSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Role name must be at least 2 characters")
+    .max(100),
+
+  code: z
+    .string()
+    .trim()
+    .min(2)
+    .max(50)
+    .regex(/^[A-Z0-9_]+$/, {
+      message: "Code must contain only uppercase letters, numbers and underscores",
+    }),
+
+  description: z
+    .string()
+    .trim()
+    .max(500)
+    .optional(),
+
+  isActive: z.boolean().optional(),
+});
 
 /* =========================================
-   CREATE REVENUE
+   UPDATE ROLE
 ========================================= */
 
-export const createRevenueSchema =
-  z.object({
-    source:
-      revenueSourceEnum,
-
-    revenueType:
-      revenueTypeEnum,
-
-    amount:
-      z.number()
-      .positive(),
-
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    loanId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    partnerId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    paymentId:
-      z.string()
-      .cuid()
-      .optional(),
-
-    transactionReference:
-      z.string()
-      .optional(),
-
-    description:
-      z.string()
-      .max(1000)
-      .optional(),
-
-    revenueDate:
-      z.string(),
-  });
+export const updateRoleSchema = createRoleSchema.partial();
 
 /* =========================================
-   UPDATE REVENUE STATUS
+   ROLE ID
 ========================================= */
 
-export const updateRevenueStatusSchema =
-  z.object({
-    revenueId:
-      z.string().cuid(),
-
-    status:
-      revenueStatusEnum,
-
-    remarks:
-      z.string()
-      .optional(),
-  });
+export const roleIdSchema = z.object({
+  id: z.string().cuid(),
+});
 
 /* =========================================
-   REVENUE SETTLEMENT
+   ROLE FILTER
 ========================================= */
 
-export const revenueSettlementSchema =
-  z.object({
-    revenueId:
-      z.string().cuid(),
+export const roleFilterSchema = z.object({
+  search: z.string().optional(),
 
-    settlementDate:
-      z.string(),
+  isActive: z.coerce.boolean().optional(),
 
-    settlementReference:
-      z.string(),
+  page: z.coerce.number().min(1).default(1),
 
-    remarks:
-      z.string()
-      .optional(),
-  });
+  limit: z.coerce.number().min(1).max(100).default(10),
 
-/* =========================================
-   REVENUE FILTER
-========================================= */
+  sortBy: roleSortByEnum.default("createdAt"),
 
-export const revenueFilterSchema =
-  z.object({
-    source:
-      revenueSourceEnum.optional(),
-
-    revenueType:
-      revenueTypeEnum.optional(),
-
-    status:
-      revenueStatusEnum.optional(),
-
-    startDate:
-      z.string().optional(),
-
-    endDate:
-      z.string().optional(),
-
-    minAmount:
-      z.number().optional(),
-
-    maxAmount:
-      z.number().optional(),
-
-    page:
-      z.coerce.number()
-      .default(1),
-
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
-
-/* =========================================
-   REVENUE REPORT
-========================================= */
-
-export const revenueReportSchema =
-  z.object({
-    startDate:
-      z.string(),
-
-    endDate:
-      z.string(),
-
-    source:
-      revenueSourceEnum.optional(),
-
-    exportFormat:
-      z.enum([
-        "PDF",
-        "EXCEL",
-        "CSV",
-      ]).optional(),
-  });
-
-/* =========================================
-   REVENUE ANALYTICS
-========================================= */
-
-export const revenueAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string().optional(),
-
-    endDate:
-      z.string().optional(),
-
-    source:
-      revenueSourceEnum.optional(),
-
-    revenueType:
-      revenueTypeEnum.optional(),
-  });
-
-/* =========================================
-   PROFIT ANALYTICS
-========================================= */
-
-export const profitAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string(),
-
-    endDate:
-      z.string(),
-  });
+  sortOrder: sortOrderEnum.default("desc"),
+});
 
 /* =========================================
    TYPES
 ========================================= */
 
-export type CreateRevenueDto =
-  z.infer<typeof createRevenueSchema>;
+export type CreateRoleDTO = z.infer<typeof createRoleSchema>;
 
-export type UpdateRevenueStatusDto =
-  z.infer<
-    typeof updateRevenueStatusSchema
-  >;
+export type UpdateRoleDTO = z.infer<typeof updateRoleSchema>;
 
-export type RevenueSettlementDto =
-  z.infer<
-    typeof revenueSettlementSchema
-  >;
+export type RoleIdDTO = z.infer<typeof roleIdSchema>;
 
-export type RevenueFilterDto =
-  z.infer<
-    typeof revenueFilterSchema
-  >;
-
-export type RevenueReportDto =
-  z.infer<
-    typeof revenueReportSchema
-  >;
-
-export type RevenueAnalyticsDto =
-  z.infer<
-    typeof revenueAnalyticsSchema
-  >;
-
-export type ProfitAnalyticsDto =
-  z.infer<
-    typeof profitAnalyticsSchema
-  >;
+export type RoleFilterDTO = z.infer<typeof roleFilterSchema>;

@@ -1,21 +1,24 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SecurityLogRepository = void 0;
-const prisma_1 = require("../../prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class SecurityLogRepository {
     /* =========================
         CREATE LOG
     ========================= */
     static async createLog(data) {
-        return prisma_1.prisma.securityLog.create({
-            data
+        return prisma_1.default.securityLog.create({
+            data,
         });
     }
     /* =========================
         GET BY ID
     ========================= */
     static async getById(id) {
-        return prisma_1.prisma.securityLog.findUnique({
+        return prisma_1.default.securityLog.findUnique({
             where: { id },
             include: {
                 user: true
@@ -26,7 +29,7 @@ class SecurityLogRepository {
         USER LOGS
     ========================= */
     static async getUserLogs(userId, page = 1, limit = 20) {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 userId
             },
@@ -41,10 +44,10 @@ class SecurityLogRepository {
         LOGIN ATTEMPTS
     ========================= */
     static async getLoginAttempts(userId) {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 userId,
-                eventType: "LOGIN"
+                action: "LOGIN"
             },
             orderBy: {
                 createdAt: "desc"
@@ -55,9 +58,9 @@ class SecurityLogRepository {
         FAILED LOGINS
     ========================= */
     static async getFailedLogins() {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
-                eventType: "LOGIN",
+                action: "LOGIN",
                 status: "FAILED"
             },
             orderBy: {
@@ -69,7 +72,7 @@ class SecurityLogRepository {
         HIGH RISK EVENTS
     ========================= */
     static async getHighRiskEvents() {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 severity: "HIGH"
             },
@@ -85,7 +88,7 @@ class SecurityLogRepository {
         CRITICAL EVENTS
     ========================= */
     static async getCriticalEvents() {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 severity: "CRITICAL"
             },
@@ -100,10 +103,10 @@ class SecurityLogRepository {
     /* =========================
         GET BY EVENT TYPE
     ========================= */
-    static async getByEventType(eventType) {
-        return prisma_1.prisma.securityLog.findMany({
+    static async getByEventType(action) {
+        return prisma_1.default.securityLog.findMany({
             where: {
-                eventType
+                action
             },
             orderBy: {
                 createdAt: "desc"
@@ -114,7 +117,7 @@ class SecurityLogRepository {
         GET BY IP
     ========================= */
     static async getByIpAddress(ipAddress) {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 ipAddress
             },
@@ -127,11 +130,11 @@ class SecurityLogRepository {
         SEARCH LOGS
     ========================= */
     static async searchLogs(keyword) {
-        return prisma_1.prisma.securityLog.findMany({
+        return prisma_1.default.securityLog.findMany({
             where: {
                 OR: [
                     {
-                        eventType: {
+                        action: {
                             contains: keyword,
                             mode: "insensitive"
                         }
@@ -160,7 +163,7 @@ class SecurityLogRepository {
     static async deleteOldLogs(days = 90) {
         const date = new Date();
         date.setDate(date.getDate() - days);
-        return prisma_1.prisma.securityLog.deleteMany({
+        return prisma_1.default.securityLog.deleteMany({
             where: {
                 createdAt: {
                     lt: date
@@ -173,19 +176,19 @@ class SecurityLogRepository {
     ========================= */
     static async getAnalytics() {
         const [totalLogs, failedLogins, criticalEvents, highRiskEvents] = await Promise.all([
-            prisma_1.prisma.securityLog.count(),
-            prisma_1.prisma.securityLog.count({
+            prisma_1.default.securityLog.count(),
+            prisma_1.default.securityLog.count({
                 where: {
-                    eventType: "LOGIN",
+                    action: "LOGIN",
                     status: "FAILED"
                 }
             }),
-            prisma_1.prisma.securityLog.count({
+            prisma_1.default.securityLog.count({
                 where: {
                     severity: "CRITICAL"
                 }
             }),
-            prisma_1.prisma.securityLog.count({
+            prisma_1.default.securityLog.count({
                 where: {
                     severity: "HIGH"
                 }
@@ -204,7 +207,7 @@ class SecurityLogRepository {
     static async getDashboard() {
         const [analytics, recentEvents] = await Promise.all([
             this.getAnalytics(),
-            prisma_1.prisma.securityLog.findMany({
+            prisma_1.default.securityLog.findMany({
                 take: 20,
                 include: {
                     user: true

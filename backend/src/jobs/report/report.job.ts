@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import prisma from "../../config/prisma";
+import prisma from "../../config/database/prisma";
 
 export const reportJob = () => {
   cron.schedule("0 0 * * *", async () => {
@@ -14,7 +14,7 @@ export const reportJob = () => {
     const approvedLoans =
       await prisma.loanApplication.count({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
       });
 

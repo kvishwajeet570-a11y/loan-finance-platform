@@ -1,116 +1,124 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const setting_controller_1 = require("../../controllers/setting/setting.controller");
+const settings_controller_1 = require("../../controllers/settings/settings.controller");
 const router = (0, express_1.Router)();
 /* ========================================
    DASHBOARD & ANALYTICS
 ======================================== */
-router.get("/dashboard", setting_controller_1.getSettingDashboard);
-router.get("/analytics", setting_controller_1.getSettingAnalytics);
-router.get("/audit-logs", setting_controller_1.getAuditLogs);
+router.get("/dashboard", settings_controller_1.getSettingDashboard);
+router.get("/analytics", settings_controller_1.getSettingAnalytics);
+router.get("/audit-logs", settings_controller_1.getAuditLogs);
 /* ========================================
    SYSTEM SETTINGS
 ======================================== */
-router.get("/system", setting_controller_1.getSystemSettings);
-router.put("/system", setting_controller_1.updateSystemSettings);
+router.get("/system", settings_controller_1.getSystemSettings);
+router.put("/system", settings_controller_1.updateSystemSettings);
 /* ========================================
    COMPANY SETTINGS
 ======================================== */
-router.get("/company", setting_controller_1.getCompanySettings);
-router.put("/company", setting_controller_1.updateCompanySettings);
+router.get("/company", settings_controller_1.getCompanySettings);
+router.put("/company", settings_controller_1.updateCompanySettings);
 /* ========================================
    WEBSITE SETTINGS
 ======================================== */
-router.get("/website", setting_controller_1.getWebsiteSettings);
-router.put("/website", setting_controller_1.updateWebsiteSettings);
+router.get("/website", settings_controller_1.getWebsiteSettings);
+router.put("/website", settings_controller_1.updateWebsiteSettings);
 /* ========================================
    SEO SETTINGS
 ======================================== */
-router.get("/seo", setting_controller_1.getSeoSettings);
-router.put("/seo", setting_controller_1.updateSeoSettings);
+router.get("/seo", settings_controller_1.getSeoSettings);
+router.put("/seo", settings_controller_1.updateSeoSettings);
 /* ========================================
    EMAIL SETTINGS
 ======================================== */
-router.get("/email", setting_controller_1.getEmailSettings);
-router.put("/email", setting_controller_1.updateEmailSettings);
+router.get("/email", settings_controller_1.getEmailSettings);
+router.put("/email", settings_controller_1.updateEmailSettings);
 /* ========================================
    SMS SETTINGS
 ======================================== */
-router.get("/sms", setting_controller_1.getSmsSettings);
-router.put("/sms", setting_controller_1.updateSmsSettings);
+router.get("/sms", settings_controller_1.getSmsSettings);
+router.put("/sms", settings_controller_1.updateSmsSettings);
 /* ========================================
    WHATSAPP SETTINGS
 ======================================== */
-router.get("/whatsapp", setting_controller_1.getWhatsappSettings);
-router.put("/whatsapp", setting_controller_1.updateWhatsappSettings);
+router.get("/whatsapp", settings_controller_1.getWhatsappSettings);
+router.put("/whatsapp", settings_controller_1.updateWhatsappSettings);
 /* ========================================
    NOTIFICATION SETTINGS
 ======================================== */
-router.get("/notification", setting_controller_1.getNotificationSettings);
-router.put("/notification", setting_controller_1.updateNotificationSettings);
+router.get("/notification", settings_controller_1.getNotificationSettings);
+router.put("/notification", settings_controller_1.updateNotificationSettings);
 /* ========================================
    PAYMENT GATEWAY SETTINGS
 ======================================== */
-router.get("/payment-gateway", setting_controller_1.getPaymentGatewaySettings);
-router.put("/payment-gateway", setting_controller_1.updatePaymentGatewaySettings);
+router.get("/payment-gateway", settings_controller_1.getPaymentGatewaySettings);
+router.put("/payment-gateway", settings_controller_1.updatePaymentGatewaySettings);
 /* ========================================
    LOAN SETTINGS
 ======================================== */
-router.get("/loan", setting_controller_1.getLoanSettings);
-router.put("/loan", setting_controller_1.updateLoanSettings);
+router.get("/loan", settings_controller_1.getLoanSettings);
+router.put("/loan", settings_controller_1.updateLoanSettings);
 /* ========================================
    COMMISSION SETTINGS
 ======================================== */
-router.get("/commission", setting_controller_1.getCommissionSettings);
-router.put("/commission", setting_controller_1.updateCommissionSettings);
+router.get("/commission", settings_controller_1.getCommissionSettings);
+router.put("/commission", settings_controller_1.updateCommissionSettings);
 /* ========================================
    REFERRAL SETTINGS
 ======================================== */
-router.get("/referral", setting_controller_1.getReferralSettings);
-router.put("/referral", setting_controller_1.updateReferralSettings);
+router.get("/referral", settings_controller_1.getReferralSettings);
+router.put("/referral", settings_controller_1.updateReferralSettings);
 /* ========================================
    KYC SETTINGS
 ======================================== */
-router.get("/kyc", setting_controller_1.getKycSettings);
-router.put("/kyc", setting_controller_1.updateKycSettings);
+router.get("/kyc", settings_controller_1.getKycSettings);
+router.put("/kyc", settings_controller_1.updateKycSettings);
 /* ========================================
    SECURITY SETTINGS
 ======================================== */
-router.get("/security", setting_controller_1.getSecuritySettings);
-router.put("/security", setting_controller_1.updateSecuritySettings);
+router.get("/security", settings_controller_1.getSecuritySettings);
+router.put("/security", settings_controller_1.updateSecuritySettings);
 /* ========================================
    MAINTENANCE SETTINGS
 ======================================== */
-router.get("/maintenance", setting_controller_1.getMaintenanceSettings);
-router.patch("/maintenance/enable", setting_controller_1.enableMaintenanceMode);
-router.patch("/maintenance/disable", setting_controller_1.disableMaintenanceMode);
+router.get("/maintenance", settings_controller_1.getMaintenanceSettings);
+router.put("/maintenance", settings_controller_1.updateMaintenanceSettings);
+// Enable
+router.patch("/maintenance/enable", (req, res, next) => {
+    req.body.enabled = true;
+    return (0, settings_controller_1.toggleMaintenanceMode)(req, res, next);
+});
+// Disable
+router.patch("/maintenance/disable", (req, res, next) => {
+    req.body.enabled = false;
+    return (0, settings_controller_1.toggleMaintenanceMode)(req, res, next);
+});
 /* ========================================
    BACKUP & RESTORE
 ======================================== */
-router.post("/backup", setting_controller_1.backupSettings);
-router.post("/restore", setting_controller_1.restoreSettings);
-router.post("/reset", setting_controller_1.resetSettings);
+router.post("/restore", settings_controller_1.restoreSettings);
+// router.post("/reset", resetSettings);
 /* ========================================
    EXPORTS
 ======================================== */
-router.get("/export/excel", setting_controller_1.exportSettingsExcel);
-router.get("/export/pdf", setting_controller_1.exportSettingsPdf);
+router.get("/export/excel", settings_controller_1.exportSettingsExcel);
+router.get("/export/pdf", settings_controller_1.exportSettingsPdf);
 /* ========================================
    SEARCH
 ======================================== */
-router.get("/search", setting_controller_1.searchSettings);
+router.get("/search", settings_controller_1.searchSettings);
 /* ========================================
    CRUD
 ======================================== */
-router.post("/", setting_controller_1.createSetting);
-router.get("/", setting_controller_1.getAllSettings);
-router.get("/:key", setting_controller_1.getSettingByKey);
-router.put("/:key", setting_controller_1.updateSetting);
-router.delete("/:key", setting_controller_1.deleteSetting);
+router.post("/", settings_controller_1.createSetting);
+router.get("/", settings_controller_1.getAllSettings);
+router.get("/:key", settings_controller_1.getSettingByKey);
+router.put("/:key", settings_controller_1.updateSetting);
+router.delete("/:key", settings_controller_1.deleteSetting);
 /* ========================================
    BULK ACTIONS
 ======================================== */
-router.post("/bulk/update", setting_controller_1.bulkUpdateSettings);
-router.post("/bulk/delete", setting_controller_1.bulkDeleteSettings);
+router.post("/bulk/update", settings_controller_1.bulkUpdateSettings);
+router.post("/bulk/delete", settings_controller_1.bulkDeleteSettings);
 exports.default = router;

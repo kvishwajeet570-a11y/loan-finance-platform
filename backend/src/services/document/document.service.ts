@@ -10,7 +10,6 @@ interface CreateDocumentDto {
 
   fileUrl: string;
   fileSize?: number;
-
   mimeType?: string;
 }
 
@@ -23,9 +22,6 @@ interface DocumentFilters {
 }
 
 class DocumentService {
-  /**
-   * Upload Document
-   */
   async uploadDocument(
     data: CreateDocumentDto
   ) {
@@ -37,9 +33,6 @@ class DocumentService {
     });
   }
 
-  /**
-   * Get Document By ID
-   */
   async getDocumentById(id: string) {
     return prisma.document.findUnique({
       where: { id },
@@ -49,23 +42,20 @@ class DocumentService {
     });
   }
 
-  /**
-   * User Documents
-   */
   async getUserDocuments(
     userId: string
   ) {
     return prisma.document.findMany({
       where: { userId },
+      include: {
+        user: true,
+      },
       orderBy: {
         createdAt: "desc",
       },
     });
   }
 
-  /**
-   * Verify Document
-   */
   async verifyDocument(
     documentId: string,
     verifiedBy: string
@@ -75,14 +65,10 @@ class DocumentService {
       data: {
         status: "VERIFIED",
         verifiedBy,
-        verifiedAt: new Date(),
       },
     });
   }
 
-  /**
-   * Reject Document
-   */
   async rejectDocument(
     documentId: string,
     reason: string
@@ -96,9 +82,6 @@ class DocumentService {
     });
   }
 
-  /**
-   * Get All Documents
-   */
   async getDocuments(
     filters: DocumentFilters
   ) {
@@ -112,8 +95,7 @@ class DocumentService {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.DocumentWhereInput =
-      {};
+    const where: Prisma.DocumentWhereInput = {};
 
     if (search) {
       where.OR = [
@@ -127,8 +109,7 @@ class DocumentService {
     }
 
     if (documentType) {
-      where.documentType =
-        documentType;
+      where.documentType = documentType;
     }
 
     if (status) {
@@ -162,9 +143,6 @@ class DocumentService {
     };
   }
 
-  /**
-   * Pending Documents
-   */
   async getPendingDocuments() {
     return prisma.document.findMany({
       where: {
@@ -179,31 +157,51 @@ class DocumentService {
     });
   }
 
-  /**
-   * Delete Document
-   */
+  async getVerifiedDocuments() {
+    return prisma.document.findMany({
+      where: {
+        status: "VERIFIED",
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  async getRejectedDocuments() {
+    return prisma.document.findMany({
+      where: {
+        status: "REJECTED",
+      },
+      include: {
+        user: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
   async deleteDocument(id: string) {
     return prisma.document.delete({
       where: { id },
     });
   }
 
-  /**
-   * Loan Documents
-   */
   async getLoanDocuments(
     loanId: string
   ) {
     return prisma.document.findMany({
-      where: {
-        loanId,
+      where: { loanId },
+      orderBy: {
+        createdAt: "desc",
       },
     });
   }
 
-  /**
-   * KYC Completion Check
-   */
   async checkKYCCompletion(
     userId: string
   ) {
@@ -238,9 +236,6 @@ class DocumentService {
     };
   }
 
-  /**
-   * Dashboard Statistics
-   */
   async getDocumentStats() {
     const [
       total,
@@ -276,6 +271,176 @@ class DocumentService {
       rejected,
     };
   }
+// ========================================
+// UPDATE DOCUMENT
+// ========================================
+
+async updateDocument(id: string, data: any) {
+  return prisma.document.update({
+    where: { id },
+    data,
+  });
 }
 
+// ========================================
+// SEARCH DOCUMENTS
+// ========================================
+
+async searchDocuments(search: string) {
+  return prisma.document.findMany({
+    where: {
+      OR: [
+        {
+          documentName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          documentType: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// DOCUMENTS BY TYPE
+// ========================================
+
+async getDocumentsByType(type: string) {
+  return prisma.document.findMany({
+    where: {
+      documentType: type,
+    },
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// DOWNLOAD DOCUMENT
+// ========================================
+
+async downloadDocument(id: string) {
+  return prisma.document.findUnique({
+    where: { id },
+    include: {
+      user: true,
+    },
+  });
+}
+
+// ========================================
+// DOCUMENT DASHBOARD
+// ========================================
+
+async getDocumentDashboard() {
+  return this.getDocumentStats();
+}
+
+// ========================================
+// RECENT DOCUMENTS
+// ========================================
+
+async getRecentDocuments(limit: number = 10) {
+  return prisma.document.findMany({
+    take: limit,
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// BULK VERIFY DOCUMENTS
+// ========================================
+
+async bulkVerifyDocuments(
+  ids: string[],
+  verifiedBy: string
+) {
+  return prisma.document.updateMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+    data: {
+      status: "VERIFIED",
+      verifiedBy,
+    },
+  });
+}
+
+// ========================================
+// BULK REJECT DOCUMENTS
+// ========================================
+
+async bulkRejectDocuments(
+  ids: string[],
+  reason: string
+) {
+  return prisma.document.updateMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+    data: {
+      status: "REJECTED",
+      rejectionReason: reason,
+    },
+  });
+}
+
+// ========================================
+// EXPORT DOCUMENTS EXCEL
+// ========================================
+
+async exportDocumentsExcel() {
+  return prisma.document.findMany({
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+// ========================================
+// EXPORT DOCUMENTS PDF
+// ========================================
+
+async exportDocumentsPdf() {
+  return prisma.document.findMany({
+    include: {
+      user: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+}
+
+} // Class DocumentService ends here
+
 export default new DocumentService();
+

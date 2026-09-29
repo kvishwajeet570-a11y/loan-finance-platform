@@ -68,8 +68,7 @@ exports.createNotificationSchema = zod_1.z.object({
         .optional(),
     imageUrl: zod_1.z.string()
         .optional(),
-    metadata: zod_1.z.record(zod_1.z.any())
-        .optional(),
+    metadata: zod_1.z.record(zod_1.z.string(), zod_1.z.any()).optional(),
     scheduledAt: zod_1.z.string()
         .optional(),
 });
@@ -108,8 +107,12 @@ exports.updateNotificationStatusSchema = zod_1.z.object({
 exports.sendTestNotificationSchema = zod_1.z.object({
     userId: zod_1.z.string().cuid(),
     channel: exports.notificationChannelEnum,
-    title: zod_1.z.string(),
-    message: zod_1.z.string(),
+    title: zod_1.z.string()
+        .min(3)
+        .max(200),
+    message: zod_1.z.string()
+        .min(5)
+        .max(5000),
 });
 /* =========================================
    NOTIFICATION FILTER
@@ -136,9 +139,11 @@ exports.notificationFilterSchema = zod_1.z.object({
 ========================================= */
 exports.scheduleNotificationSchema = zod_1.z.object({
     title: zod_1.z.string()
-        .min(3),
+        .min(3)
+        .max(200),
     message: zod_1.z.string()
-        .min(5),
+        .min(5)
+        .max(5000),
     type: exports.notificationTypeEnum,
     channel: exports.notificationChannelEnum,
     scheduledAt: zod_1.z.string(),

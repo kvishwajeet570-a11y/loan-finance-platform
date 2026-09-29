@@ -1,19 +1,6 @@
 import { z } from "zod";
 
 /* =========================================
-   COMMISSION TYPE
-========================================= */
-
-export const commissionTypeEnum = z.enum([
-  "LOAN",
-  "INSURANCE",
-  "CREDIT_CARD",
-  "SAVINGS_ACCOUNT",
-  "DEMAT_ACCOUNT",
-  "REFERRAL",
-]);
-
-/* =========================================
    COMMISSION STATUS
 ========================================= */
 
@@ -22,7 +9,6 @@ export const commissionStatusEnum = z.enum([
   "APPROVED",
   "PAID",
   "REJECTED",
-  "HOLD",
 ]);
 
 /* =========================================
@@ -32,136 +18,117 @@ export const commissionStatusEnum = z.enum([
 export const createCommissionSchema = z.object({
   userId: z.string().cuid(),
 
-  loanApplicationId: z.string().cuid().optional(),
+  loanId: z.string().cuid().optional(),
 
-  commissionType: commissionTypeEnum,
+  partnerId: z.string().cuid().optional(),
 
-  amount: z
-    .number()
-    .positive(),
+  source: z.string().max(100).optional(),
 
-  percentage: z
-    .number()
-    .min(0)
-    .max(100),
+  amount: z.number().positive(),
 
-  remarks: z
-    .string()
-    .max(500)
-    .optional(),
+  loanAmount: z.number().min(0),
 
-  status: commissionStatusEnum
-    .default("PENDING"),
+  commissionAmount: z.number().min(0),
+
+  status: commissionStatusEnum.default("PENDING"),
 });
 
 /* =========================================
    UPDATE COMMISSION
 ========================================= */
 
-export const updateCommissionSchema =
-  createCommissionSchema.partial();
+export const updateCommissionSchema = z.object({
+  amount: z.number().positive().optional(),
+
+  loanAmount: z.number().min(0).optional(),
+
+  commissionAmount: z.number().min(0).optional(),
+
+  partnerId: z.string().cuid().optional(),
+
+  source: z.string().max(100).optional(),
+
+  status: commissionStatusEnum.optional(),
+
+  rejectionReason: z.string().max(500).optional(),
+});
 
 /* =========================================
    APPROVE COMMISSION
 ========================================= */
 
-export const approveCommissionSchema =
-  z.object({
-    commissionId: z.string().cuid(),
-
-    remarks: z.string().optional(),
-  });
+export const approveCommissionSchema = z.object({
+  commissionId: z.string().cuid(),
+});
 
 /* =========================================
    REJECT COMMISSION
 ========================================= */
 
-export const rejectCommissionSchema =
-  z.object({
-    commissionId: z.string().cuid(),
+export const rejectCommissionSchema = z.object({
+  commissionId: z.string().cuid(),
 
-    reason: z
-      .string()
-      .min(5)
-      .max(500),
-  });
+  rejectionReason: z.string().min(5).max(500),
+});
 
 /* =========================================
    PAY COMMISSION
 ========================================= */
 
-export const payCommissionSchema =
-  z.object({
-    commissionId: z.string().cuid(),
-
-    transactionId: z.string(),
-
-    paidAmount: z.number().positive(),
-  });
+export const payCommissionSchema = z.object({
+  commissionId: z.string().cuid(),
+});
 
 /* =========================================
    COMMISSION FILTER
 ========================================= */
 
-export const commissionFilterSchema =
-  z.object({
-    search: z.string().optional(),
+export const commissionFilterSchema = z.object({
+  search: z.string().optional(),
 
-    userId: z.string().cuid().optional(),
+  userId: z.string().cuid().optional(),
 
-    commissionType:
-      commissionTypeEnum.optional(),
+  partnerId: z.string().cuid().optional(),
 
-    status:
-      commissionStatusEnum.optional(),
+  status: commissionStatusEnum.optional(),
 
-    startDate: z.string().optional(),
+  source: z.string().optional(),
 
-    endDate: z.string().optional(),
+  startDate: z.string().optional(),
 
-    page: z.coerce.number().default(1),
+  endDate: z.string().optional(),
 
-    limit: z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(10),
-  });
+  page: z.coerce.number().min(1).default(1),
+
+  limit: z.coerce.number().min(1).max(100).default(10),
+});
 
 /* =========================================
    COMMISSION REPORT
 ========================================= */
 
-export const commissionReportSchema =
-  z.object({
-    startDate: z.string(),
+export const commissionReportSchema = z.object({
+  startDate: z.string(),
 
-    endDate: z.string(),
+  endDate: z.string(),
 
-    status:
-      commissionStatusEnum.optional(),
-  });
+  status: commissionStatusEnum.optional(),
+});
 
 /* =========================================
    TYPES
 ========================================= */
 
-export type CreateCommissionDto =
-  z.infer<typeof createCommissionSchema>;
+export type CreateCommissionDto = z.infer<typeof createCommissionSchema>;
 
-export type UpdateCommissionDto =
-  z.infer<typeof updateCommissionSchema>;
+export type UpdateCommissionDto = z.infer<typeof updateCommissionSchema>;
 
-export type ApproveCommissionDto =
-  z.infer<typeof approveCommissionSchema>;
+export type ApproveCommissionDto = z.infer<typeof approveCommissionSchema>;
 
-export type RejectCommissionDto =
-  z.infer<typeof rejectCommissionSchema>;
+export type RejectCommissionDto = z.infer<typeof rejectCommissionSchema>;
 
-export type PayCommissionDto =
-  z.infer<typeof payCommissionSchema>;
+export type PayCommissionDto = z.infer<typeof payCommissionSchema>;
 
-export type CommissionFilterDto =
-  z.infer<typeof commissionFilterSchema>;
+export type CommissionFilterDto = z.infer<typeof commissionFilterSchema>;
 
-export type CommissionReportDto =
-  z.infer<typeof commissionReportSchema>;
+export type CommissionReportDto = z.infer<typeof commissionReportSchema>;

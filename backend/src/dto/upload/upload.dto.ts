@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-/* =========================================
+/* ===========================================================
    FILE TYPE
-========================================= */
+=========================================================== */
 
 export const uploadFileTypeEnum = z.enum([
   "PAN_CARD",
@@ -24,27 +24,25 @@ export const uploadFileTypeEnum = z.enum([
   "SIGNATURE",
 
   "LOAN_DOCUMENT",
-
   "INSURANCE_DOCUMENT",
-
   "FASTAG_DOCUMENT",
 
   "AGREEMENT",
-
   "INVOICE",
 
   "MEDIA",
-
   "OTHER",
 ]);
 
-/* =========================================
+/* ===========================================================
    FILE CATEGORY
-========================================= */
+=========================================================== */
 
 export const uploadCategoryEnum = z.enum([
   "KYC",
   "LOAN",
+  "BANK",
+  "PROFILE",
   "CUSTOMER",
   "PARTNER",
   "DSA",
@@ -52,27 +50,27 @@ export const uploadCategoryEnum = z.enum([
   "FASTAG",
   "RECHARGE",
   "INVESTMENT",
-  "PROFILE",
   "MEDIA",
   "SYSTEM",
+  "OTHER",
 ]);
 
-/* =========================================
+/* ===========================================================
    FILE STATUS
-========================================= */
+=========================================================== */
 
 export const uploadStatusEnum = z.enum([
-  "UPLOADING",
-  "UPLOADED",
-  "VERIFIED",
+  "PENDING",
+  "APPROVED",
   "REJECTED",
-  "EXPIRED",
   "DELETED",
+  "ACTIVE",
+  "EXPIRED",
 ]);
 
-/* =========================================
+/* ===========================================================
    STORAGE PROVIDER
-========================================= */
+=========================================================== */
 
 export const storageProviderEnum = z.enum([
   "LOCAL",
@@ -82,235 +80,370 @@ export const storageProviderEnum = z.enum([
   "GOOGLE_CLOUD",
 ]);
 
-/* =========================================
+/* ===========================================================
    UPLOAD FILE
-========================================= */
+=========================================================== */
 
 export const uploadFileSchema = z.object({
-  uploadedBy: z.string().cuid(),
+  uploadedBy: z.string().optional(),
 
-  fileName: z.string()
+  userId: z.string().cuid().optional(),
+
+  customerId: z.string().optional(),
+
+  dsaId: z.string().optional(),
+
+  partnerId: z.string().optional(),
+
+  fileName: z
+    .string()
     .min(2)
     .max(255),
 
-  originalName: z.string()
-    .min(2)
-    .max(255),
+  originalName: z
+    .string()
+    .max(255)
+    .optional(),
 
-  fileType: uploadFileTypeEnum,
+  fileUrl: z
+    .string()
+    .min(1),
 
-  category: uploadCategoryEnum,
+  filePath: z
+    .string()
+    .optional(),
 
-  mimeType: z.string(),
+  fileKey: z
+    .string()
+    .optional(),
 
-  fileSize: z.number().positive(),
+  fileType:
+    uploadFileTypeEnum.optional(),
 
-  fileUrl: z.string().url(),
+  mimeType:
+    z.string().optional(),
+
+  extension:
+    z.string().optional(),
+
+  fileSize:
+    z.number().int().positive().optional(),
+
+  category:
+    uploadCategoryEnum.optional(),
+
+  documentType:
+    z.string().optional(),
+
+  documentNumber:
+    z.string().optional(),
+
+  expiryDate:
+    z.coerce.date().optional(),
 
   storageProvider:
-    storageProviderEnum,
+    storageProviderEnum.optional(),
 
-  remarks:
-    z.string()
-    .max(1000)
-    .optional(),
+  bucketName:
+    z.string().optional(),
+
+  storagePath:
+    z.string().optional(),
+
+  checksum:
+    z.string().optional(),
+
+  uploadedIp:
+    z.string().optional(),
+
+  deviceInfo:
+    z.string().optional(),
+
+  platform:
+    z.string().optional(),
 });
 
-/* =========================================
+/* ===========================================================
    UPDATE FILE
-========================================= */
+=========================================================== */
 
-export const updateFileSchema = z.object({
-  fileId:
-    z.string().cuid(),
+export const updateUploadSchema = z.object({
+  id: z.string().cuid(),
 
-  fileName:
-    z.string()
+  fileName: z
+    .string()
     .min(2)
     .max(255)
     .optional(),
 
-  remarks:
-    z.string()
-    .max(1000)
+  originalName: z
+    .string()
+    .max(255)
     .optional(),
+
+  category:
+    uploadCategoryEnum.optional(),
+
+  documentType:
+    z.string().optional(),
+
+  documentNumber:
+    z.string().optional(),
+
+  expiryDate:
+    z.coerce.date().optional(),
+
+  storageProvider:
+    storageProviderEnum.optional(),
+
+  bucketName:
+    z.string().optional(),
+
+  storagePath:
+    z.string().optional(),
+});
+/* ===========================================================
+   VERIFY UPLOAD
+=========================================================== */
+
+export const verifyUploadSchema = z.object({
+  id: z.string().cuid(),
+
+  verifiedBy: z.string().optional(),
+
+  isVerified: z.boolean().default(true),
 });
 
-/* =========================================
-   VERIFY DOCUMENT
-========================================= */
+/* ===========================================================
+   APPROVE UPLOAD
+=========================================================== */
 
-export const verifyDocumentSchema =
-  z.object({
-    fileId:
-      z.string().cuid(),
+export const approveUploadSchema = z.object({
+  id: z.string().cuid(),
 
-    verifiedBy:
-      z.string().cuid(),
+  approvedBy: z.string().optional(),
 
-    remarks:
-      z.string()
-      .max(1000)
-      .optional(),
-  });
+  status: z.literal("APPROVED").default("APPROVED"),
 
-/* =========================================
-   REJECT DOCUMENT
-========================================= */
+  isApproved: z.boolean().default(true),
+});
 
-export const rejectDocumentSchema =
-  z.object({
-    fileId:
-      z.string().cuid(),
+/* ===========================================================
+   REJECT UPLOAD
+=========================================================== */
 
-    reason:
-      z.string()
-      .min(5)
-      .max(1000),
-  });
+export const rejectUploadSchema = z.object({
+  id: z.string().cuid(),
 
-/* =========================================
-   SHARE FILE
-========================================= */
+  rejectedBy: z.string().optional(),
 
-export const shareFileSchema =
-  z.object({
-    fileId:
-      z.string().cuid(),
+  rejectReason: z
+    .string()
+    .min(2)
+    .max(1000),
 
-    sharedWith:
-      z.string().cuid(),
+  status: z.literal("REJECTED").default("REJECTED"),
+});
 
-    expiryDate:
-      z.string()
-      .optional(),
-  });
+/* ===========================================================
+   RESTORE UPLOAD
+=========================================================== */
 
-/* =========================================
-   FILE EXPIRY
-========================================= */
+export const restoreUploadSchema = z.object({
+  id: z.string().cuid(),
 
-export const fileExpirySchema =
-  z.object({
-    fileId:
-      z.string().cuid(),
+  isDeleted: z.boolean().default(false),
 
-    expiryDate:
-      z.string(),
-  });
+  status: z.literal("ACTIVE").default("ACTIVE"),
+});
 
-/* =========================================
+/* ===========================================================
+   DELETE UPLOAD
+=========================================================== */
+
+export const deleteUploadSchema = z.object({
+  id: z.string().cuid(),
+});
+
+/* ===========================================================
+   BULK APPROVE
+=========================================================== */
+
+export const bulkApproveUploadsSchema = z.object({
+  ids: z
+    .array(z.string().cuid())
+    .min(1),
+
+  approvedBy:
+    z.string().optional(),
+});
+
+/* ===========================================================
+   BULK REJECT
+=========================================================== */
+
+export const bulkRejectUploadsSchema = z.object({
+  ids: z
+    .array(z.string().cuid())
+    .min(1),
+
+  rejectedBy:
+    z.string().optional(),
+
+  rejectReason: z
+    .string()
+    .min(2)
+    .max(1000),
+});
+
+/* ===========================================================
    BULK DELETE
-========================================= */
+=========================================================== */
 
-export const bulkDeleteFileSchema =
-  z.object({
-    fileIds:
-      z.array(
-        z.string().cuid()
-      ).min(1),
-  });
+export const bulkDeleteUploadsSchema = z.object({
+  ids: z
+    .array(z.string().cuid())
+    .min(1),
+});
 
-/* =========================================
-   FILE FILTER
-========================================= */
+/* ===========================================================
+   DOWNLOAD FILE
+=========================================================== */
 
-export const uploadFilterSchema =
-  z.object({
-    uploadedBy:
-      z.string()
-      .cuid()
-      .optional(),
+export const downloadUploadSchema = z.object({
+  id: z.string().cuid(),
+});
 
-    category:
-      uploadCategoryEnum
-      .optional(),
+/* ===========================================================
+   PREVIEW FILE
+=========================================================== */
 
-    fileType:
-      uploadFileTypeEnum
-      .optional(),
+export const previewUploadSchema = z.object({
+  id: z.string().cuid(),
+});
+/* ===========================================================
+   UPLOAD FILTER
+=========================================================== */
 
-    status:
-      uploadStatusEnum
-      .optional(),
+export const uploadFilterSchema = z.object({
+  userId: z.string().cuid().optional(),
 
-    startDate:
-      z.string()
-      .optional(),
+  customerId: z.string().optional(),
 
-    endDate:
-      z.string()
-      .optional(),
+  dsaId: z.string().optional(),
 
-    page:
-      z.coerce.number()
-      .default(1),
+  partnerId: z.string().optional(),
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  uploadedBy: z.string().optional(),
 
-/* =========================================
-   FILE ANALYTICS
-========================================= */
+  category: uploadCategoryEnum.optional(),
 
-export const uploadAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string(),
+  fileType: uploadFileTypeEnum.optional(),
 
-    endDate:
-      z.string(),
+  status: uploadStatusEnum.optional(),
 
-    category:
-      uploadCategoryEnum
-      .optional(),
-  });
+  documentType: z.string().optional(),
 
-/* =========================================
+  search: z.string().optional(),
+
+  startDate: z.coerce.date().optional(),
+
+  endDate: z.coerce.date().optional(),
+
+  page: z.coerce
+    .number()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .min(1)
+    .max(100)
+    .default(20),
+});
+
+/* ===========================================================
+   UPLOAD ANALYTICS
+=========================================================== */
+
+export const uploadAnalyticsSchema = z.object({
+  startDate: z.coerce.date().optional(),
+
+  endDate: z.coerce.date().optional(),
+
+  category: uploadCategoryEnum.optional(),
+
+  documentType: z.string().optional(),
+});
+
+/* ===========================================================
+   GENERATE UPLOAD URL
+=========================================================== */
+
+export const generateUploadUrlSchema = z.object({
+  fileName: z.string().min(1),
+
+  mimeType: z.string().optional(),
+
+  category: uploadCategoryEnum.optional(),
+});
+
+/* ===========================================================
+   GENERATE DOWNLOAD URL
+=========================================================== */
+
+export const generateDownloadUrlSchema = z.object({
+  id: z.string().cuid(),
+});
+
+/* ===========================================================
    TYPES
-========================================= */
+=========================================================== */
 
 export type UploadFileDto =
   z.infer<typeof uploadFileSchema>;
 
-export type UpdateFileDto =
-  z.infer<typeof updateFileSchema>;
+export type UpdateUploadDto =
+  z.infer<typeof updateUploadSchema>;
 
-export type VerifyDocumentDto =
-  z.infer<
-    typeof verifyDocumentSchema
-  >;
+export type VerifyUploadDto =
+  z.infer<typeof verifyUploadSchema>;
 
-export type RejectDocumentDto =
-  z.infer<
-    typeof rejectDocumentSchema
-  >;
+export type ApproveUploadDto =
+  z.infer<typeof approveUploadSchema>;
 
-export type ShareFileDto =
-  z.infer<
-    typeof shareFileSchema
-  >;
+export type RejectUploadDto =
+  z.infer<typeof rejectUploadSchema>;
 
-export type FileExpiryDto =
-  z.infer<
-    typeof fileExpirySchema
-  >;
+export type RestoreUploadDto =
+  z.infer<typeof restoreUploadSchema>;
 
-export type BulkDeleteFileDto =
-  z.infer<
-    typeof bulkDeleteFileSchema
-  >;
+export type DeleteUploadDto =
+  z.infer<typeof deleteUploadSchema>;
+
+export type BulkApproveUploadsDto =
+  z.infer<typeof bulkApproveUploadsSchema>;
+
+export type BulkRejectUploadsDto =
+  z.infer<typeof bulkRejectUploadsSchema>;
+
+export type BulkDeleteUploadsDto =
+  z.infer<typeof bulkDeleteUploadsSchema>;
+
+export type DownloadUploadDto =
+  z.infer<typeof downloadUploadSchema>;
+
+export type PreviewUploadDto =
+  z.infer<typeof previewUploadSchema>;
 
 export type UploadFilterDto =
-  z.infer<
-    typeof uploadFilterSchema
-  >;
+  z.infer<typeof uploadFilterSchema>;
 
 export type UploadAnalyticsDto =
-  z.infer<
-    typeof uploadAnalyticsSchema
-  >;
+  z.infer<typeof uploadAnalyticsSchema>;
+
+export type GenerateUploadUrlDto =
+  z.infer<typeof generateUploadUrlSchema>;
+
+export type GenerateDownloadUrlDto =
+  z.infer<typeof generateDownloadUrlSchema>;

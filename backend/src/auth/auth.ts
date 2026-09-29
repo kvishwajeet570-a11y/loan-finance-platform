@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+﻿import prisma from "../prisma/prisma";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
-const prisma = new PrismaClient();
 
 export class AuthService {
   generateToken(user: any) {
@@ -151,3 +149,4 @@ export class AuthService {
 }
 
 export default new AuthService();
+

@@ -4,69 +4,70 @@ import {
   createPartner,
   getPartnerById,
   getAllPartners,
-
   updatePartner,
   deletePartner,
-
   verifyPartner,
   rejectPartner,
-
   blockPartner,
   unblockPartner,
-
   getPartnerProfile,
   getPartnerDashboard,
-
   getPartnerCustomers,
   getPartnerLoans,
   getPartnerCommissions,
   getPartnerReferrals,
-
   getPartnerTransactions,
   getPartnerWallet,
-
   searchPartners,
-
   getPendingPartners,
   getVerifiedPartners,
   getBlockedPartners,
   getActivePartners,
-
   getTopPartners,
   getMonthlyPartners,
-
   getPartnerAnalytics,
-
   exportPartnersExcel,
   exportPartnersPdf,
-
   bulkVerifyPartners,
   bulkBlockPartners,
 } from "../../controllers/partner/partner.controller";
 
+import authenticate from "../../middlewares/AuthMiddleware";
+import roleMiddleware from "../../middlewares/RoleMiddleware";
+
 const router = Router();
 
 /* ========================================
-   DASHBOARD & ANALYTICS
+   GLOBAL SECURITY
+======================================== */
+
+router.use(authenticate);
+
+/* ========================================
+   DASHBOARD
 ======================================== */
 
 router.get(
   "/dashboard",
+  roleMiddleware("SUPER_ADMIN", "ADMIN", "PARTNER"),
   getPartnerDashboard
 );
 
 router.get(
   "/analytics",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getPartnerAnalytics
 );
 
 router.get(
   "/top-performers",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getTopPartners
 );
 
 router.get(
   "/monthly",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getMonthlyPartners
 );
 
@@ -76,147 +77,56 @@ router.get(
 
 router.get(
   "/export/excel",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   exportPartnersExcel
 );
 
 router.get(
   "/export/pdf",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   exportPartnersPdf
 );
 
 /* ========================================
-   STATUS
+   STATUS FILTERS
 ======================================== */
 
 router.get(
   "/pending",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getPendingPartners
 );
 
 router.get(
   "/verified",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getVerifiedPartners
 );
 
 router.get(
   "/blocked",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getBlockedPartners
 );
 
 router.get(
   "/active",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   getActivePartners
 );
 
 /* ========================================
-   PARTNER MANAGEMENT
+   SEARCH
 ======================================== */
-
-router.post(
-  "/",
-  createPartner
-);
-
-router.get(
-  "/",
-  getAllPartners
-);
 
 router.get(
   "/search",
+  roleMiddleware("SUPER_ADMIN", "ADMIN"),
   searchPartners
 );
 
-router.get(
-  "/profile/:partnerId",
-  getPartnerProfile
-);
-
-router.get(
-  "/:id",
-  getPartnerById
-);
-
-router.put(
-  "/:id",
-  updatePartner
-);
-
-router.delete(
-  "/:id",
-  deletePartner
-);
-
 /* ========================================
-   VERIFICATION
+   EXPORT ROUTER
 ======================================== */
-
-router.patch(
-  "/:id/verify",
-  verifyPartner
-);
-
-router.patch(
-  "/:id/reject",
-  rejectPartner
-);
-
-router.patch(
-  "/:id/block",
-  blockPartner
-);
-
-router.patch(
-  "/:id/unblock",
-  unblockPartner
-);
-
-/* ========================================
-   RELATIONS
-======================================== */
-
-router.get(
-  "/:partnerId/customers",
-  getPartnerCustomers
-);
-
-router.get(
-  "/:partnerId/loans",
-  getPartnerLoans
-);
-
-router.get(
-  "/:partnerId/commissions",
-  getPartnerCommissions
-);
-
-router.get(
-  "/:partnerId/referrals",
-  getPartnerReferrals
-);
-
-router.get(
-  "/:partnerId/transactions",
-  getPartnerTransactions
-);
-
-router.get(
-  "/:partnerId/wallet",
-  getPartnerWallet
-);
-
-/* ========================================
-   BULK ACTIONS
-======================================== */
-
-router.post(
-  "/bulk-verify",
-  bulkVerifyPartners
-);
-
-router.post(
-  "/bulk-block",
-  bulkBlockPartners
-);
 
 export default router;

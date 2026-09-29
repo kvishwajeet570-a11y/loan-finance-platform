@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
-import prisma from "../../config/prisma";
+import prisma from "../../prisma/prisma";
 
 const ACCESS_SECRET =
   process.env.JWT_ACCESS_SECRET!;
@@ -131,7 +131,7 @@ export const revokeAllTokens = async (
       where: {
         userId,
       },
-      data: {
+      data: { 
         isRevoked: true,
       },
     });

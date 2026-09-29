@@ -7,16 +7,23 @@ exports.getAchievements = void 0;
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 const getAchievements = async (req, res) => {
     try {
-        const { userId } = req.params;
-        const achievements = await prisma_1.default.achievement.findMany({
-            where: userId ? { userId } : {},
+        const userId = req.params.userId
+            ? String(req.params.userId)
+            : undefined;
+        const query = {
             orderBy: {
                 createdAt: "desc",
             },
-        });
+        };
+        if (userId) {
+            query.where = {
+                userId,
+            };
+        }
+        const achievements = await prisma_1.default.achievement.findMany(query);
         const totalAchievements = achievements.length;
         const totalRewards = achievements.reduce((sum, achievement) => sum + Number(achievement.reward ?? 0), 0);
-        const latestAchievement = achievements[0] ?? null;
+        const latestAchievement = achievements.length > 0 ? achievements[0] : null;
         res.status(200).json({
             success: true,
             message: "Achievements fetched successfully",

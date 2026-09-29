@@ -1,0 +1,1507 @@
+﻿"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  RefreshCw,
+  Search,
+  Smartphone,
+  CheckCircle2,
+  Clock3,
+  XCircle,
+  RotateCcw,
+  ReceiptText,
+  CalendarDays,
+  IndianRupee,
+  Zap,
+  ShieldCheck,
+  ChevronRight,
+  Filter,
+  Copy,
+  Eye,
+  Signal,
+  Wifi,
+  Phone,
+  MessageSquare,
+  Gift,
+  Download,
+} from "lucide-react";
+import api from "@/lib/api";
+
+type Recharge = {
+  id: string;
+  mobileNumber?: string;
+  phone?: string;
+  amount?: number;
+  operator?: string;
+  provider?: string;
+  type?: string;
+  category?: string;
+  status?: string;
+  validity?: string;
+  planName?: string;
+  description?: string;
+  transactionId?: string;
+  referenceId?: string;
+  paymentMode?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+function unwrap(payload: any): any {
+  if (!payload) return null;
+
+  if (Array.isArray(payload)) return payload;
+
+  if (payload.data !== undefined) {
+    if (Array.isArray(payload.data)) return payload.data;
+
+    if (payload.data?.recharges) {
+      return payload.data.recharges;
+    }
+
+    if (payload.data?.items) {
+      return payload.data.items;
+    }
+
+    if (payload.data?.results) {
+      return payload.data.results;
+    }
+
+    return payload.data;
+  }
+
+  if (payload.recharges) return payload.recharges;
+  if (payload.items) return payload.items;
+  if (payload.results) return payload.results;
+
+  return payload;
+}
+
+function money(value?: number) {
+  return `₹${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function formatDate(value?: string) {
+  if (!value) return "—";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatTime(value?: string) {
+  if (!value) return "";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function statusMeta(status?: string) {
+  const value = String(status || "PENDING").toUpperCase();
+
+  if (
+    value.includes("SUCCESS") ||
+    value.includes("COMPLETED") ||
+    value === "SUCCESSFUL"
+  ) {
+    return {
+      label: "Successful",
+      icon: CheckCircle2,
+      className:
+        "bg-emerald-50 text-emerald-700 border-emerald-100",
+      dot: "bg-emerald-500",
+    };
+  }
+
+  if (
+    value.includes("FAIL") ||
+    value.includes("REJECT")
+  ) {
+    return {
+      label: "Failed",
+      icon: XCircle,
+      className:
+        "bg-red-50 text-red-700 border-red-100",
+      dot: "bg-red-500",
+    };
+  }
+
+  if (
+    value.includes("REFUND")
+  ) {
+    return {
+      label: "Refunded",
+      icon: RotateCcw,
+      className:
+        "bg-purple-50 text-purple-700 border-purple-100",
+      dot: "bg-purple-500",
+    };
+  }
+
+  return {
+    label: "Pending",
+    icon: Clock3,
+    className:
+      "bg-amber-50 text-amber-700 border-amber-100",
+    dot: "bg-amber-500",
+  };
+}
+
+function operatorClass(operator?: string) {
+  const value = String(operator || "").toUpperCase();
+
+  if (value.includes("JIO")) {
+    return "from-blue-600 to-blue-800";
+  }
+
+  if (value.includes("AIRTEL")) {
+    return "from-red-500 to-red-700";
+  }
+
+  if (
+    value.includes("VI") ||
+    value.includes("VODAFONE")
+  ) {
+    return "from-red-700 to-purple-800";
+  }
+
+  if (value.includes("BSNL")) {
+    return "from-orange-500 to-red-600";
+  }
+
+  return "from-indigo-500 to-purple-700";
+}
+
+function operatorShort(operator?: string) {
+  const value = String(operator || "").toUpperCase();
+
+  if (value.includes("JIO")) return "JIO";
+  if (value.includes("AIRTEL")) return "AIRTEL";
+  if (value.includes("VI")) return "VI";
+  if (value.includes("BSNL")) return "BSNL";
+
+  return String(operator || "TELCO").slice(0, 8);
+}
+
+function maskMobile(number?: string) {
+  if (!number) return "Mobile number unavailable";
+
+  const value = String(number);
+
+  if (value.length >= 10) {
+    return `${value.slice(0, 2)}••••••${value.slice(-2)}`;
+  }
+
+  return value;
+}
+
+export default function RecentRechargePage() {
+  const router = useRouter();
+
+  const [recharges, setRecharges] =
+    useState<Recharge[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
+  const [search, setSearch] =
+    useState("");
+
+  const [statusFilter, setStatusFilter] =
+    useState("ALL");
+
+  const [operatorFilter, setOperatorFilter] =
+    useState("ALL");
+
+  const [selectedRecharge, setSelectedRecharge] =
+    useState<Recharge | null>(null);
+
+  const loadRecharges = useCallback(
+    async () => {
+      try {
+        setError("");
+
+        const token =
+          localStorage.getItem(
+            "loan_finance_token"
+          );
+
+        const storedUser =
+          localStorage.getItem(
+            "loan_finance_user"
+          );
+
+        if (!token || !storedUser) {
+          router.replace("/login");
+          return;
+        }
+
+        let user: any = null;
+
+        try {
+          user = JSON.parse(storedUser);
+        } catch {
+          user = null;
+        }
+
+        const userId = user?.id;
+
+        if (!userId) {
+          setError(
+            "Customer account information not found."
+          );
+          return;
+        }
+
+        const response = await api.get(
+          `/recharge/user/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true,
+          }
+        );
+
+        const data = unwrap(response.data);
+
+        const list = Array.isArray(data)
+          ? data
+          : [];
+
+        setRecharges(list);
+      } catch (err: any) {
+        console.error(
+          "Recent Recharge Error:",
+          err
+        );
+
+        if (
+          err?.response?.status === 401
+        ) {
+          localStorage.removeItem(
+            "loan_finance_token"
+          );
+
+          localStorage.removeItem(
+            "loan_finance_user"
+          );
+
+          router.replace("/login");
+          return;
+        }
+
+        setError(
+          err?.response?.data?.message ||
+            "Unable to load recent recharges."
+        );
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [router]
+  );
+
+  useEffect(() => {
+    loadRecharges();
+  }, [loadRecharges]);
+
+  const filteredRecharges = useMemo(() => {
+    return recharges.filter((item) => {
+      const text = [
+        item.mobileNumber,
+        item.phone,
+        item.operator,
+        item.provider,
+        item.type,
+        item.category,
+        item.planName,
+        item.description,
+        item.transactionId,
+        item.referenceId,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      const searchMatch =
+        !search ||
+        text.includes(
+          search.toLowerCase()
+        );
+
+      const normalizedStatus =
+        String(
+          item.status || "PENDING"
+        ).toUpperCase();
+
+      const statusMatch =
+        statusFilter === "ALL" ||
+        normalizedStatus.includes(
+          statusFilter
+        );
+
+      const normalizedOperator =
+        String(
+          item.operator ||
+            item.provider ||
+            ""
+        ).toUpperCase();
+
+      const operatorMatch =
+        operatorFilter === "ALL" ||
+        normalizedOperator.includes(
+          operatorFilter
+        );
+
+      return (
+        searchMatch &&
+        statusMatch &&
+        operatorMatch
+      );
+    });
+  }, [
+    recharges,
+    search,
+    statusFilter,
+    operatorFilter,
+  ]);
+
+  const stats = useMemo(() => {
+    const successful = recharges.filter(
+      (item) => {
+        const value =
+          String(
+            item.status || ""
+          ).toUpperCase();
+
+        return (
+          value.includes("SUCCESS") ||
+          value.includes("COMPLETED")
+        );
+      }
+    );
+
+    const pending = recharges.filter(
+      (item) =>
+        String(
+          item.status || ""
+        )
+          .toUpperCase()
+          .includes("PENDING")
+    );
+
+    const failed = recharges.filter(
+      (item) => {
+        const value =
+          String(
+            item.status || ""
+          ).toUpperCase();
+
+        return (
+          value.includes("FAIL") ||
+          value.includes("REJECT")
+        );
+      }
+    );
+
+    const totalAmount =
+      recharges.reduce(
+        (sum, item) =>
+          sum + Number(item.amount || 0),
+        0
+      );
+
+    return {
+      total: recharges.length,
+      successful: successful.length,
+      pending: pending.length,
+      failed: failed.length,
+      totalAmount,
+    };
+  }, [recharges]);
+
+  const operators = useMemo(() => {
+    const values = recharges
+      .map(
+        (item) =>
+          item.operator ||
+          item.provider
+      )
+      .filter(Boolean)
+      .map((item) =>
+        String(item).toUpperCase()
+      );
+
+    return [
+      "ALL",
+      ...Array.from(
+        new Set(values)
+      ),
+    ];
+  }, [recharges]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await loadRecharges();
+  };
+
+  const copyReference = async (
+    value?: string
+  ) => {
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        value
+      );
+    } catch {}
+  };
+
+  const repeatRecharge = (
+    recharge: Recharge
+  ) => {
+    const number =
+      recharge.mobileNumber ||
+      recharge.phone ||
+      "";
+
+    const amount =
+      Number(recharge.amount || 0);
+
+    router.push(
+      `/customer/recharge/mobile?mobile=${encodeURIComponent(
+        number
+      )}&amount=${amount}`
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f7fc] px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1450px]">
+
+        {/* TOP NAV */}
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+
+          <button
+            onClick={() =>
+              router.push(
+                "/customer/recharge"
+              )
+            }
+            className="flex items-center gap-2 text-sm font-black text-blue-600 hover:text-blue-800"
+          >
+            <ArrowLeft size={18} />
+            Back to Recharge
+          </button>
+
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
+            Home
+            <ChevronRight size={13} />
+            Recharge
+            <ChevronRight size={13} />
+            <span className="text-blue-600">
+              Recent Recharge
+            </span>
+          </div>
+
+        </div>
+
+        {/* HERO */}
+        <div className="relative mb-5 overflow-hidden rounded-[28px] bg-gradient-to-r from-[#071d68] via-[#1454dd] to-[#9137e9] px-6 py-7 text-white shadow-[0_22px_55px_rgba(42,68,210,0.22)] sm:px-10">
+
+          <div className="absolute -right-24 -top-28 h-80 w-80 rounded-full bg-purple-300/20 blur-3xl" />
+
+          <div className="absolute bottom-[-150px] left-[42%] h-80 w-80 rounded-full bg-cyan-300/15 blur-3xl" />
+
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-8">
+
+            <div>
+
+              <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-cyan-200">
+                <ReceiptText size={15} />
+                Recharge History
+              </div>
+
+              <h1 className="mt-2 text-3xl font-black sm:text-4xl">
+                Recent Recharge
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm text-blue-100">
+                View your latest mobile recharges,
+                payment status, amount and recharge
+                details — all in one place.
+              </p>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+
+                <div className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black backdrop-blur">
+                  ⚡ Quick Repeat
+                </div>
+
+                <div className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black backdrop-blur">
+                  ✓ Live Status
+                </div>
+
+                <div className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black backdrop-blur">
+                  🔒 Secure History
+                </div>
+
+              </div>
+            </div>
+
+            {/* VISUAL */}
+            <div className="relative hidden h-36 w-64 lg:block">
+
+              <div className="absolute left-8 top-4 h-28 w-20 rotate-[-8deg] rounded-[22px] border-4 border-slate-900 bg-gradient-to-b from-blue-400 to-indigo-800 shadow-[0_15px_40px_rgba(0,0,0,0.35)]">
+
+                <div className="mx-auto mt-4 h-8 w-8 rounded-full bg-white/20" />
+
+                <div className="mx-3 mt-3 h-2 rounded bg-white/30" />
+
+                <div className="mx-3 mt-2 h-2 rounded bg-white/20" />
+
+                <div className="mx-3 mt-5 flex justify-center">
+                  <Signal size={17} />
+                </div>
+
+              </div>
+
+              <div className="absolute right-3 top-2 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400 text-slate-900 shadow-xl animate-pulse">
+                <IndianRupee size={28} />
+              </div>
+
+              <div className="absolute right-12 bottom-0 flex h-12 w-12 items-center justify-center rounded-full bg-cyan-400 text-white shadow-xl">
+                <Zap size={21} />
+              </div>
+
+              <div className="absolute left-20 bottom-1 rounded-xl bg-white/15 px-4 py-2 text-xs font-black backdrop-blur">
+                RECHARGE
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+        {/* STATS */}
+        <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <ReceiptText size={21} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black uppercase text-slate-400">
+                  Total Recharge
+                </p>
+
+                <p className="text-xl font-black text-slate-950">
+                  {stats.total}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <CheckCircle2 size={21} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black uppercase text-slate-400">
+                  Successful
+                </p>
+
+                <p className="text-xl font-black text-emerald-600">
+                  {stats.successful}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-amber-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <Clock3 size={21} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black uppercase text-slate-400">
+                  Pending
+                </p>
+
+                <p className="text-xl font-black text-amber-600">
+                  {stats.pending}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-red-100 bg-white p-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                <XCircle size={21} />
+              </div>
+
+              <div>
+                <p className="text-[9px] font-black uppercase text-slate-400">
+                  Failed
+                </p>
+
+                <p className="text-xl font-black text-red-600">
+                  {stats.failed}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-2 rounded-2xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white p-4 shadow-sm lg:col-span-1">
+            <p className="text-[9px] font-black uppercase text-slate-400">
+              Total Value
+            </p>
+
+            <p className="mt-1 text-2xl font-black text-purple-700">
+              {money(stats.totalAmount)}
+            </p>
+
+            <p className="text-[9px] text-slate-400">
+              All recharge records
+            </p>
+          </div>
+
+        </div>
+
+        {/* FILTERS */}
+        <div className="mb-5 rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm">
+
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
+
+            <div className="relative flex-1">
+
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                value={search}
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
+                placeholder="Search mobile number, operator, transaction ID, plan..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm font-semibold outline-none focus:border-blue-500 focus:bg-white"
+              />
+
+            </div>
+
+            <div className="flex items-center gap-2">
+
+              <Filter
+                size={17}
+                className="text-slate-400"
+              />
+
+              <select
+                value={statusFilter}
+                onChange={(e) =>
+                  setStatusFilter(
+                    e.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-xs font-black outline-none"
+              >
+                <option value="ALL">
+                  All Status
+                </option>
+                <option value="SUCCESS">
+                  Successful
+                </option>
+                <option value="PENDING">
+                  Pending
+                </option>
+                <option value="FAIL">
+                  Failed
+                </option>
+                <option value="REFUND">
+                  Refunded
+                </option>
+              </select>
+
+              <select
+                value={operatorFilter}
+                onChange={(e) =>
+                  setOperatorFilter(
+                    e.target.value
+                  )
+                }
+                className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-xs font-black outline-none"
+              >
+                {operators.map(
+                  (item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item === "ALL"
+                        ? "All Operators"
+                        : item}
+                    </option>
+                  )
+                )}
+              </select>
+
+            </div>
+
+            <button
+              onClick={refresh}
+              disabled={refreshing}
+              className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3.5 text-xs font-black text-white shadow-md disabled:opacity-60"
+            >
+              <RefreshCw
+                size={16}
+                className={
+                  refreshing
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+              Refresh
+            </button>
+
+          </div>
+        </div>
+
+        {/* ERROR */}
+        {error && (
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-red-100 bg-red-50 px-5 py-4 text-sm font-bold text-red-700">
+            <span>{error}</span>
+
+            <button
+              onClick={refresh}
+              className="rounded-lg bg-white px-3 py-2 text-xs font-black text-red-600 shadow-sm"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* MAIN */}
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+
+          {/* HISTORY */}
+          <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-sm">
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-5">
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <ReceiptText size={19} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-lg font-black text-slate-950">
+                      Recharge History
+                    </h2>
+
+                    <p className="text-[11px] text-slate-400">
+                      {filteredRecharges.length} recharge
+                      {filteredRecharges.length !== 1
+                        ? "s"
+                        : ""}{" "}
+                      found
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    "/customer/recharge/mobile"
+                  )
+                }
+                className="flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-xs font-black text-blue-700 hover:bg-blue-100"
+              >
+                <Zap size={15} />
+                New Recharge
+              </button>
+
+            </div>
+
+            {loading ? (
+              <div className="space-y-3 p-5">
+
+                {[1, 2, 3, 4].map(
+                  (item) => (
+                    <div
+                      key={item}
+                      className="h-28 animate-pulse rounded-2xl bg-slate-100"
+                    />
+                  )
+                )}
+
+              </div>
+            ) : filteredRecharges.length === 0 ? (
+
+              <div className="px-6 py-20 text-center">
+
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-[24px] bg-gradient-to-br from-blue-50 to-purple-50 text-blue-500">
+                  <Smartphone size={34} />
+                </div>
+
+                <h3 className="mt-5 text-lg font-black text-slate-900">
+                  No recharge history yet
+                </h3>
+
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
+                  Your completed recharge activity
+                  will appear here once you make your
+                  first recharge.
+                </p>
+
+                <button
+                  onClick={() =>
+                    router.push(
+                      "/customer/recharge/mobile"
+                    )
+                  }
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3.5 text-sm font-black text-white shadow-lg"
+                >
+                  <Zap size={17} />
+                  Recharge Now
+                  <ChevronRight size={17} />
+                </button>
+
+              </div>
+
+            ) : (
+
+              <div className="divide-y divide-slate-100">
+
+                {filteredRecharges.map(
+                  (recharge) => {
+
+                    const status =
+                      statusMeta(
+                        recharge.status
+                      );
+
+                    const StatusIcon =
+                      status.icon;
+
+                    const operator =
+                      recharge.operator ||
+                      recharge.provider ||
+                      "Operator";
+
+                    const mobile =
+                      recharge.mobileNumber ||
+                      recharge.phone;
+
+                    const reference =
+                      recharge.transactionId ||
+                      recharge.referenceId;
+
+                    return (
+                      <div
+                        key={recharge.id}
+                        className="group p-5 transition hover:bg-slate-50/80"
+                      >
+
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+
+                          {/* OPERATOR */}
+                          <div className="flex min-w-0 flex-1 items-center gap-4">
+
+                            <div
+                              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${operatorClass(
+                                operator
+                              )} text-[10px] font-black text-white shadow-md`}
+                            >
+                              {operatorShort(
+                                operator
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+
+                              <div className="flex flex-wrap items-center gap-2">
+
+                                <h3 className="truncate text-sm font-black text-slate-950">
+                                  {recharge.planName ||
+                                    recharge.description ||
+                                    recharge.type ||
+                                    "Mobile Recharge"}
+                                </h3>
+
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[9px] font-black ${status.className}`}
+                                >
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${status.dot}`}
+                                  />
+                                  {status.label}
+                                </span>
+
+                              </div>
+
+                              <div className="mt-1 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+
+                                <span className="flex items-center gap-1">
+                                  <Smartphone
+                                    size={12}
+                                  />
+                                  {maskMobile(
+                                    mobile
+                                  )}
+                                </span>
+
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays
+                                    size={12}
+                                  />
+                                  {formatDate(
+                                    recharge.createdAt
+                                  )}
+                                  {formatTime(
+                                    recharge.createdAt
+                                  ) &&
+                                    ` • ${formatTime(
+                                      recharge.createdAt
+                                    )}`}
+                                </span>
+
+                              </div>
+
+                              {reference && (
+                                <button
+                                  onClick={() =>
+                                    copyReference(
+                                      reference
+                                    )
+                                  }
+                                  className="mt-2 flex items-center gap-1 text-[9px] font-bold text-slate-400 hover:text-blue-600"
+                                >
+                                  ID:{" "}
+                                  {reference.slice(
+                                    0,
+                                    18
+                                  )}
+                                  <Copy size={11} />
+                                </button>
+                              )}
+
+                            </div>
+
+                          </div>
+
+                          {/* DETAILS */}
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:w-[390px]">
+
+                            <div className="rounded-xl bg-slate-50 p-3">
+                              <p className="text-[8px] font-black uppercase text-slate-400">
+                                Amount
+                              </p>
+
+                              <p className="mt-1 text-lg font-black text-slate-950">
+                                {money(
+                                  recharge.amount
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-50 p-3">
+                              <p className="text-[8px] font-black uppercase text-slate-400">
+                                Type
+                              </p>
+
+                              <p className="mt-1 truncate text-xs font-black text-slate-800">
+                                {recharge.category ||
+                                  recharge.type ||
+                                  "Mobile"}
+                              </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-50 p-3">
+                              <p className="text-[8px] font-black uppercase text-slate-400">
+                                Payment
+                              </p>
+
+                              <p className="mt-1 truncate text-xs font-black text-slate-800">
+                                {recharge.paymentMode ||
+                                  "—"}
+                              </p>
+                            </div>
+
+                          </div>
+
+                          {/* ACTIONS */}
+                          <div className="flex items-center gap-2 lg:w-[165px] lg:justify-end">
+
+                            <button
+                              onClick={() =>
+                                setSelectedRecharge(
+                                  recharge
+                                )
+                              }
+                              className="flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700 shadow-sm hover:border-blue-200 hover:text-blue-600"
+                            >
+                              <Eye size={15} />
+                              Details
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                repeatRecharge(
+                                  recharge
+                                )
+                              }
+                              className="flex h-10 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-3 text-white shadow-md hover:shadow-lg"
+                              title="Repeat Recharge"
+                            >
+                              <RotateCcw size={16} />
+                            </button>
+
+                          </div>
+
+                        </div>
+
+                      </div>
+                    );
+                  }
+                )}
+
+              </div>
+            )}
+
+          </div>
+
+          {/* SIDE PANEL */}
+          <div className="space-y-4">
+
+            <div className="overflow-hidden rounded-[24px] bg-gradient-to-br from-[#071d68] via-[#1454dd] to-[#8f38e8] p-5 text-white shadow-lg">
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15">
+                  <Zap size={21} />
+                </div>
+
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-200">
+                    Quick Recharge
+                  </p>
+
+                  <h3 className="text-lg font-black">
+                    Recharge Again
+                  </h3>
+                </div>
+              </div>
+
+              <p className="mt-4 text-xs leading-5 text-blue-100">
+                Repeat your previous recharge
+                quickly or explore all available
+                plans.
+              </p>
+
+              <button
+                onClick={() =>
+                  router.push(
+                    "/customer/recharge/mobile"
+                  )
+                }
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-xs font-black text-blue-700 shadow-lg"
+              >
+                Recharge Now
+                <ChevronRight size={15} />
+              </button>
+
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                  <ShieldCheck size={19} />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-black text-slate-950">
+                    Secure History
+                  </h3>
+
+                  <p className="text-[10px] text-slate-400">
+                    Your recharge records
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+
+                <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                  <CheckCircle2
+                    size={17}
+                    className="text-emerald-500"
+                  />
+
+                  <div>
+                    <p className="text-xs font-black text-slate-700">
+                      Status Tracking
+                    </p>
+                    <p className="text-[9px] text-slate-400">
+                      Success / Pending / Failed
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                  <ReceiptText
+                    size={17}
+                    className="text-blue-500"
+                  />
+
+                  <div>
+                    <p className="text-xs font-black text-slate-700">
+                      Transaction Details
+                    </p>
+                    <p className="text-[9px] text-slate-400">
+                      Reference & payment information
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+                  <Download
+                    size={17}
+                    className="text-purple-500"
+                  />
+
+                  <div>
+                    <p className="text-xs font-black text-slate-700">
+                      Easy Records
+                    </p>
+                    <p className="text-[9px] text-slate-400">
+                      Keep your recharge history handy
+                    </p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <div className="rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-purple-50 p-5">
+
+              <div className="flex items-center gap-3">
+                <Wifi
+                  size={22}
+                  className="text-blue-600"
+                />
+
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-500">
+                    Services
+                  </p>
+
+                  <h3 className="text-base font-black text-slate-950">
+                    Explore Recharge
+                  </h3>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+
+                <button
+                  onClick={() =>
+                    router.push(
+                      "/customer/recharge/mobile"
+                    )
+                  }
+                  className="rounded-xl bg-white p-3 text-left shadow-sm hover:shadow-md"
+                >
+                  <Phone
+                    size={17}
+                    className="text-blue-600"
+                  />
+                  <p className="mt-2 text-[10px] font-black text-slate-800">
+                    Mobile
+                  </p>
+                </button>
+
+                <button
+                  onClick={() =>
+                    router.push(
+                      "/customer/recharge/mobile/plans"
+                    )
+                  }
+                  className="rounded-xl bg-white p-3 text-left shadow-sm hover:shadow-md"
+                >
+                  <Zap
+                    size={17}
+                    className="text-purple-600"
+                  />
+                  <p className="mt-2 text-[10px] font-black text-slate-800">
+                    All Plans
+                  </p>
+                </button>
+
+                <button
+                  className="rounded-xl bg-white p-3 text-left shadow-sm"
+                >
+                  <MessageSquare
+                    size={17}
+                    className="text-emerald-600"
+                  />
+                  <p className="mt-2 text-[10px] font-black text-slate-800">
+                    SMS
+                  </p>
+                </button>
+
+                <button
+                  className="rounded-xl bg-white p-3 text-left shadow-sm"
+                >
+                  <Gift
+                    size={17}
+                    className="text-pink-600"
+                  />
+                  <p className="mt-2 text-[10px] font-black text-slate-800">
+                    Offers
+                  </p>
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        {/* SECURITY FOOTER */}
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-5 rounded-[20px] border border-emerald-100 bg-gradient-to-r from-emerald-50 via-cyan-50 to-blue-50 px-5 py-4">
+
+          <div className="flex items-center gap-2 text-xs font-black text-emerald-700">
+            <ShieldCheck size={17} />
+            Secure Recharge History
+          </div>
+
+          <div className="h-4 w-px bg-emerald-200" />
+
+          <div className="text-[10px] font-bold text-slate-500">
+            Your recharge records stay connected
+            to your customer account.
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* DETAILS MODAL */}
+      {selectedRecharge && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md">
+
+          <div className="w-full max-w-[560px] overflow-hidden rounded-[28px] bg-white shadow-2xl">
+
+            <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-6 text-white">
+
+              <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-white/10" />
+
+              <div className="relative flex items-start justify-between">
+
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-100">
+                    Recharge Details
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-black">
+                    {money(
+                      selectedRecharge.amount
+                    )}
+                  </h2>
+
+                  <p className="mt-1 text-xs text-blue-100">
+                    {selectedRecharge.operator ||
+                      selectedRecharge.provider ||
+                      "Mobile Recharge"}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() =>
+                    setSelectedRecharge(null)
+                  }
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/20"
+                >
+                  ×
+                </button>
+
+              </div>
+
+            </div>
+
+            <div className="space-y-3 p-6">
+
+              <div className="grid grid-cols-2 gap-3">
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-[9px] font-black uppercase text-slate-400">
+                    Mobile Number
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {selectedRecharge.mobileNumber ||
+                      selectedRecharge.phone ||
+                      "—"}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-[9px] font-black uppercase text-slate-400">
+                    Status
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {statusMeta(
+                      selectedRecharge.status
+                    ).label}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-[9px] font-black uppercase text-slate-400">
+                    Date
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {formatDate(
+                      selectedRecharge.createdAt
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-[9px] font-black uppercase text-slate-400">
+                    Payment Mode
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-slate-900">
+                    {selectedRecharge.paymentMode ||
+                      "—"}
+                  </p>
+                </div>
+
+              </div>
+
+              {selectedRecharge.validity && (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-[9px] font-black uppercase text-blue-500">
+                    Validity
+                  </p>
+
+                  <p className="mt-1 text-sm font-black text-blue-800">
+                    {selectedRecharge.validity}
+                  </p>
+                </div>
+              )}
+
+              {(
+                selectedRecharge.transactionId ||
+                selectedRecharge.referenceId
+              ) && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-4">
+
+                  <p className="text-[9px] font-black uppercase text-slate-400">
+                    Transaction Reference
+                  </p>
+
+                  <div className="mt-1 flex items-center justify-between gap-3">
+
+                    <p className="break-all text-xs font-black text-slate-800">
+                      {selectedRecharge.transactionId ||
+                        selectedRecharge.referenceId}
+                    </p>
+
+                    <button
+                      onClick={() =>
+                        copyReference(
+                          selectedRecharge.transactionId ||
+                            selectedRecharge.referenceId
+                        )
+                      }
+                      className="shrink-0 rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-blue-50 hover:text-blue-600"
+                    >
+                      <Copy size={14} />
+                    </button>
+
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+
+                <button
+                  onClick={() =>
+                    setSelectedRecharge(null)
+                  }
+                  className="flex-1 rounded-xl border border-slate-200 py-3 text-xs font-black text-slate-700"
+                >
+                  Close
+                </button>
+
+                <button
+                  onClick={() => {
+                    repeatRecharge(
+                      selectedRecharge
+                    );
+                    setSelectedRecharge(null);
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 py-3 text-xs font-black text-white shadow-md"
+                >
+                  <RotateCcw size={15} />
+                  Repeat Recharge
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+}

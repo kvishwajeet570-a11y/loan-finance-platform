@@ -1,0 +1,309 @@
+﻿"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+const groups = [
+  {
+    title: "OVERVIEW",
+    items: [
+      ["Dashboard", "/dsa/dashboard", "⌂"],
+      ["Analytics", "/dsa/analytics", "◫"],
+      ["Notifications", "/dsa/notifications", "♢"],
+    ],
+  },
+  {
+    title: "BUSINESS",
+    items: [
+      ["Leads", "/dsa/leads", "◉"],
+      ["Customers", "/dsa/customers", "♙"],
+      ["Loan Applications", "/dsa/loan-applications", "▣"],
+      ["KYC Verification", "/dsa/kyc", "✓"],
+    ],
+  },
+  {
+    title: "FINANCE",
+    items: [
+      ["Commission", "/dsa/commission", "₹"],
+      ["Wallet", "/dsa/wallet", "◈"],
+      ["Transactions", "/dsa/transactions", "⇄"],
+      ["Reports", "/dsa/reports", "▤"],
+    ],
+  },
+  {
+    title: "GROWTH",
+    items: [
+      ["Refer & Earn", "/dsa/referral", "↗"],
+      ["Achievements", "/dsa/achievements", "★"],
+      ["Leaderboard", "/dsa/leaderboard", "♛"],
+      ["Training Center", "/dsa/training", "▶"],
+    ],
+  },
+  {
+    title: "SUPPORT",
+    items: [
+      ["Help & Support", "/dsa/support", "?"],
+      ["Profile", "/dsa/profile", "●"],
+    ],
+  },
+];
+
+export default function DsaSidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [collapsed, setCollapsed] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [wallet, setWallet] = useState<number | null>(null);
+  const [unread, setUnread] = useState(0);
+
+  const API =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("loan_finance_user");
+      if (raw) setUser(JSON.parse(raw));
+    } catch {}
+
+    const token = localStorage.getItem("loan_finance_token");
+    const rawUser = localStorage.getItem("loan_finance_user");
+
+    if (!token || !rawUser) return;
+
+    try {
+      const u = JSON.parse(rawUser);
+
+      fetch(`${API}/dsa/dashboard/${u.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => {
+          if (!j?.data) return;
+
+          const w = j.data.wallet;
+          if (w?.balance !== undefined) {
+            setWallet(Number(w.balance));
+          }
+
+          if (typeof j.data.unreadNotifications === "number") {
+            setUnread(j.data.unreadNotifications);
+          }
+        })
+        .catch(() => {});
+    } catch {}
+  }, [API]);
+
+  const activeGroup = useMemo(() => {
+    return groups.find((g) =>
+      g.items.some((item) => pathname === item[1] || pathname.startsWith(item[1] + "/"))
+    )?.title;
+  }, [pathname]);
+
+  function logout() {
+    localStorage.removeItem("loan_finance_token");
+    localStorage.removeItem("loan_finance_user");
+    router.push("/login");
+  }
+
+  return (
+    <>
+      <aside
+        className={`fixed left-0 top-0 z-50 flex h-screen flex-col border-r border-slate-200 bg-white shadow-[8px_0_35px_rgba(15,23,42,0.06)] transition-all duration-300 ${
+          collapsed ? "w-[82px]" : "w-[270px]"
+        }`}
+      >
+        {/* BRAND */}
+        <div className="flex h-[78px] items-center justify-between border-b border-slate-100 px-4">
+          <Link href="/dsa/dashboard" className="flex items-center gap-3 overflow-hidden">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 text-lg font-black text-white shadow-lg shadow-blue-200">
+              DF
+            </div>
+
+            {!collapsed && (
+              <div className="whitespace-nowrap">
+                <div className="text-[17px] font-black tracking-tight text-slate-900">
+                  DSA <span className="text-blue-600">FinCorp</span>
+                </div>
+                <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Partner Portal
+                </div>
+              </div>
+            )}
+          </Link>
+
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-blue-600 lg:flex"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? "→" : "←"}
+          </button>
+        </div>
+
+        {/* PROFILE */}
+        {!collapsed ? (
+          <div className="mx-3 mt-4 rounded-2xl bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 p-4 text-white shadow-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-black ring-1 ring-white/20">
+                {(user?.name || "DSA")
+                  .split(" ")
+                  .map((x: string) => x[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold">
+                  {user?.name || "DSA Partner"}
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[10px] text-blue-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                  Active Partner
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-white/10 p-2.5">
+                <div className="text-[9px] uppercase text-blue-200">Wallet</div>
+                <div className="mt-1 text-sm font-black">
+                  ₹{wallet === null ? "—" : wallet.toLocaleString("en-IN")}
+                </div>
+              </div>
+
+              <div className="rounded-xl bg-white/10 p-2.5">
+                <div className="text-[9px] uppercase text-blue-200">Alerts</div>
+                <div className="mt-1 text-sm font-black">{unread}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto mt-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 text-sm font-black text-white">
+              {(user?.name || "DSA")
+                .split(" ")
+                .map((x: string) => x[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </div>
+          </div>
+        )}
+
+        {/* QUICK ACTION */}
+        {!collapsed && (
+          <Link
+            href="/dsa/loan-applications"
+            className="mx-3 mt-3 flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-xs font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:bg-blue-700"
+          >
+            <span className="text-base">+</span>
+            New Loan Application
+          </Link>
+        )}
+
+        {/* NAVIGATION */}
+        <nav className="mt-4 flex-1 overflow-y-auto px-3 pb-4">
+          {groups.map((group) => (
+            <div key={group.title} className="mb-4">
+              {!collapsed && (
+                <div className="mb-2 px-3 text-[9px] font-black tracking-[0.18em] text-slate-400">
+                  {group.title}
+                </div>
+              )}
+
+              {group.items.map(([label, href, icon]) => {
+                const active =
+                  pathname === href || pathname.startsWith(href + "/");
+
+                const notificationItem = label === "Notifications";
+
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    title={collapsed ? label : undefined}
+                    className={`group relative mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[12px] font-bold transition-all ${
+                      active
+                        ? "bg-blue-50 text-blue-700 shadow-sm"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-blue-600"
+                    }`}
+                  >
+                    {active && (
+                      <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-blue-600" />
+                    )}
+
+                    <span
+                      className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm transition ${
+                        active
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                          : "bg-slate-100 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600"
+                      }`}
+                    >
+                      {icon}
+                    </span>
+
+                    {!collapsed && (
+                      <>
+                        <span className="flex-1 truncate">{label}</span>
+
+                        {notificationItem && unread > 0 && (
+                          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-[9px] font-black text-white">
+                            {unread > 99 ? "99+" : unread}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+
+        {/* BOTTOM */}
+        <div className="border-t border-slate-100 p-3">
+          {!collapsed && (
+            <div className="mb-3 rounded-xl bg-gradient-to-r from-emerald-50 to-green-50 p-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                  ↗
+                </span>
+                <div>
+                  <div className="text-[11px] font-black text-slate-800">
+                    Grow your business
+                  </div>
+                  <div className="text-[9px] text-slate-500">
+                    Refer & earn more
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                href="/dsa/referral"
+                className="mt-2 block rounded-lg bg-white px-3 py-2 text-center text-[10px] font-black text-emerald-700 shadow-sm"
+              >
+                Refer Now →
+              </Link>
+            </div>
+          )}
+
+          <button
+            onClick={logout}
+            title="Logout"
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-xs font-bold text-slate-500 transition hover:bg-red-50 hover:text-red-600 ${
+              collapsed ? "justify-center" : ""
+            }`}
+          >
+            <span className="text-base">↪</span>
+            {!collapsed && <span>Logout</span>}
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}

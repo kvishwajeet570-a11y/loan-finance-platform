@@ -6,60 +6,31 @@ import { z } from "zod";
 
 export const fastagStatusEnum = z.enum([
   "PENDING",
+  "SUCCESS",
+  "FAILED",
   "ACTIVE",
-  "SUSPENDED",
-  "BLOCKED",
-  "CLOSED",
-]);
-
-/* =========================================
-   VEHICLE TYPE
-========================================= */
-
-export const vehicleTypeEnum = z.enum([
-  "CAR",
-  "SUV",
-  "MUV",
-  "BIKE",
-  "TRUCK",
-  "BUS",
-  "TAXI",
-  "COMMERCIAL",
+  "INACTIVE",
 ]);
 
 /* =========================================
    CREATE FASTAG
 ========================================= */
 
-export const createFastagSchema =
-  z.object({
-    userId: z.string().cuid(),
+export const createFastagSchema = z.object({
+  vehicleNo: z.string().min(5).max(20),
 
-    vehicleNumber: z.string()
-      .min(5)
-      .max(20),
+  provider: z.string().min(2).max(100),
 
-    vehicleType:
-      vehicleTypeEnum,
+  amount: z.coerce.number().positive(),
 
-    ownerName: z.string()
-      .min(3)
-      .max(100),
+  userId: z.string().min(1),
 
-    mobileNumber: z.string()
-      .regex(/^[6-9]\d{9}$/),
+  slug: z.string().optional(),
 
-    email: z.email(),
+  status: fastagStatusEnum.optional(),
 
-    panNo: z.string()
-      .regex(
-        /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
-      )
-      .optional(),
-
-    bankName:
-      z.string().optional(),
-  });
+  isActive: z.boolean().optional(),
+});
 
 /* =========================================
    UPDATE FASTAG
@@ -76,7 +47,7 @@ export const fastagRechargeSchema =
   z.object({
     fastagId: z.string().cuid(),
 
-    amount: z.number()
+    amount: z.coerce.number()
       .positive()
       .min(100),
   });
@@ -89,26 +60,9 @@ export const updateFastagStatusSchema =
   z.object({
     fastagId: z.string().cuid(),
 
-    status:
-      fastagStatusEnum,
+    status: fastagStatusEnum,
 
-    remarks:
-      z.string().optional(),
-  });
-
-/* =========================================
-   FASTAG KYC
-========================================= */
-
-export const fastagKycSchema =
-  z.object({
-    fastagId: z.string().cuid(),
-
-    documentId:
-      z.string().cuid(),
-
-    isVerified:
-      z.boolean(),
+    remarks: z.string().optional(),
   });
 
 /* =========================================
@@ -119,14 +73,14 @@ export const fastagFilterSchema =
   z.object({
     search: z.string().optional(),
 
-    vehicleType:
-      vehicleTypeEnum.optional(),
-
     status:
       fastagStatusEnum.optional(),
 
     userId:
-      z.string().cuid().optional(),
+      z.string().optional(),
+
+    isActive:
+      z.boolean().optional(),
 
     page:
       z.coerce.number()
@@ -182,9 +136,6 @@ export type UpdateFastagStatusDto =
   z.infer<
     typeof updateFastagStatusSchema
   >;
-
-export type FastagKycDto =
-  z.infer<typeof fastagKycSchema>;
 
 export type FastagFilterDto =
   z.infer<typeof fastagFilterSchema>;

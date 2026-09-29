@@ -1,0 +1,670 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import DsaShell from "@/components/dsa/DsaShell";
+
+type DashboardData = {
+  summary?: {
+    totalLeads?: number;
+    approvedLoans?: number;
+    pendingLoans?: number;
+    rejectedLoans?: number;
+    totalEarnings?: number;
+    pendingCommission?: number;
+    totalLoanAmount?: number;
+    approvedLoanAmount?: number;
+    approvalRate?: number;
+    totalCustomers?: number;
+  };
+  monthlyTrend?: Array<{
+    month?: string;
+    applications?: number;
+    approved?: number;
+    pending?: number;
+    rejected?: number;
+    loanAmount?: number;
+  }>;
+  commissionTrend?: Array<{
+    month?: string;
+    commission?: number;
+  }>;
+  loanProducts?: Array<{
+    name?: string;
+    value?: number;
+    amount?: number;
+  }>;
+  performance?: {
+    currentMonthApplications?: number;
+    previousMonthApplications?: number;
+    monthlyGrowth?: number | null;
+  };
+  transactions?: {
+    totalAmount?: number;
+    totalCommission?: number;
+    totalCashback?: number;
+  };
+};
+
+const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+const money = (n = 0) =>
+  `₹${Number(n || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 0,
+  })}`;
+
+const number = (n = 0) =>
+  Number(n || 0).toLocaleString("en-IN");
+
+export default function DsaAnalyticsPage() {
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("loan_finance_token");
+    const raw = localStorage.getItem("loan_finance_user");
+
+    if (!token || !raw) {
+      setError("DSA session not found. Please login again.");
+      setLoading(false);
+      return;
+    }
+
+    let user: any;
+
+    try {
+      user = JSON.parse(raw);
+    } catch {
+      setError("Invalid DSA session.");
+      setLoading(false);
+      return;
+    }
+
+    fetch(`${API}/dsa/dashboard/${user.id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+      .then(async (res) => {
+        const json = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(
+            json?.message || "Unable to load analytics."
+          );
+        }
+
+        return json;
+      })
+      .then((json) => {
+        setData(json?.data || json);
+        setError("");
+      })
+      .catch((err) => {
+        setError(err?.message || "Failed to load analytics.");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const summary = data?.summary || {};
+  const trend = data?.monthlyTrend || [];
+  const commissionTrend = data?.commissionTrend || [];
+  const products = data?.loanProducts || [];
+  const performance = data?.performance || {};
+  const transactions = data?.transactions || {};
+
+  const maxApplications = Math.max(
+    1,
+    ...trend.map((x) => Number(x.applications || 0))
+  );
+
+  const maxLoanAmount = Math.max(
+    1,
+    ...trend.map((x) => Number(x.loanAmount || 0))
+  );
+
+  const maxCommission = Math.max(
+    1,
+    ...commissionTrend.map((x) => Number(x.commission || 0))
+  );
+
+  const totalProductApplications = products.reduce(
+    (sum, x) => sum + Number(x.value || 0),
+    0
+  );
+
+  const topProduct = useMemo(() => {
+    return [...products].sort(
+      (a, b) => Number(b.value || 0) - Number(a.value || 0)
+    )[0];
+  }, [products]);
+
+  if (loading) {
+    return (
+      <DsaShell>
+        <div className="min-h-screen bg-slate-50 p-5 md:p-8">
+          <div className="mx-auto max-w-[1700px] animate-pulse">
+            <div className="h-48 rounded-[28px] bg-slate-200" />
+            <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+              {[1, 2, 3, 4].map((x) => (
+                <div
+                  key={x}
+                  className="h-36 rounded-3xl bg-white shadow-sm"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </DsaShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <DsaShell>
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+          <div className="w-full max-w-xl rounded-3xl border border-red-100 bg-white p-8 text-center shadow-xl">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl">
+              !
+            </div>
+            <h1 className="text-2xl font-black text-slate-900">
+              Analytics unavailable
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 rounded-xl bg-blue-600 px-6 py-3 text-sm font-black text-white"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </DsaShell>
+    );
+  }
+
+  return (
+    <DsaShell>
+      <main className="min-h-screen bg-[#f6f9fc] p-4 md:p-7 xl:p-9">
+        <div className="mx-auto max-w-[1700px]">
+
+          {/* HEADER */}
+          <section className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-[11px] font-black uppercase tracking-wider text-emerald-700">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Live Business Analytics
+              </div>
+
+              <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
+                Performance Analytics
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 md:text-base">
+                Real-time business performance based on your DSA applications,
+                loans, commissions and transactions.
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-3 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Current Month
+              </div>
+              <div className="mt-1 text-lg font-black text-slate-900">
+                {number(performance.currentMonthApplications)} Applications
+              </div>
+            </div>
+          </section>
+
+          {/* KPI CARDS */}
+          <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+
+            <div className="group rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white shadow-xl shadow-blue-100">
+              <div className="flex items-start justify-between">
+                <span className="rounded-2xl bg-white/15 px-3 py-2 text-xl">
+                  ◫
+                </span>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-black">
+                  TOTAL
+                </span>
+              </div>
+              <div className="mt-7 text-4xl font-black">
+                {number(summary.totalLeads)}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-blue-100">
+                Total Applications
+              </div>
+              <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/15">
+                <div className="h-full w-full rounded-full bg-white/80" />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-100 bg-white p-6 shadow-lg shadow-slate-100">
+              <div className="flex items-start justify-between">
+                <span className="rounded-2xl bg-emerald-50 px-3 py-2 text-xl text-emerald-600">
+                  ✓
+                </span>
+                <span className="text-xs font-black text-emerald-600">
+                  {Number(summary.approvalRate || 0).toFixed(1)}%
+                </span>
+              </div>
+              <div className="mt-7 text-4xl font-black text-slate-950">
+                {number(summary.approvedLoans)}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-slate-500">
+                Approved Loans
+              </div>
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Number(summary.approvalRate || 0)
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-amber-100 bg-white p-6 shadow-lg shadow-slate-100">
+              <div className="flex items-start justify-between">
+                <span className="rounded-2xl bg-amber-50 px-3 py-2 text-xl text-amber-600">
+                  ₹
+                </span>
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black text-amber-700">
+                  EARNINGS
+                </span>
+              </div>
+              <div className="mt-7 text-4xl font-black text-slate-950">
+                {money(summary.totalEarnings)}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-slate-500">
+                Total Commission
+              </div>
+              <div className="mt-5 text-xs font-bold text-amber-600">
+                Pending: {money(summary.pendingCommission)}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-violet-100 bg-white p-6 shadow-lg shadow-slate-100">
+              <div className="flex items-start justify-between">
+                <span className="rounded-2xl bg-violet-50 px-3 py-2 text-xl text-violet-600">
+                  ◈
+                </span>
+                <span className="rounded-full bg-violet-50 px-3 py-1 text-[10px] font-black text-violet-700">
+                  BUSINESS
+                </span>
+              </div>
+              <div className="mt-7 text-4xl font-black text-slate-950">
+                {money(summary.totalLoanAmount)}
+              </div>
+              <div className="mt-1 text-sm font-semibold text-slate-500">
+                Total Loan Amount
+              </div>
+              <div className="mt-5 text-xs font-bold text-violet-600">
+                Approved: {money(summary.approvedLoanAmount)}
+              </div>
+            </div>
+
+          </section>
+
+          {/* SECONDARY STATS */}
+          <section className="mt-5 grid gap-5 md:grid-cols-3">
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Customers
+              </div>
+              <div className="mt-2 text-3xl font-black text-slate-950">
+                {number(summary.totalCustomers)}
+              </div>
+              <div className="mt-1 text-xs font-medium text-slate-500">
+                Unique customers handled
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Monthly Growth
+              </div>
+              <div className="mt-2 text-3xl font-black text-slate-950">
+                {performance.monthlyGrowth === null ||
+                performance.monthlyGrowth === undefined
+                  ? "—"
+                  : `${Number(performance.monthlyGrowth).toFixed(1)}%`}
+              </div>
+              <div className="mt-1 text-xs font-medium text-slate-500">
+                Compared with previous month
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-xs font-black uppercase tracking-wider text-slate-400">
+                Previous Month
+              </div>
+              <div className="mt-2 text-3xl font-black text-slate-950">
+                {number(performance.previousMonthApplications)}
+              </div>
+              <div className="mt-1 text-xs font-medium text-slate-500">
+                Applications
+              </div>
+            </div>
+
+          </section>
+
+          {/* APPLICATION TREND */}
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+            <div className="flex flex-col justify-between gap-3 md:flex-row md:items-center">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  Loan Application Trend
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Actual application activity from your assigned leads.
+                </p>
+              </div>
+
+              <div className="flex gap-4 text-xs font-bold text-slate-500">
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                  Applications
+                </span>
+                <span className="flex items-center gap-2">
+                  <i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  Approved
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex h-[330px] items-end gap-3 overflow-x-auto border-b border-slate-100 pb-0">
+              {trend.length === 0 ? (
+                <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-400">
+                  No application trend data available yet.
+                </div>
+              ) : (
+                trend.map((item, index) => {
+                  const apps = Number(item.applications || 0);
+                  const approved = Number(item.approved || 0);
+
+                  return (
+                    <div
+                      key={`${item.month}-${index}`}
+                      className="flex min-w-[75px] flex-1 flex-col items-center justify-end"
+                    >
+                      <div className="mb-3 text-xs font-black text-slate-700">
+                        {apps}
+                      </div>
+
+                      <div className="flex h-[250px] w-full max-w-[70px] items-end justify-center gap-1.5">
+                        <div
+                          className="w-1/2 rounded-t-xl bg-blue-600 transition-all"
+                          style={{
+                            height: `${Math.max(
+                              apps > 0 ? 8 : 2,
+                              (apps / maxApplications) * 100
+                            )}%`,
+                          }}
+                          title={`Applications: ${apps}`}
+                        />
+
+                        <div
+                          className="w-1/2 rounded-t-xl bg-emerald-500 transition-all"
+                          style={{
+                            height: `${Math.max(
+                              approved > 0 ? 8 : 2,
+                              (approved / maxApplications) * 100
+                            )}%`,
+                          }}
+                          title={`Approved: ${approved}`}
+                        />
+                      </div>
+
+                      <div className="mt-3 text-[11px] font-black text-slate-400">
+                        {item.month || "—"}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+
+          {/* ANALYTICS GRID */}
+          <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_1fr]">
+
+            {/* COMMISSION */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  Commission Performance
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Approved commission generated month by month.
+                </p>
+              </div>
+
+              <div className="mt-8 flex h-[300px] items-end gap-3 border-b border-slate-100">
+                {commissionTrend.length === 0 ? (
+                  <div className="flex h-full w-full items-center justify-center text-sm font-semibold text-slate-400">
+                    No commission trend data available yet.
+                  </div>
+                ) : (
+                  commissionTrend.map((item, index) => {
+                    const value = Number(item.commission || 0);
+
+                    return (
+                      <div
+                        key={`${item.month}-${index}`}
+                        className="flex min-w-[70px] flex-1 flex-col items-center justify-end"
+                      >
+                        <div className="mb-2 text-[11px] font-black text-slate-700">
+                          {money(value)}
+                        </div>
+
+                        <div
+                          className="w-full max-w-[55px] rounded-t-2xl bg-gradient-to-t from-emerald-600 to-green-400"
+                          style={{
+                            height: `${Math.max(
+                              value > 0 ? 8 : 2,
+                              (value / maxCommission) * 100
+                            )}%`,
+                          }}
+                        />
+
+                        <div className="mt-3 text-[10px] font-black text-slate-400">
+                          {item.month || "—"}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* PRODUCTS */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
+                  Product Distribution
+                </h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Loan products based on actual applications.
+                </p>
+              </div>
+
+              {products.length === 0 ? (
+                <div className="flex h-[300px] items-center justify-center text-center">
+                  <div>
+                    <div className="text-4xl">◌</div>
+                    <p className="mt-3 text-sm font-bold text-slate-500">
+                      No product application data yet.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-8 space-y-5">
+                  {products.map((product, index) => {
+                    const value = Number(product.value || 0);
+                    const percent =
+                      totalProductApplications > 0
+                        ? (value / totalProductApplications) * 100
+                        : 0;
+
+                    return (
+                      <div key={`${product.name}-${index}`}>
+                        <div className="mb-2 flex items-center justify-between gap-3">
+                          <span className="truncate text-sm font-black text-slate-700">
+                            {product.name || "Unknown Product"}
+                          </span>
+                          <span className="text-xs font-black text-slate-500">
+                            {number(value)}
+                          </span>
+                        </div>
+
+                        <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400"
+                            style={{
+                              width: `${Math.min(100, percent)}%`,
+                            }}
+                          />
+                        </div>
+
+                        <div className="mt-1 text-[10px] font-bold text-slate-400">
+                          {percent.toFixed(1)}% • {money(product.amount)}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {topProduct && (
+                    <div className="mt-7 rounded-2xl bg-gradient-to-r from-blue-50 to-cyan-50 p-4">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-blue-500">
+                        Highest Volume Product
+                      </div>
+                      <div className="mt-1 text-lg font-black text-slate-900">
+                        {topProduct.name || "—"}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+          </section>
+
+          {/* STATUS BREAKDOWN */}
+          <section className="mt-6 grid gap-6 lg:grid-cols-4">
+
+            <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-6">
+              <div className="text-xs font-black uppercase tracking-wider text-emerald-600">
+                Approved
+              </div>
+              <div className="mt-3 text-3xl font-black text-emerald-900">
+                {number(summary.approvedLoans)}
+              </div>
+              <div className="mt-2 text-xs font-semibold text-emerald-700">
+                Successfully approved
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-amber-100 bg-amber-50 p-6">
+              <div className="text-xs font-black uppercase tracking-wider text-amber-600">
+                Pending
+              </div>
+              <div className="mt-3 text-3xl font-black text-amber-900">
+                {number(summary.pendingLoans)}
+              </div>
+              <div className="mt-2 text-xs font-semibold text-amber-700">
+                Awaiting decision
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-red-100 bg-red-50 p-6">
+              <div className="text-xs font-black uppercase tracking-wider text-red-600">
+                Rejected
+              </div>
+              <div className="mt-3 text-3xl font-black text-red-900">
+                {number(summary.rejectedLoans)}
+              </div>
+              <div className="mt-2 text-xs font-semibold text-red-700">
+                Applications rejected
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-violet-100 bg-violet-50 p-6">
+              <div className="text-xs font-black uppercase tracking-wider text-violet-600">
+                Approved Value
+              </div>
+              <div className="mt-3 text-3xl font-black text-violet-900">
+                {money(summary.approvedLoanAmount)}
+              </div>
+              <div className="mt-2 text-xs font-semibold text-violet-700">
+                Loan amount approved
+              </div>
+            </div>
+
+          </section>
+
+          {/* TRANSACTIONS */}
+          <section className="mt-6 rounded-3xl border border-slate-200 bg-slate-950 p-6 text-white shadow-xl md:p-8">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-300">
+                  Financial Activity
+                </div>
+                <h2 className="mt-2 text-2xl font-black">
+                  Transaction Overview
+                </h2>
+              </div>
+
+              <div className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-slate-300">
+                Real API Data
+              </div>
+            </div>
+
+            <div className="mt-7 grid gap-4 md:grid-cols-3">
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="text-xs font-bold text-slate-400">
+                  Transaction Volume
+                </div>
+                <div className="mt-3 text-2xl font-black">
+                  {money(transactions.totalAmount)}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="text-xs font-bold text-slate-400">
+                  Transaction Commission
+                </div>
+                <div className="mt-3 text-2xl font-black text-emerald-300">
+                  {money(transactions.totalCommission)}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <div className="text-xs font-bold text-slate-400">
+                  Cashback
+                </div>
+                <div className="mt-3 text-2xl font-black text-cyan-300">
+                  {money(transactions.totalCashback)}
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          {/* FOOTER NOTE */}
+          <div className="py-8 text-center text-xs font-semibold text-slate-400">
+            DSA FinCorp • Analytics calculated from your live backend data
+          </div>
+
+        </div>
+      </main>
+    </DsaShell>
+  );
+}

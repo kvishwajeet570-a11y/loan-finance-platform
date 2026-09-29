@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import creditScoreService from "../../services/credit-score/creditScore.service";
-
+import creditScoreService from "../../services/creditScore/creditScore.service";
 export const checkCreditScore = async (
   req: Request,
   res: Response
@@ -59,10 +58,10 @@ export const getCreditScoreById = async (
   res: Response
 ): Promise<void> => {
   try {
-    const data =
-      await creditScoreService.getCreditScoreById(
-        req.params.id
-      );
+    const id = String(req.params.id);
+
+const data =
+  await creditScoreService.getCreditScoreById(id);
 
     if (!data) {
       res.status(404).json({
@@ -89,9 +88,9 @@ export const deleteCreditScore = async (
   res: Response
 ): Promise<void> => {
   try {
-    await creditScoreService.softDelete(
-      req.params.id
-    );
+    const id = String(req.params.id);
+
+    await creditScoreService.softDelete(id);
 
     res.status(200).json({
       success: true,

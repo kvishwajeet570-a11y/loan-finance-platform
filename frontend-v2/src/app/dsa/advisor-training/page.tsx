@@ -1,0 +1,38 @@
+﻿"use client";
+
+import DsaShell from "@/components/dsa/DsaShell";
+
+export default function AdvisorTrainingPage() {
+  return (
+    <DsaShell>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-extrabold text-slate-900">
+          Advisor Training
+        </h1>
+
+        <div className="grid gap-5 md:grid-cols-3">
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <h2 className="font-bold">Training Overview</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Advisor training dashboard.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <h2 className="font-bold">Training Videos</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Watch training videos.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-6 shadow-sm">
+            <h2 className="font-bold">Training Documents</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              Download training documents.
+            </p>
+          </div>
+        </div>
+      </div>
+    </DsaShell>
+  );
+}

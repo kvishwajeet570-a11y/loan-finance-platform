@@ -85,7 +85,7 @@ export const createSecurityLogSchema = z.object({
 
   description: z.string().min(5).max(1000),
 
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /* =========================================

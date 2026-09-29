@@ -2,22 +2,26 @@ import prisma from "../../prisma/prisma";
 
 interface CreatePermissionDTO {
   name: string;
-  slug: string;
+  code: string;
   module: string;
+  action: string;
+  slug?: string;
   description?: string;
+  status?: string;
 }
 
 class PermissionService {
-  /**
-   * Create Permission
-   */
+  /* =========================================
+     CREATE PERMISSION
+  ========================================= */
+
   async createPermission(
     data: CreatePermissionDTO
   ) {
     const exists =
       await prisma.permission.findUnique({
         where: {
-          slug: data.slug,
+          code: data.code,
         },
       });
 
@@ -28,13 +32,22 @@ class PermissionService {
     }
 
     return prisma.permission.create({
-      data,
+      data: {
+        name: data.name,
+        code: data.code,
+        module: data.module,
+        action: data.action,
+        slug: data.slug,
+        description: data.description,
+        status: data.status ?? "ACTIVE",
+      },
     });
   }
 
-  /**
-   * Get Permission By Id
-   */
+  /* =========================================
+     GET PERMISSION BY ID
+  ========================================= */
+
   async getPermissionById(
     permissionId: string
   ) {
@@ -44,18 +57,16 @@ class PermissionService {
       },
 
       include: {
-        roles: {
-          include: {
-            role: true,
-          },
-        },
+        rolePermissions: true,
+        userPermissions: true,
       },
     });
   }
 
-  /**
-   * Get All Permissions
-   */
+  /* =========================================
+     GET ALL PERMISSIONS
+  ========================================= */
+
   async getAllPermissions(
     page = 1,
     limit = 20,
@@ -70,18 +81,26 @@ class PermissionService {
             {
               name: {
                 contains: search,
-                mode: "insensitive",
               },
             },
             {
               module: {
                 contains: search,
-                mode: "insensitive",
+              },
+            },
+            {
+              code: {
+                contains: search,
+              },
+            },
+            {
+              action: {
+                contains: search,
               },
             },
           ],
         }
-      : {};
+      : undefined;
 
     const [permissions, total] =
       await Promise.all([
@@ -89,7 +108,6 @@ class PermissionService {
           where,
           skip,
           take: limit,
-
           orderBy: {
             createdAt: "desc",
           },
@@ -110,9 +128,10 @@ class PermissionService {
     };
   }
 
-  /**
-   * Assign Permission To Role
-   */
+  /* =========================================
+     ASSIGN PERMISSION TO ROLE
+  ========================================= */
+
   async assignPermissionToRole(
     roleId: string,
     permissionId: string
@@ -139,9 +158,10 @@ class PermissionService {
     });
   }
 
-  /**
-   * Remove Permission From Role
-   */
+  /* =========================================
+     REMOVE PERMISSION FROM ROLE
+  ========================================= */
+
   async removePermissionFromRole(
     roleId: string,
     permissionId: string
@@ -154,9 +174,10 @@ class PermissionService {
     });
   }
 
-  /**
-   * Get Role Permissions
-   */
+  /* =========================================
+     GET ROLE PERMISSIONS
+  ========================================= */
+
   async getRolePermissions(
     roleId: string
   ) {
@@ -171,9 +192,10 @@ class PermissionService {
     });
   }
 
-  /**
-   * Check Permission
-   */
+  /* =========================================
+     CHECK ROLE PERMISSION
+  ========================================= */
+
   async hasPermission(
     roleId: string,
     permissionSlug: string
@@ -184,8 +206,7 @@ class PermissionService {
           roleId,
 
           permission: {
-            slug:
-              permissionSlug,
+            slug: permissionSlug,
           },
         },
       });
@@ -193,47 +214,28 @@ class PermissionService {
     return !!permission;
   }
 
-  /**
-   * Get User Permissions
-   */
+  /* =========================================
+     USER PERMISSIONS
+  ========================================= */
+
   async getUserPermissions(
     userId: string
   ) {
-    const user =
-      await prisma.user.findUnique({
-        where: {
-          id: userId,
-        },
+    return prisma.userPermission.findMany({
+      where: {
+        userId,
+      },
 
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission:
-                    true,
-                },
-              },
-            },
-          },
-        },
-      });
-
-    if (!user) {
-      throw new Error(
-        "User not found"
-      );
-    }
-
-    return user.role.permissions.map(
-      (item) =>
-        item.permission
-    );
+      include: {
+        permission: true,
+      },
+    });
   }
 
-  /**
-   * Update Permission
-   */
+  /* =========================================
+     UPDATE PERMISSION
+  ========================================= */
+
   async updatePermission(
     permissionId: string,
     payload: any
@@ -247,13 +249,20 @@ class PermissionService {
     });
   }
 
-  /**
-   * Delete Permission
-   */
+  /* =========================================
+     DELETE PERMISSION
+  ========================================= */
+
   async deletePermission(
     permissionId: string
   ) {
     await prisma.rolePermission.deleteMany({
+      where: {
+        permissionId,
+      },
+    });
+
+    await prisma.userPermission.deleteMany({
       where: {
         permissionId,
       },
@@ -266,32 +275,32 @@ class PermissionService {
     });
   }
 
-  /**
-   * Permission Analytics
-   */
+  /* =========================================
+     ANALYTICS
+  ========================================= */
+
   async getPermissionStats() {
     const [
       totalPermissions,
-      totalRoles,
-      totalMappings,
+      totalRolePermissions,
+      totalUserPermissions,
     ] = await Promise.all([
       prisma.permission.count(),
-
-      prisma.role.count(),
-
       prisma.rolePermission.count(),
+      prisma.userPermission.count(),
     ]);
 
     return {
       totalPermissions,
-      totalRoles,
-      totalMappings,
+      totalRolePermissions,
+      totalUserPermissions,
     };
   }
 
-  /**
-   * Module Permissions
-   */
+  /* =========================================
+     MODULE PERMISSIONS
+  ========================================= */
+
   async getModulePermissions(
     module: string
   ) {
@@ -302,24 +311,21 @@ class PermissionService {
     });
   }
 
-  /**
-   * Bulk Assign Permissions
-   */
   async bulkAssignPermissions(
-    roleId: string,
-    permissionIds: string[]
-  ) {
-    return prisma.rolePermission.createMany({
-      data: permissionIds.map(
-        (permissionId) => ({
-          roleId,
-          permissionId,
-        })
-      ),
+  roleId: string,
+  permissionIds: string[]
+) {
+  return prisma.rolePermission.createMany({
+    data: permissionIds.map(
+      (permissionId) => ({
+        roleId,
+        permissionId,
+      })
+    ),
+    skipDuplicates: true,
+  });
+}
 
-      skipDuplicates: true,
-    });
-  }
 }
 
 export default new PermissionService();

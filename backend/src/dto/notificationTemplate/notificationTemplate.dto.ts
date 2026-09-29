@@ -1,279 +1,122 @@
-import { z } from "zod";
 
-/* =========================================
-   TEMPLATE CHANNEL
-========================================= */
+/* =====================================================
+   CREATE TEMPLATE DTO
+===================================================== */
 
-export const templateChannelEnum = z.enum([
-  "EMAIL",
-  "SMS",
-  "WHATSAPP",
-  "PUSH",
-  "IN_APP",
-]);
+export interface CreateNotificationTemplateDto {
+  name: string;
 
-/* =========================================
-   TEMPLATE TYPE
-========================================= */
+  code: string;
 
-export const templateTypeEnum = z.enum([
-  "OTP",
-  "WELCOME",
-  "LOAN_APPLICATION",
-  "LOAN_APPROVED",
-  "LOAN_REJECTED",
-  "LOAN_DISBURSED",
-  "EMI_REMINDER",
-  "KYC_PENDING",
-  "KYC_APPROVED",
-  "KYC_REJECTED",
-  "COMMISSION_CREDITED",
-  "REFERRAL_REWARD",
-  "PASSWORD_RESET",
-  "SECURITY_ALERT",
-  "LOGIN_ALERT",
-  "SUPPORT_UPDATE",
-  "INSURANCE_RENEWAL",
-  "FASTAG_RECHARGE",
-  "MARKETING",
-  "CUSTOM",
-]);
+  category: string;
 
-/* =========================================
-   TEMPLATE STATUS
-========================================= */
+  type: string;
 
-export const templateStatusEnum = z.enum([
-  "ACTIVE",
-  "INACTIVE",
-  "DRAFT",
-  "ARCHIVED",
-]);
+  subject?: string;
 
-/* =========================================
-   CREATE TEMPLATE
-========================================= */
+  content: string;
 
-export const createNotificationTemplateSchema =
-  z.object({
-    name: z.string()
-      .min(3)
-      .max(100),
+  variables?: Record<string, any>;
+}
 
-    code: z.string()
-      .min(2)
-      .max(50)
-      .toUpperCase(),
+/* =====================================================
+   UPDATE TEMPLATE DTO
+===================================================== */
 
-    type:
-      templateTypeEnum,
+export interface UpdateNotificationTemplateDto {
+  name?: string;
 
-    channel:
-      templateChannelEnum,
+  category?: string;
 
-    subject:
-      z.string()
-      .max(255)
-      .optional(),
+  type?: string;
 
-    title:
-      z.string()
-      .max(255)
-      .optional(),
+  subject?: string;
 
-    content:
-      z.string()
-      .min(5),
+  content?: string;
 
-    variables:
-      z.array(z.string())
-      .optional(),
+  variables?: Record<string, any>;
 
-    status:
-      templateStatusEnum
-      .default("ACTIVE"),
-  });
+  isActive?: boolean;
+}
 
-/* =========================================
-   UPDATE TEMPLATE
-========================================= */
+/* =====================================================
+   TEMPLATE FILTER DTO
+===================================================== */
 
-export const updateNotificationTemplateSchema =
-  z.object({
-    name:
-      z.string().optional(),
+export interface NotificationTemplateFilterDto {
+  page?: number;
 
-    type:
-      templateTypeEnum.optional(),
+  limit?: number;
 
-    channel:
-      templateChannelEnum.optional(),
+  search?: string;
 
-    subject:
-      z.string().optional(),
+  category?: string;
 
-    title:
-      z.string().optional(),
+  type?: string;
 
-    content:
-      z.string().optional(),
+  isActive?: boolean;
+}
 
-    variables:
-      z.array(z.string())
-      .optional(),
+/* =====================================================
+   TEMPLATE ANALYTICS DTO
+===================================================== */
 
-    status:
-      templateStatusEnum.optional(),
-  });
+export interface NotificationTemplateAnalyticsDto {
+  totalTemplates: number;
 
-/* =========================================
-   DUPLICATE TEMPLATE
-========================================= */
+  totalSent: number;
 
-export const duplicateTemplateSchema =
-  z.object({
-    templateId:
-      z.string().cuid(),
+  totalDelivered: number;
 
-    newName:
-      z.string()
-      .min(3)
-      .max(100),
-  });
+  totalFailed: number;
+}
 
-/* =========================================
-   TEST TEMPLATE
-========================================= */
+/* =====================================================
+   TEMPLATE RESPONSE DTO
+===================================================== */
 
-export const testTemplateSchema =
-  z.object({
-    templateId:
-      z.string().cuid(),
+export interface NotificationTemplateResponseDto {
+  id: string;
 
-    recipient:
-      z.string()
-      .min(3),
+  name: string;
 
-    sampleData:
-      z.record(z.any())
-      .optional(),
-  });
+  code: string;
 
-/* =========================================
-   TEMPLATE PREVIEW
-========================================= */
+  category: string;
 
-export const previewTemplateSchema =
-  z.object({
-    templateId:
-      z.string().cuid(),
+  type: string;
 
-    variables:
-      z.record(z.any())
-      .optional(),
-  });
+  subject?: string | null;
 
-/* =========================================
-   TEMPLATE FILTER
-========================================= */
+  content: string;
 
-export const notificationTemplateFilterSchema =
-  z.object({
-    search:
-      z.string().optional(),
+  variables?: Record<string, any> | null;
 
-    type:
-      templateTypeEnum.optional(),
+  version: number;
 
-    channel:
-      templateChannelEnum.optional(),
+  isActive: boolean;
 
-    status:
-      templateStatusEnum.optional(),
+  totalSent: number;
 
-    page:
-      z.coerce.number()
-      .default(1),
+  totalDelivered: number;
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  totalFailed: number;
 
-/* =========================================
-   TEMPLATE STATUS UPDATE
-========================================= */
+  createdBy?: string | null;
 
-export const updateTemplateStatusSchema =
-  z.object({
-    templateId:
-      z.string().cuid(),
+  approvedBy?: string | null;
 
-    status:
-      templateStatusEnum,
-  });
+  createdAt: Date;
 
-/* =========================================
-   TEMPLATE ANALYTICS
-========================================= */
+  updatedAt: Date;
+}
 
-export const notificationTemplateAnalyticsSchema =
-  z.object({
-    type:
-      templateTypeEnum.optional(),
+/* =====================================================
+   TEMPLATE RENDER DTO
+===================================================== */
 
-    channel:
-      templateChannelEnum.optional(),
+export interface RenderTemplateDto {
+  template: string;
 
-    startDate:
-      z.string().optional(),
-
-    endDate:
-      z.string().optional(),
-  });
-
-/* =========================================
-   TYPES
-========================================= */
-
-export type CreateNotificationTemplateDto =
-  z.infer<
-    typeof createNotificationTemplateSchema
-  >;
-
-export type UpdateNotificationTemplateDto =
-  z.infer<
-    typeof updateNotificationTemplateSchema
-  >;
-
-export type DuplicateTemplateDto =
-  z.infer<
-    typeof duplicateTemplateSchema
-  >;
-
-export type TestTemplateDto =
-  z.infer<
-    typeof testTemplateSchema
-  >;
-
-export type PreviewTemplateDto =
-  z.infer<
-    typeof previewTemplateSchema
-  >;
-
-export type NotificationTemplateFilterDto =
-  z.infer<
-    typeof notificationTemplateFilterSchema
-  >;
-
-export type UpdateTemplateStatusDto =
-  z.infer<
-    typeof updateTemplateStatusSchema
-  >;
-
-export type NotificationTemplateAnalyticsDto =
-  z.infer<
-    typeof notificationTemplateAnalyticsSchema
-  >;
+  data: Record<string, any>;
+}

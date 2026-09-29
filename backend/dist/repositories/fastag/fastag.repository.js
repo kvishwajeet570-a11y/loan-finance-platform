@@ -1,245 +1,142 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FastagRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class FastagRepository {
-    /* ==========================
-        CREATE FASTAG
-    ========================== */
     static async createFastag(data) {
-        return prisma_1.prisma.fastag.create({
-            data
+        return prisma_1.default.fastTag.create({
+            data,
         });
     }
-    /* ==========================
-        GET FASTAG BY ID
-    ========================== */
-    static async getById(fastagId) {
-        return prisma_1.prisma.fastag.findUnique({
-            where: {
-                id: fastagId
-            },
-            include: {
-                user: true
-            }
+    static async getById(id) {
+        return prisma_1.default.fastTag.findUnique({
+            where: { id },
         });
     }
-    /* ==========================
-        GET BY VEHICLE NUMBER
-    ========================== */
-    static async getByVehicleNumber(vehicleNumber) {
-        return prisma_1.prisma.fastag.findUnique({
-            where: {
-                vehicleNumber
-            }
+    static async getBySlug(slug) {
+        return prisma_1.default.fastTag.findUnique({
+            where: { slug },
         });
     }
-    /* ==========================
-        GET BY FASTAG NUMBER
-    ========================== */
-    static async getByFastagNumber(fastagNumber) {
-        return prisma_1.prisma.fastag.findUnique({
-            where: {
-                fastagNumber
-            }
+    static async getByVehicleNo(vehicleNo) {
+        return prisma_1.default.fastTag.findFirst({
+            where: { vehicleNo },
         });
     }
-    /* ==========================
-        USER FASTAGS
-    ========================== */
-    static async getUserFastags(userId) {
-        return prisma_1.prisma.fastag.findMany({
-            where: {
-                userId
-            },
-            orderBy: {
-                createdAt: "desc"
-            }
+    static async updateFastag(id, data) {
+        return prisma_1.default.fastTag.update({
+            where: { id },
+            data,
         });
     }
-    /* ==========================
-        UPDATE FASTAG
-    ========================== */
-    static async updateFastag(fastagId, data) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
-            },
-            data
-        });
-    }
-    /* ==========================
-        VERIFY KYC
-    ========================== */
-    static async verifyKyc(fastagId) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
-            },
+    static async activateFastag(id) {
+        return prisma_1.default.fastTag.update({
+            where: { id },
             data: {
-                kycVerified: true
-            }
-        });
-    }
-    /* ==========================
-        CREDIT WALLET
-    ========================== */
-    static async creditWallet(fastagId, amount) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
+                isActive: true,
             },
-            data: {
-                walletBalance: {
-                    increment: amount
-                }
-            }
         });
     }
-    /* ==========================
-        DEBIT WALLET
-    ========================== */
-    static async debitWallet(fastagId, amount) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
+    static async deactivateFastag(id) {
+        return prisma_1.default.fastTag.update({
+            where: { id },
+            data: {
+                isActive: false,
             },
-            data: {
-                walletBalance: {
-                    decrement: amount
-                }
-            }
         });
     }
-    /* ==========================
-        BLOCK FASTAG
-    ========================== */
-    static async blockFastag(fastagId) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
-            },
-            data: {
-                status: "BLOCKED"
-            }
+    static async deleteFastag(id) {
+        return prisma_1.default.fastTag.delete({
+            where: { id },
         });
     }
-    /* ==========================
-        ACTIVATE FASTAG
-    ========================== */
-    static async activateFastag(fastagId) {
-        return prisma_1.prisma.fastag.update({
-            where: {
-                id: fastagId
-            },
-            data: {
-                status: "ACTIVE"
-            }
-        });
-    }
-    /* ==========================
-        DELETE FASTAG
-    ========================== */
-    static async deleteFastag(fastagId) {
-        return prisma_1.prisma.fastag.delete({
-            where: {
-                id: fastagId
-            }
-        });
-    }
-    /* ==========================
-        SEARCH FASTAGS
-    ========================== */
     static async searchFastags(keyword) {
-        return prisma_1.prisma.fastag.findMany({
+        return prisma_1.default.fastTag.findMany({
             where: {
                 OR: [
                     {
-                        vehicleNumber: {
+                        vehicleNo: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
-                        fastagNumber: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
+                            mode: "insensitive",
+                        },
                     },
                     {
                         provider: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
-            }
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        status: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
         });
     }
-    /* ==========================
-        GET ALL FASTAGS
-    ========================== */
+    static async getUserFastags(userId) {
+        return prisma_1.default.fastTag.findMany({
+            where: { userId },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
     static async getAllFastags(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [records, total] = await Promise.all([
-            prisma_1.prisma.fastag.findMany({
+            prisma_1.default.fastTag.findMany({
                 skip,
                 take: limit,
                 orderBy: {
-                    createdAt: "desc"
+                    createdAt: "desc",
                 },
-                include: {
-                    user: true
-                }
             }),
-            prisma_1.prisma.fastag.count()
+            prisma_1.default.fastTag.count(),
         ]);
         return {
             total,
             page,
             limit,
-            records
+            records,
         };
     }
-    /* ==========================
-        FASTAG ANALYTICS
-    ========================== */
     static async getAnalytics() {
-        const [totalFastags, activeFastags, blockedFastags, kycVerified] = await Promise.all([
-            prisma_1.prisma.fastag.count(),
-            prisma_1.prisma.fastag.count({
+        const [totalFastags, activeFastags, inactiveFastags,] = await Promise.all([
+            prisma_1.default.fastTag.count(),
+            prisma_1.default.fastTag.count({
                 where: {
-                    status: "ACTIVE"
-                }
+                    isActive: true,
+                },
             }),
-            prisma_1.prisma.fastag.count({
+            prisma_1.default.fastTag.count({
                 where: {
-                    status: "BLOCKED"
-                }
+                    isActive: false,
+                },
             }),
-            prisma_1.prisma.fastag.count({
-                where: {
-                    kycVerified: true
-                }
-            })
         ]);
         return {
             totalFastags,
             activeFastags,
-            blockedFastags,
-            kycVerified
+            inactiveFastags,
         };
     }
-    /* ==========================
-        PROVIDER ANALYTICS
-    ========================== */
     static async providerAnalytics() {
-        return prisma_1.prisma.fastag.groupBy({
+        return prisma_1.default.fastTag.groupBy({
             by: ["provider"],
             _count: {
-                provider: true
-            }
+                provider: true,
+            },
         });
     }
 }
 exports.FastagRepository = FastagRepository;
+exports.default = FastagRepository;

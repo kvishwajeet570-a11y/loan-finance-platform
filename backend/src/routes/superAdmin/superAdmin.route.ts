@@ -1,4 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+
+import authMiddleware from "../../middlewares/AuthMiddleware";
+import { rbac } from "../../middlewares/rbac";
+import { Role } from "../../middlewares/role";
 
 import {
   getSuperAdminDashboard,
@@ -28,6 +32,7 @@ import {
   deleteUser,
 
   getAllLoans,
+  updateLoanAmount,
   approveLoan,
   rejectLoan,
   disburseLoan,
@@ -68,9 +73,24 @@ import {
   getNotifications,
 
   searchSystem,
-} from "../../controllers/super-admin/superAdmin.controller";
+} from "../../controllers/superAdmin/superAdmin.controller";
 
 const router = Router();
+
+/*
+==================================================
+SUPER ADMIN SECURITY
+==================================================
+Every route in this router requires:
+
+1. Valid JWT
+2. Existing, unblocked user
+3. SUPER_ADMIN role
+==================================================
+*/
+
+router.use(authMiddleware);
+router.use(rbac(Role.SUPER_ADMIN));
 
 /* ====================================
    DASHBOARD
@@ -199,6 +219,11 @@ router.delete(
 router.get(
   "/loans",
   getAllLoans
+);
+
+router.patch(
+  "/loans/:id/amount",
+  updateLoanAmount
 );
 
 router.patch(
@@ -387,3 +412,4 @@ router.post(
 );
 
 export default router;
+

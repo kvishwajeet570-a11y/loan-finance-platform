@@ -1,26 +1,23 @@
-import { prisma } from "../../prisma";
-
+import prisma from "../../prisma/prisma";
 export class SupportRepository {
 
-  /* =========================
-      CREATE TICKET
-  ========================= */
-
-  static async createTicket(data: {
-    ticketNumber: string;
-    userId: string;
-    subject: string;
-    description: string;
-    category: string;
-    priority?: string;
-    attachments?: any;
-  }) {
-
-    return prisma.supportTicket.create({
-      data
-    });
-  }
-
+static async createTicket(data: {
+  userId: string;
+  subject: string;
+  message: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+}) {
+  return prisma.supportTicket.create({
+    data: {
+      ticketNumber: `TKT-${Date.now()}`,
+      ...data,
+      priority: data.priority ?? "medium",
+      status: "open",
+    },
+  });
+}
   /* =========================
       GET TICKET
   ========================= */
@@ -137,10 +134,10 @@ export class SupportRepository {
       },
 
       data: {
-        status: "RESOLVED",
-        resolution,
-        resolvedAt: new Date()
-      }
+  status: "RESOLVED",
+  adminReply: resolution,
+  resolvedAt: new Date()
+}
     });
   }
 
@@ -159,9 +156,8 @@ export class SupportRepository {
       },
 
       data: {
-        status: "CLOSED",
-        closedAt: new Date()
-      }
+  status: "CLOSED"
+}
     });
   }
 
@@ -180,10 +176,9 @@ export class SupportRepository {
       },
 
       data: {
-        status: "OPEN",
-        resolvedAt: null,
-        closedAt: null
-      }
+  status: "OPEN",
+  resolvedAt: null
+}
     });
   }
 
@@ -220,29 +215,26 @@ export class SupportRepository {
 
       where: {
 
-        OR: [
-
-          {
-            ticketNumber: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            subject: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            description: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
+       OR: [
+  {
+    subject: {
+      contains: keyword,
+      mode: "insensitive"
+    }
+  },
+  {
+    description: {
+      contains: keyword,
+      mode: "insensitive"
+    }
+  },
+  {
+    message: {
+      contains: keyword,
+      mode: "insensitive"
+    }
+  }
+]
       },
 
       include: {

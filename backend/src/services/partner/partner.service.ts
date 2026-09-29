@@ -36,7 +36,7 @@ class PartnerService {
     return prisma.partner.create({
       data: {
         ...data,
-        status: "pending",
+        status: "PENDING",
       },
     });
   }
@@ -76,13 +76,15 @@ class PartnerService {
             {
               name: {
                 contains: search,
-                mode: "insensitive",
+                mode:
+                  "insensitive" as const,
               },
             },
             {
               email: {
                 contains: search,
-                mode: "insensitive",
+                mode:
+                  "insensitive" as const,
               },
             },
             {
@@ -133,7 +135,7 @@ class PartnerService {
       },
 
       data: {
-        status: "approved",
+        status: "APPROVED",
         approvedAt: new Date(),
       },
     });
@@ -152,7 +154,7 @@ class PartnerService {
       },
 
       data: {
-        status: "rejected",
+        status: "REJECTED",
         rejectionReason:
           reason,
       },
@@ -240,7 +242,7 @@ class PartnerService {
         where: {
           partnerId,
           status:
-            "approved",
+            "APPROVED",
         },
       }),
 
@@ -350,7 +352,7 @@ class PartnerService {
       prisma.partner.count({
         where: {
           status:
-            "approved",
+            "APPROVED",
         },
       }),
 

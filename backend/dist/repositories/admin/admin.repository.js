@@ -1,41 +1,44 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class AdminRepository {
     /* =========================
        DASHBOARD STATS
     ========================= */
     static async getDashboardStats() {
         const [totalUsers, totalLoans, totalApprovedLoans, totalRejectedLoans, totalPendingLoans, totalVerifiedUsers, totalBlockedUsers, totalDisbursedAmount,] = await Promise.all([
-            prisma_1.prisma.user.count(),
-            prisma_1.prisma.loanApplication.count(),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.user.count(),
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "APPROVED",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "REJECTED",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "PENDING",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     isVerified: true,
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     isBlocked: true,
                 },
             }),
-            prisma_1.prisma.loanApplication.aggregate({
+            prisma_1.default.loanApplication.aggregate({
                 _sum: {
                     amount: true,
                 },
@@ -63,13 +66,11 @@ class AdminRepository {
                     {
                         name: {
                             contains: search,
-                            mode: "insensitive",
                         },
                     },
                     {
                         email: {
                             contains: search,
-                            mode: "insensitive",
                         },
                     },
                     {
@@ -79,9 +80,9 @@ class AdminRepository {
                     },
                 ],
             }
-            : {};
+            : undefined;
         const [users, total] = await Promise.all([
-            prisma_1.prisma.user.findMany({
+            prisma_1.default.user.findMany({
                 where,
                 skip,
                 take: limit,
@@ -89,7 +90,7 @@ class AdminRepository {
                     createdAt: "desc",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where,
             }),
         ]);
@@ -105,7 +106,7 @@ class AdminRepository {
        USER DETAILS
     ========================= */
     static async getUserById(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
                 id: userId,
             },
@@ -118,7 +119,7 @@ class AdminRepository {
        BLOCK USER
     ========================= */
     static async blockUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -131,7 +132,7 @@ class AdminRepository {
        UNBLOCK USER
     ========================= */
     static async unblockUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -144,7 +145,7 @@ class AdminRepository {
        VERIFY USER
     ========================= */
     static async verifyUser(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -157,7 +158,7 @@ class AdminRepository {
        RECENT LOANS
     ========================= */
     static async getRecentLoans(limit = 10) {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc",
@@ -178,7 +179,7 @@ class AdminRepository {
        LOAN DETAILS
     ========================= */
     static async getLoanById(loanId) {
-        return prisma_1.prisma.loanApplication.findUnique({
+        return prisma_1.default.loanApplication.findUnique({
             where: {
                 id: loanId,
             },
@@ -191,7 +192,7 @@ class AdminRepository {
        APPROVE LOAN
     ========================= */
     static async approveLoan(loanId) {
-        return prisma_1.prisma.loanApplication.update({
+        return prisma_1.default.loanApplication.update({
             where: {
                 id: loanId,
             },
@@ -204,7 +205,7 @@ class AdminRepository {
        REJECT LOAN
     ========================= */
     static async rejectLoan(loanId) {
-        return prisma_1.prisma.loanApplication.update({
+        return prisma_1.default.loanApplication.update({
             where: {
                 id: loanId,
             },

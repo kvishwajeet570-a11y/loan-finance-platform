@@ -23,7 +23,7 @@ class PartnerService {
         return prisma_1.default.partner.create({
             data: {
                 ...data,
-                status: "pending",
+                status: "PENDING",
             },
         });
     }
@@ -98,7 +98,7 @@ class PartnerService {
                 id: partnerId,
             },
             data: {
-                status: "approved",
+                status: "APPROVED",
                 approvedAt: new Date(),
             },
         });
@@ -112,7 +112,7 @@ class PartnerService {
                 id: partnerId,
             },
             data: {
-                status: "rejected",
+                status: "REJECTED",
                 rejectionReason: reason,
             },
         });
@@ -174,7 +174,7 @@ class PartnerService {
             prisma_1.default.loanApplication.count({
                 where: {
                     partnerId,
-                    status: "approved",
+                    status: "APPROVED",
                 },
             }),
             prisma_1.default.commission.aggregate({
@@ -254,7 +254,7 @@ class PartnerService {
             prisma_1.default.partner.count(),
             prisma_1.default.partner.count({
                 where: {
-                    status: "approved",
+                    status: "APPROVED",
                 },
             }),
             prisma_1.default.partner.count({

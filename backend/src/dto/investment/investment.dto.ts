@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-/* =========================================
-   INVESTMENT TYPE
-========================================= */
+/* =====================================================
+   INVESTMENT TYPE ENUM
+===================================================== */
 
 export const investmentTypeEnum = z.enum([
   "MUTUAL_FUND",
@@ -11,206 +11,176 @@ export const investmentTypeEnum = z.enum([
   "RECURRING_DEPOSIT",
   "BONDS",
   "NPS",
-  "GOLD",
-  "DEMAT",
-  "STOCKS",
   "ETF",
+  "STOCKS",
+  "GOLD",
+  "CRYPTO",
+  "OTHER",
 ]);
 
-/* =========================================
-   INVESTMENT STATUS
-========================================= */
+/* =====================================================
+   RISK LEVEL ENUM
+===================================================== */
 
-export const investmentStatusEnum = z.enum([
-  "PENDING",
-  "ACTIVE",
-  "MATURED",
-  "CLOSED",
-  "CANCELLED",
-]);
-
-/* =========================================
-   RISK PROFILE
-========================================= */
-
-export const riskProfileEnum = z.enum([
+export const riskLevelEnum = z.enum([
   "LOW",
   "MODERATE",
   "HIGH",
 ]);
 
-/* =========================================
-   CREATE INVESTMENT
-========================================= */
+/* =====================================================
+   STATUS ENUM
+===================================================== */
+
+export const investmentStatusEnum =
+  z.enum([
+    "ACTIVE",
+    "INACTIVE",
+    "CLOSED",
+  ]);
+
+/* =====================================================
+   CREATE DTO
+===================================================== */
 
 export const createInvestmentSchema =
   z.object({
-    userId: z.string().cuid(),
-
-    investmentType:
-      investmentTypeEnum,
-
-    investmentName:
-      z.string()
+    title: z
+      .string()
       .min(2)
       .max(200),
 
-    amount:
-      z.number()
-      .positive(),
+    description: z
+      .string()
+      .max(2000)
+      .optional(),
 
-    expectedReturn:
-      z.number()
-      .min(0)
+    type:
+      investmentTypeEnum,
+
+    category: z
+      .string()
       .max(100)
       .optional(),
 
-    tenureMonths:
-      z.number()
+    providerName: z
+      .string()
+      .max(150)
+      .optional(),
+
+    riskLevel:
+      riskLevelEnum
+        .default("LOW"),
+
+    minAmount: z
+      .number()
       .positive(),
 
-    riskProfile:
-      riskProfileEnum,
+    minimumAmount: z
+      .number()
+      .min(0)
+      .default(0),
 
-    providerName:
-      z.string()
-      .min(2)
-      .max(150),
+    maxAmount: z
+      .number()
+      .optional(),
+
+    interestRate: z
+      .number()
+      .min(0),
+
+    expectedReturn: z
+      .number()
+      .min(0)
+      .optional(),
+
+    tenureMonths: z
+      .number()
+      .min(1)
+      .optional(),
+
+    lockInPeriod: z
+      .number()
+      .min(0)
+      .optional(),
+
+    featured: z
+      .boolean()
+      .default(false),
+
+    status:
+      investmentStatusEnum
+        .default("ACTIVE"),
   });
 
-/* =========================================
-   UPDATE INVESTMENT
-========================================= */
+/* =====================================================
+   UPDATE DTO
+===================================================== */
 
 export const updateInvestmentSchema =
   createInvestmentSchema.partial();
 
-/* =========================================
-   INVESTMENT STATUS
-========================================= */
-
-export const updateInvestmentStatusSchema =
-  z.object({
-    investmentId:
-      z.string().cuid(),
-
-    status:
-      investmentStatusEnum,
-
-    remarks:
-      z.string().optional(),
-  });
-
-/* =========================================
-   SIP CREATION
-========================================= */
-
-export const createSipSchema =
-  z.object({
-    userId: z.string().cuid(),
-
-    fundName:
-      z.string()
-      .min(2)
-      .max(200),
-
-    monthlyAmount:
-      z.number()
-      .positive(),
-
-    sipDate:
-      z.number()
-      .min(1)
-      .max(31),
-
-    tenureMonths:
-      z.number()
-      .positive(),
-  });
-
-/* =========================================
-   FD CREATION
-========================================= */
-
-export const createFdSchema =
-  z.object({
-    userId: z.string().cuid(),
-
-    bankName:
-      z.string()
-      .min(2)
-      .max(150),
-
-    depositAmount:
-      z.number()
-      .positive(),
-
-    interestRate:
-      z.number()
-      .positive(),
-
-    tenureMonths:
-      z.number()
-      .positive(),
-  });
-
-/* =========================================
-   DEMAT ACCOUNT REQUEST
-========================================= */
-
-export const createDematSchema =
-  z.object({
-    userId: z.string().cuid(),
-
-    brokerName:
-      z.string()
-      .min(2)
-      .max(150),
-
-    panNo: z.string()
-      .regex(
-        /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/
-      ),
-
-    mobileNumber:
-      z.string()
-      .regex(/^[6-9]\d{9}$/),
-  });
-
-/* =========================================
-   INVESTMENT FILTER
-========================================= */
+/* =====================================================
+   FILTER DTO
+===================================================== */
 
 export const investmentFilterSchema =
   z.object({
-    search: z.string().optional(),
+    search:
+      z.string().optional(),
 
-    investmentType:
+    type:
       investmentTypeEnum.optional(),
+
+    category:
+      z.string().optional(),
+
+    riskLevel:
+      riskLevelEnum.optional(),
 
     status:
       investmentStatusEnum.optional(),
 
-    riskProfile:
-      riskProfileEnum.optional(),
+    featured:
+      z.coerce
+        .boolean()
+        .optional(),
 
-    userId:
-      z.string().cuid().optional(),
-
-    page:
-      z.coerce.number()
+    page: z.coerce
+      .number()
+      .min(1)
       .default(1),
 
-    limit:
-      z.coerce.number()
+    limit: z.coerce
+      .number()
       .min(1)
       .max(100)
       .default(10),
+
+    sortBy: z
+      .enum([
+        "title",
+        "type",
+        "minAmount",
+        "interestRate",
+        "expectedReturn",
+        "createdAt",
+      ])
+      .default(
+        "createdAt"
+      ),
+
+    sortOrder: z
+      .enum([
+        "asc",
+        "desc",
+      ])
+      .default("desc"),
   });
 
-/* =========================================
-   INVESTMENT ANALYTICS
-========================================= */
+/* =====================================================
+   ANALYTICS DTO
+===================================================== */
 
 export const investmentAnalyticsSchema =
   z.object({
@@ -220,33 +190,51 @@ export const investmentAnalyticsSchema =
     endDate:
       z.string().optional(),
 
-    investmentType:
+    type:
       investmentTypeEnum.optional(),
+
+    status:
+      investmentStatusEnum.optional(),
   });
 
-/* =========================================
+/* =====================================================
+   ROI CALCULATOR DTO
+===================================================== */
+
+export const investmentReturnCalculatorSchema =
+  z.object({
+    principal: z
+      .number()
+      .positive(),
+
+    annualRate: z
+      .number()
+      .positive(),
+
+    years: z
+      .number()
+      .positive(),
+
+    compoundFrequency:
+      z.coerce
+        .number()
+        .min(1)
+        .default(1),
+  });
+
+/* =====================================================
    TYPES
-========================================= */
+===================================================== */
 
 export type CreateInvestmentDto =
-  z.infer<typeof createInvestmentSchema>;
-
-export type UpdateInvestmentDto =
-  z.infer<typeof updateInvestmentSchema>;
-
-export type UpdateInvestmentStatusDto =
   z.infer<
-    typeof updateInvestmentStatusSchema
+    typeof createInvestmentSchema
   >;
 
-export type CreateSipDto =
-  z.infer<typeof createSipSchema>;
-
-export type CreateFdDto =
-  z.infer<typeof createFdSchema>;
-
-export type CreateDematDto =
-  z.infer<typeof createDematSchema>;
+export type UpdateInvestmentDto =
+  z.infer<
+    typeof updateInvestmentSchema
+  >;
 
 export type InvestmentFilterDto =
   z.infer<
@@ -257,3 +245,20 @@ export type InvestmentAnalyticsDto =
   z.infer<
     typeof investmentAnalyticsSchema
   >;
+
+export type InvestmentReturnCalculatorDto =
+  z.infer<
+    typeof investmentReturnCalculatorSchema
+  >;
+
+/* =====================================================
+   EXPORTS
+===================================================== */
+
+export default {
+  createInvestmentSchema,
+  updateInvestmentSchema,
+  investmentFilterSchema,
+  investmentAnalyticsSchema,
+  investmentReturnCalculatorSchema,
+};

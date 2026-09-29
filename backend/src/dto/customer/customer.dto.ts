@@ -14,7 +14,7 @@ export const customerStatusEnum = z.enum([
    EMPLOYMENT TYPE
 ========================================= */
 
-export const employmentTypeEnum = z.enum([
+const employmentTypeEnum = z.enum([
   "SALARIED",
   "SELF_EMPLOYED",
   "BUSINESS_OWNER",
@@ -49,8 +49,7 @@ export const createCustomerSchema = z.object({
 
   state: z.string().optional(),
 
-  employmentType:
-    employmentTypeEnum.optional(),
+  employmentType: employmentTypeEnum.optional(),
 
   monthlyIncome: z
     .number()

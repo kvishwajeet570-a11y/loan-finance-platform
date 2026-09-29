@@ -1,10 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.investmentAnalyticsSchema = exports.investmentFilterSchema = exports.createDematSchema = exports.createFdSchema = exports.createSipSchema = exports.updateInvestmentStatusSchema = exports.updateInvestmentSchema = exports.createInvestmentSchema = exports.riskProfileEnum = exports.investmentStatusEnum = exports.investmentTypeEnum = void 0;
+exports.investmentReturnCalculatorSchema = exports.investmentAnalyticsSchema = exports.investmentFilterSchema = exports.updateInvestmentSchema = exports.createInvestmentSchema = exports.investmentStatusEnum = exports.riskLevelEnum = exports.investmentTypeEnum = void 0;
 const zod_1 = require("zod");
-/* =========================================
-   INVESTMENT TYPE
-========================================= */
+/* =====================================================
+   INVESTMENT TYPE ENUM
+===================================================== */
 exports.investmentTypeEnum = zod_1.z.enum([
     "MUTUAL_FUND",
     "SIP",
@@ -12,128 +12,158 @@ exports.investmentTypeEnum = zod_1.z.enum([
     "RECURRING_DEPOSIT",
     "BONDS",
     "NPS",
-    "GOLD",
-    "DEMAT",
-    "STOCKS",
     "ETF",
+    "STOCKS",
+    "GOLD",
+    "CRYPTO",
+    "OTHER",
 ]);
-/* =========================================
-   INVESTMENT STATUS
-========================================= */
-exports.investmentStatusEnum = zod_1.z.enum([
-    "PENDING",
-    "ACTIVE",
-    "MATURED",
-    "CLOSED",
-    "CANCELLED",
-]);
-/* =========================================
-   RISK PROFILE
-========================================= */
-exports.riskProfileEnum = zod_1.z.enum([
+/* =====================================================
+   RISK LEVEL ENUM
+===================================================== */
+exports.riskLevelEnum = zod_1.z.enum([
     "LOW",
     "MODERATE",
     "HIGH",
 ]);
-/* =========================================
-   CREATE INVESTMENT
-========================================= */
+/* =====================================================
+   STATUS ENUM
+===================================================== */
+exports.investmentStatusEnum = zod_1.z.enum([
+    "ACTIVE",
+    "INACTIVE",
+    "CLOSED",
+]);
+/* =====================================================
+   CREATE DTO
+===================================================== */
 exports.createInvestmentSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    investmentType: exports.investmentTypeEnum,
-    investmentName: zod_1.z.string()
+    title: zod_1.z
+        .string()
         .min(2)
         .max(200),
-    amount: zod_1.z.number()
-        .positive(),
-    expectedReturn: zod_1.z.number()
-        .min(0)
+    description: zod_1.z
+        .string()
+        .max(2000)
+        .optional(),
+    type: exports.investmentTypeEnum,
+    category: zod_1.z
+        .string()
         .max(100)
         .optional(),
-    tenureMonths: zod_1.z.number()
+    providerName: zod_1.z
+        .string()
+        .max(150)
+        .optional(),
+    riskLevel: exports.riskLevelEnum
+        .default("LOW"),
+    minAmount: zod_1.z
+        .number()
         .positive(),
-    riskProfile: exports.riskProfileEnum,
-    providerName: zod_1.z.string()
-        .min(2)
-        .max(150),
-});
-/* =========================================
-   UPDATE INVESTMENT
-========================================= */
-exports.updateInvestmentSchema = exports.createInvestmentSchema.partial();
-/* =========================================
-   INVESTMENT STATUS
-========================================= */
-exports.updateInvestmentStatusSchema = zod_1.z.object({
-    investmentId: zod_1.z.string().cuid(),
-    status: exports.investmentStatusEnum,
-    remarks: zod_1.z.string().optional(),
-});
-/* =========================================
-   SIP CREATION
-========================================= */
-exports.createSipSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    fundName: zod_1.z.string()
-        .min(2)
-        .max(200),
-    monthlyAmount: zod_1.z.number()
-        .positive(),
-    sipDate: zod_1.z.number()
+    minimumAmount: zod_1.z
+        .number()
+        .min(0)
+        .default(0),
+    maxAmount: zod_1.z
+        .number()
+        .optional(),
+    interestRate: zod_1.z
+        .number()
+        .min(0),
+    expectedReturn: zod_1.z
+        .number()
+        .min(0)
+        .optional(),
+    tenureMonths: zod_1.z
+        .number()
         .min(1)
-        .max(31),
-    tenureMonths: zod_1.z.number()
-        .positive(),
+        .optional(),
+    lockInPeriod: zod_1.z
+        .number()
+        .min(0)
+        .optional(),
+    featured: zod_1.z
+        .boolean()
+        .default(false),
+    status: exports.investmentStatusEnum
+        .default("ACTIVE"),
 });
-/* =========================================
-   FD CREATION
-========================================= */
-exports.createFdSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    bankName: zod_1.z.string()
-        .min(2)
-        .max(150),
-    depositAmount: zod_1.z.number()
-        .positive(),
-    interestRate: zod_1.z.number()
-        .positive(),
-    tenureMonths: zod_1.z.number()
-        .positive(),
-});
-/* =========================================
-   DEMAT ACCOUNT REQUEST
-========================================= */
-exports.createDematSchema = zod_1.z.object({
-    userId: zod_1.z.string().cuid(),
-    brokerName: zod_1.z.string()
-        .min(2)
-        .max(150),
-    panNo: zod_1.z.string()
-        .regex(/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/),
-    mobileNumber: zod_1.z.string()
-        .regex(/^[6-9]\d{9}$/),
-});
-/* =========================================
-   INVESTMENT FILTER
-========================================= */
+/* =====================================================
+   UPDATE DTO
+===================================================== */
+exports.updateInvestmentSchema = exports.createInvestmentSchema.partial();
+/* =====================================================
+   FILTER DTO
+===================================================== */
 exports.investmentFilterSchema = zod_1.z.object({
     search: zod_1.z.string().optional(),
-    investmentType: exports.investmentTypeEnum.optional(),
+    type: exports.investmentTypeEnum.optional(),
+    category: zod_1.z.string().optional(),
+    riskLevel: exports.riskLevelEnum.optional(),
     status: exports.investmentStatusEnum.optional(),
-    riskProfile: exports.riskProfileEnum.optional(),
-    userId: zod_1.z.string().cuid().optional(),
-    page: zod_1.z.coerce.number()
+    featured: zod_1.z.coerce
+        .boolean()
+        .optional(),
+    page: zod_1.z.coerce
+        .number()
+        .min(1)
         .default(1),
-    limit: zod_1.z.coerce.number()
+    limit: zod_1.z.coerce
+        .number()
         .min(1)
         .max(100)
         .default(10),
+    sortBy: zod_1.z
+        .enum([
+        "title",
+        "type",
+        "minAmount",
+        "interestRate",
+        "expectedReturn",
+        "createdAt",
+    ])
+        .default("createdAt"),
+    sortOrder: zod_1.z
+        .enum([
+        "asc",
+        "desc",
+    ])
+        .default("desc"),
 });
-/* =========================================
-   INVESTMENT ANALYTICS
-========================================= */
+/* =====================================================
+   ANALYTICS DTO
+===================================================== */
 exports.investmentAnalyticsSchema = zod_1.z.object({
     startDate: zod_1.z.string().optional(),
     endDate: zod_1.z.string().optional(),
-    investmentType: exports.investmentTypeEnum.optional(),
+    type: exports.investmentTypeEnum.optional(),
+    status: exports.investmentStatusEnum.optional(),
 });
+/* =====================================================
+   ROI CALCULATOR DTO
+===================================================== */
+exports.investmentReturnCalculatorSchema = zod_1.z.object({
+    principal: zod_1.z
+        .number()
+        .positive(),
+    annualRate: zod_1.z
+        .number()
+        .positive(),
+    years: zod_1.z
+        .number()
+        .positive(),
+    compoundFrequency: zod_1.z.coerce
+        .number()
+        .min(1)
+        .default(1),
+});
+/* =====================================================
+   EXPORTS
+===================================================== */
+exports.default = {
+    createInvestmentSchema: exports.createInvestmentSchema,
+    updateInvestmentSchema: exports.updateInvestmentSchema,
+    investmentFilterSchema: exports.investmentFilterSchema,
+    investmentAnalyticsSchema: exports.investmentAnalyticsSchema,
+    investmentReturnCalculatorSchema: exports.investmentReturnCalculatorSchema,
+};

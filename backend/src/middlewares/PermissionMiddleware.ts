@@ -1,17 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: string;
-        permissions?: string[];
-      };
-    }
-  }
-}
-
 const permissionMiddleware =
   (...requiredPermissions: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
@@ -23,10 +11,11 @@ const permissionMiddleware =
         });
       }
 
-      const userPermissions = req.user.permissions || [];
+      const userPermissions =
+        ((req.user as any).permissions as string[]) || [];
 
       const hasPermission = requiredPermissions.every(
-        permission => userPermissions.includes(permission)
+        (permission) => userPermissions.includes(permission)
       );
 
       if (!hasPermission) {

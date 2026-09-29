@@ -1,204 +1,244 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PaymentRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class PaymentRepository {
     static async createPayment(data) {
-        return prisma_1.prisma.payment.create({
-            data
+        return prisma_1.default.payment.create({
+            data,
         });
     }
     static async getById(id) {
-        return prisma_1.prisma.payment.findUnique({
+        return prisma_1.default.payment.findUnique({
             where: { id },
             include: {
-                user: true
-            }
+                user: true,
+                loanApplication: true,
+            },
         });
     }
-    static async getByReference(paymentRef) {
-        return prisma_1.prisma.payment.findUnique({
+    static async getByPaymentId(paymentId) {
+        return prisma_1.default.payment.findUnique({
             where: {
-                paymentRef
-            }
+                paymentId,
+            },
+            include: {
+                user: true,
+                loanApplication: true,
+            },
         });
     }
     static async getUserPayments(userId) {
-        return prisma_1.prisma.payment.findMany({
+        return prisma_1.default.payment.findMany({
             where: { userId },
+            include: {
+                loanApplication: true,
+            },
             orderBy: {
-                createdAt: "desc"
-            }
+                createdAt: "desc",
+            },
         });
     }
-    static async markSuccess(paymentRef, gatewayTxnId, utrNumber) {
-        return prisma_1.prisma.payment.update({
+    static async markSuccess(paymentId, gatewayPaymentId, referenceId) {
+        return prisma_1.default.payment.update({
             where: {
-                paymentRef
+                paymentId,
             },
             data: {
                 status: "SUCCESS",
-                gatewayTxnId,
-                utrNumber,
-                paidAt: new Date()
-            }
+                gatewayPaymentId,
+                referenceId,
+                paidAt: new Date(),
+            },
         });
     }
-    static async markFailed(paymentRef, remarks) {
-        return prisma_1.prisma.payment.update({
+    static async markFailed(paymentId, reason) {
+        return prisma_1.default.payment.update({
             where: {
-                paymentRef
+                paymentId,
             },
             data: {
                 status: "FAILED",
-                remarks
-            }
+                failureReason: reason,
+            },
         });
     }
-    static async markPending(paymentRef) {
-        return prisma_1.prisma.payment.update({
+    static async markPending(paymentId) {
+        return prisma_1.default.payment.update({
             where: {
-                paymentRef
+                paymentId,
             },
             data: {
-                status: "PENDING"
-            }
+                status: "PENDING",
+            },
         });
     }
-    static async processRefund(paymentId, refundAmount, refundReason) {
-        return prisma_1.prisma.payment.update({
+    static async processRefund(paymentId, refundAmount) {
+        return prisma_1.default.payment.update({
             where: {
-                id: paymentId
+                paymentId,
             },
             data: {
                 status: "REFUNDED",
                 refundAmount,
-                refundReason,
-                refundedAt: new Date()
-            }
+                refundedAt: new Date(),
+            },
+        });
+    }
+    static async verifyPayment(paymentId, verifiedBy) {
+        return prisma_1.default.payment.update({
+            where: {
+                paymentId,
+            },
+            data: {
+                verifiedBy,
+                verifiedAt: new Date(),
+            },
         });
     }
     static async updatePayment(id, data) {
-        return prisma_1.prisma.payment.update({
+        return prisma_1.default.payment.update({
             where: { id },
-            data
+            data,
         });
     }
     static async getPaymentsByStatus(status) {
-        return prisma_1.prisma.payment.findMany({
-            where: {
-                status
-            },
+        return prisma_1.default.payment.findMany({
+            where: { status },
             include: {
-                user: true
-            }
+                user: true,
+                loanApplication: true,
+            },
         });
     }
-    static async getPaymentsByType(paymentType) {
-        return prisma_1.prisma.payment.findMany({
-            where: {
-                paymentType
-            },
+    static async getPaymentsByPurpose(purpose) {
+        return prisma_1.default.payment.findMany({
+            where: { purpose },
             include: {
-                user: true
-            }
+                user: true,
+                loanApplication: true,
+            },
         });
     }
     static async searchPayments(keyword) {
-        return prisma_1.prisma.payment.findMany({
+        return prisma_1.default.payment.findMany({
             where: {
                 OR: [
                     {
-                        paymentRef: {
+                        paymentId: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
+                            mode: "insensitive",
+                        },
                     },
                     {
-                        gatewayTxnId: {
+                        transactionId: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
+                            mode: "insensitive",
+                        },
                     },
                     {
-                        utrNumber: {
+                        referenceId: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        gatewayPaymentId: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
             },
             include: {
-                user: true
-            }
+                user: true,
+            },
         });
     }
     static async getAllPayments(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [payments, total] = await Promise.all([
-            prisma_1.prisma.payment.findMany({
+            prisma_1.default.payment.findMany({
                 skip,
                 take: limit,
                 include: {
-                    user: true
+                    user: true,
+                    loanApplication: true,
                 },
                 orderBy: {
-                    createdAt: "desc"
-                }
+                    createdAt: "desc",
+                },
             }),
-            prisma_1.prisma.payment.count()
+            prisma_1.default.payment.count(),
         ]);
         return {
             payments,
             total,
             page,
-            limit
+            limit,
+            totalPages: Math.ceil(total / limit),
         };
     }
+    static async deletePayment(id) {
+        return prisma_1.default.payment.delete({
+            where: { id },
+        });
+    }
     static async getAnalytics() {
-        const [totalPayments, successPayments, failedPayments, pendingPayments, totalAmount] = await Promise.all([
-            prisma_1.prisma.payment.count(),
-            prisma_1.prisma.payment.count({
+        const [totalPayments, successPayments, failedPayments, pendingPayments, refundedPayments, totalAmount,] = await Promise.all([
+            prisma_1.default.payment.count(),
+            prisma_1.default.payment.count({
                 where: {
-                    status: "SUCCESS"
-                }
+                    status: "SUCCESS",
+                },
             }),
-            prisma_1.prisma.payment.count({
+            prisma_1.default.payment.count({
                 where: {
-                    status: "FAILED"
-                }
+                    status: "FAILED",
+                },
             }),
-            prisma_1.prisma.payment.count({
+            prisma_1.default.payment.count({
                 where: {
-                    status: "PENDING"
-                }
+                    status: "PENDING",
+                },
             }),
-            prisma_1.prisma.payment.aggregate({
+            prisma_1.default.payment.count({
+                where: {
+                    status: "REFUNDED",
+                },
+            }),
+            prisma_1.default.payment.aggregate({
                 _sum: {
-                    amount: true
-                }
-            })
+                    amount: true,
+                },
+            }),
         ]);
         return {
             totalPayments,
             successPayments,
             failedPayments,
             pendingPayments,
-            totalAmount: totalAmount._sum.amount || 0
+            refundedPayments,
+            totalAmount: totalAmount._sum.amount || 0,
         };
     }
     static async getRevenueReport() {
-        return prisma_1.prisma.payment.aggregate({
+        return prisma_1.default.payment.aggregate({
             where: {
-                status: "SUCCESS"
+                status: "SUCCESS",
             },
             _sum: {
-                amount: true
+                amount: true,
             },
-            _count: true,
             _avg: {
-                amount: true
-            }
+                amount: true,
+            },
+            _count: {
+                _all: true,
+            },
         });
     }
 }

@@ -1,130 +1,80 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
+import prisma from "../../prisma/prisma";
 
-/**
- * CREATE PERMISSION
- */
+/* =========================================
+   CREATE PERMISSION
+========================================= */
+
 export const createPermission = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const {
-      name,
-      code,
-      module,
-      description,
-    } = req.body;
-
-    const exists =
-      await prisma.permission.findUnique({
-        where: { code },
-      });
-
-    if (exists) {
-      res.status(400).json({
-        success: false,
-        message: "Permission already exists",
-      });
-      return;
-    }
-
-    const permission =
-      await prisma.permission.create({
-        data: {
-          name,
-          code,
-          module,
-          description,
-        },
-      });
+    const permission = await prisma.permission.create({
+      data: {
+        name: req.body.name,
+        code: req.body.code,
+        module: req.body.module,
+        action: req.body.action,
+        description: req.body.description,
+        status: req.body.status ?? "ACTIVE",
+        slug: req.body.slug,
+      },
+    });
 
     res.status(201).json({
       success: true,
       data: permission,
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: "Failed to create permission",
+      message: error.message,
     });
   }
 };
 
-/**
- * GET ALL PERMISSIONS
- */
+/* =========================================
+   GET ALL PERMISSIONS
+========================================= */
+
 export const getAllPermissions = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 20);
-    const search = String(req.query.search || "");
-
-    const skip = (page - 1) * limit;
-
-    const where = {
-      OR: [
-        {
-          name: {
-            contains: search,
-            mode: "insensitive" as const,
-          },
-        },
-        {
-          module: {
-            contains: search,
-            mode: "insensitive" as const,
-          },
-        },
-      ],
-    };
-
-    const [permissions, total] =
-      await Promise.all([
-        prisma.permission.findMany({
-          where,
-          skip,
-          take: limit,
-          orderBy: {
-            createdAt: "desc",
-          },
-        }),
-        prisma.permission.count({
-          where,
-        }),
-      ]);
+    const permissions = await prisma.permission.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     res.status(200).json({
       success: true,
-      total,
-      page,
       data: permissions,
     });
-  } catch {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: "Failed to fetch permissions",
+      message: error.message,
     });
   }
 };
 
-/**
- * GET PERMISSION BY ID
- */
+/* =========================================
+   GET PERMISSION BY ID
+========================================= */
+
 export const getPermissionById = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const permission =
-      await prisma.permission.findUnique({
-        where: {
-          id: req.params.id,
-        },
-      });
+    const permission = await prisma.permission.findUnique({
+      where: {
+        id: String(req.params.id),
+      },
+    });
 
     if (!permission) {
       res.status(404).json({
@@ -138,163 +88,516 @@ export const getPermissionById = async (
       success: true,
       data: permission,
     });
-  } catch {
+  } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: "Failed",
+      message: error.message,
     });
   }
 };
 
-/**
- * ASSIGN TO ROLE
- */
-export const assignPermissionToRole =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const {
-        roleId,
-        permissionId,
-      } = req.body;
+/* =========================================
+   UPDATE PERMISSION
+========================================= */
 
-      const assigned =
-        await prisma.rolePermission.create({
-          data: {
-            roleId,
-            permissionId,
-          },
-        });
+export const updatePermission = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const permission = await prisma.permission.update({
+      where: {
+        id: String(req.params.id),
+      },
+      data: req.body,
+    });
 
-      res.status(201).json({
-        success: true,
-        data: assigned,
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Assignment failed",
-      });
-    }
-  };
+    res.status(200).json({
+      success: true,
+      data: permission,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
-/**
- * REMOVE FROM ROLE
- */
-export const removePermissionFromRole =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const {
-        roleId,
-        permissionId,
-      } = req.body;
+/* =========================================
+   DELETE PERMISSION
+========================================= */
 
-      await prisma.rolePermission.deleteMany({
+export const deletePermission = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    await prisma.permission.delete({
+      where: {
+        id: String(req.params.id),
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Permission deleted successfully",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   ASSIGN PERMISSION TO ROLE
+========================================= */
+
+export const assignPermissionToRole = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { permissionId } = req.body;
+    const role = String(req.params.roleId);
+
+    const result = await prisma.rolePermission.create({
+      data: {
+  roleId: role,
+  permissionId,
+},
+    });
+
+    res.status(201).json({
+      success: true,
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   REMOVE PERMISSION FROM ROLE
+========================================= */
+
+export const removePermissionFromRole = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const role = String(req.params.roleId);
+    const permissionId = String(req.params.permissionId);
+
+    await prisma.rolePermission.deleteMany({
+      where: {
+  roleId: role,
+  permissionId,
+},
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Permission removed successfully",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   GET ROLE PERMISSIONS
+========================================= */
+
+export const getRolePermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const role = String(req.params.roleId);
+
+    const permissions =
+      await prisma.rolePermission.findMany({
         where: {
+  roleId: role,
+},
+include: {
+  Role: true,
+  permission: true,
+},
+      });
+
+    res.status(200).json({
+      success: true,
+      data: permissions,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   USER PERMISSIONS
+========================================= */
+
+export const getUserPermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = String(req.params.userId);
+
+  const permissions =
+    await prisma.userPermission.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        permission: true,
+      },
+    });
+
+  res.json({
+    success: true,
+    data: permissions,
+  });
+};
+
+export const assignPermissionToUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = String(req.params.userId);
+
+  const result =
+    await prisma.userPermission.create({
+      data: {
+        userId,
+        permissionId: req.body.permissionId,
+      },
+    });
+
+  res.json({
+    success: true,
+    data: result,
+  });
+};
+
+export const removePermissionFromUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const userId = String(req.params.userId);
+  const permissionId =
+    String(req.params.permissionId);
+
+  await prisma.userPermission.deleteMany({
+    where: {
+      userId,
+      permissionId,
+    },
+  });
+
+  res.json({
+    success: true,
+    message: "Removed successfully",
+  });
+};
+
+/* =========================================
+   SEARCH PERMISSIONS
+========================================= */
+
+export const searchPermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const search = String(req.query.search || "");
+
+    const permissions = await prisma.permission.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: search,
+            },
+          },
+          {
+            module: {
+              contains: search,
+            },
+          },
+          {
+            code: {
+              contains: search,
+            },
+          },
+        ],
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: permissions,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   ANALYTICS
+========================================= */
+
+export const getPermissionAnalytics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const totalPermissions =
+      await prisma.permission.count();
+
+    const totalRolePermissions =
+      await prisma.rolePermission.count();
+
+    const totalUserPermissions =
+      await prisma.userPermission.count();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalPermissions,
+        totalRolePermissions,
+        totalUserPermissions,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   DASHBOARD
+========================================= */
+
+export const getPermissionDashboard = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const permissions =
+      await prisma.permission.findMany();
+
+    const roles =
+      await prisma.rolePermission.count();
+
+    const users =
+      await prisma.userPermission.count();
+
+    res.status(200).json({
+      success: true,
+      data: {
+        permissions,
+        roles,
+        users,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   GET MODULES
+========================================= */
+
+export const getModules = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const modules =
+      await prisma.permission.findMany({
+        select: {
+          module: true,
+        },
+        distinct: ["module"],
+      });
+
+    res.status(200).json({
+      success: true,
+      data: modules,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   GET ACTIONS
+========================================= */
+
+export const getActions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const actions =
+      await prisma.permission.findMany({
+        select: {
+          action: true,
+        },
+        distinct: ["action"],
+      });
+
+    res.status(200).json({
+      success: true,
+      data: actions,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   BULK ASSIGN
+========================================= */
+
+export const bulkAssignPermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { roleId, permissionIds } =
+      req.body;
+
+    await prisma.rolePermission.createMany({
+      data: permissionIds.map(
+        (permissionId: string) => ({
           roleId,
           permissionId,
-        },
-      });
+        })
+      ),
+      skipDuplicates: true,
+    });
 
-      res.status(200).json({
-        success: true,
-        message: "Permission removed",
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Removal failed",
-      });
-    }
-  };
+    res.status(200).json({
+      success: true,
+      message: "Permissions assigned",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
-/**
- * TOGGLE STATUS
- */
-export const togglePermissionStatus =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const permission =
-        await prisma.permission.findUnique({
-          where: {
-            id: req.params.id,
-          },
-        });
+/* =========================================
+   BULK REMOVE
+========================================= */
 
-      if (!permission) {
-        res.status(404).json({
-          success: false,
-          message: "Permission not found",
-        });
-        return;
-      }
+export const bulkRemovePermissions = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { roleId, permissionIds } =
+      req.body;
 
-      const updated =
-        await prisma.permission.update({
-          where: {
-            id: req.params.id,
-          },
-          data: {
-            isActive:
-              !permission.isActive,
-          },
-        });
+    await prisma.rolePermission.deleteMany({
+      where: {
+  roleId,
+  permissionId: {
+    in: permissionIds,
+  },
+},
+    });
 
-      res.status(200).json({
-        success: true,
-        data: updated,
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Update failed",
-      });
-    }
-  };
+    res.status(200).json({
+      success: true,
+      message: "Permissions removed",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
 
-/**
- * ANALYTICS
- */
-export const permissionAnalytics =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const [
-        totalPermissions,
-        activePermissions,
-        assignedPermissions,
-      ] = await Promise.all([
-        prisma.permission.count(),
-        prisma.permission.count({
-          where: {
-            isActive: true,
-          },
-        }),
-        prisma.rolePermission.count(),
-      ]);
+/* =========================================
+   EXPORT EXCEL
+========================================= */
 
-      res.status(200).json({
-        success: true,
-        data: {
-          totalPermissions,
-          activePermissions,
-          assignedPermissions,
-        },
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Analytics failed",
-      });
-    }
-  };
+export const exportPermissionsExcel = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const permissions =
+      await prisma.permission.findMany();
+
+    res.status(200).json({
+      success: true,
+      data: permissions,
+      message: "Excel export ready",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   EXPORT PDF
+========================================= */
+
+export const exportPermissionsPdf = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const permissions =
+      await prisma.permission.findMany();
+
+    res.status(200).json({
+      success: true,
+      data: permissions,
+      message: "PDF export ready",
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

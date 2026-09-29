@@ -4,20 +4,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.templateAnalytics = exports.toggleTemplateStatus = exports.rejectTemplate = exports.approveTemplate = exports.updateTemplate = exports.getTemplateById = exports.getTemplates = exports.createTemplate = void 0;
-const prisma_1 = __importDefault(require("../../config/prisma"));
-/**
- * CREATE TEMPLATE
- */
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
+/* ==========================================================
+   HELPER
+========================================================== */
+const getParam = (value) => {
+    if (Array.isArray(value)) {
+        return value[0] ?? "";
+    }
+    return value ?? "";
+};
+/* ==========================================================
+   CREATE TEMPLATE
+========================================================== */
 const createTemplate = async (req, res) => {
     try {
-        const { name, category, language, body, headerType, headerText, footerText, buttons, variables } = req.body;
+        const { name, category, language, body, headerType, headerText, footerText, buttons, variables, } = req.body;
         const exists = await prisma_1.default.whatsAppTemplate.findUnique({
-            where: { name }
+            where: {
+                name,
+            },
         });
         if (exists) {
             res.status(400).json({
                 success: false,
-                message: "Template already exists"
+                message: "Template already exists",
             });
             return;
         }
@@ -31,214 +42,339 @@ const createTemplate = async (req, res) => {
                 headerText,
                 footerText,
                 buttons,
-                variables
-            }
+                variables,
+            },
         });
         res.status(201).json({
             success: true,
-            data: template
+            message: "WhatsApp template created successfully",
+            data: template,
         });
     }
     catch (error) {
+        console.error("Create WhatsApp template error:", error);
         res.status(500).json({
             success: false,
-            error
+            message: "Failed to create WhatsApp template",
+            error: error instanceof Error
+                ? error.message
+                : String(error),
         });
     }
 };
 exports.createTemplate = createTemplate;
-/**
- * GET ALL TEMPLATES
- */
+/* ==========================================================
+   GET ALL TEMPLATES
+========================================================== */
 const getTemplates = async (req, res) => {
     try {
-        const page = Number(req.query.page || 1);
-        const limit = Number(req.query.limit || 20);
+        const page = Math.max(1, Number(req.query.page || 1));
+        const limit = Math.min(100, Math.max(1, Number(req.query.limit || 20)));
         const skip = (page - 1) * limit;
-        const templates = await prisma_1.default.whatsAppTemplate.findMany({
-            skip,
-            take: limit,
-            orderBy: {
-                createdAt: "desc"
-            }
-        });
-        const total = await prisma_1.default.whatsAppTemplate.count();
+        const [templates, total] = await Promise.all([
+            prisma_1.default.whatsAppTemplate.findMany({
+                skip,
+                take: limit,
+                orderBy: {
+                    createdAt: "desc",
+                },
+            }),
+            prisma_1.default.whatsAppTemplate.count(),
+        ]);
         res.status(200).json({
             success: true,
             total,
             page,
-            data: templates
+            limit,
+            totalPages: Math.ceil(total / limit),
+            data: templates,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Get WhatsApp templates error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to fetch WhatsApp templates",
         });
     }
 };
 exports.getTemplates = getTemplates;
-/**
- * GET TEMPLATE BY ID
- */
+/* ==========================================================
+   GET TEMPLATE BY ID
+========================================================== */
 const getTemplateById = async (req, res) => {
     try {
+        const id = getParam(req.params.id);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: "Template ID is required",
+            });
+            return;
+        }
         const template = await prisma_1.default.whatsAppTemplate.findUnique({
             where: {
-                id: req.params.id
-            }
+                id,
+            },
         });
         if (!template) {
             res.status(404).json({
                 success: false,
-                message: "Template not found"
+                message: "Template not found",
             });
             return;
         }
         res.status(200).json({
             success: true,
-            data: template
+            data: template,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Get WhatsApp template error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to fetch WhatsApp template",
         });
     }
 };
 exports.getTemplateById = getTemplateById;
-/**
- * UPDATE TEMPLATE
- */
+/* ==========================================================
+   UPDATE TEMPLATE
+========================================================== */
 const updateTemplate = async (req, res) => {
     try {
+        const id = getParam(req.params.id);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: "Template ID is required",
+            });
+            return;
+        }
+        const existing = await prisma_1.default.whatsAppTemplate.findUnique({
+            where: {
+                id,
+            },
+        });
+        if (!existing) {
+            res.status(404).json({
+                success: false,
+                message: "Template not found",
+            });
+            return;
+        }
         const template = await prisma_1.default.whatsAppTemplate.update({
             where: {
-                id: req.params.id
+                id,
             },
-            data: req.body
+            data: req.body,
         });
         res.status(200).json({
             success: true,
-            data: template
+            message: "Template updated successfully",
+            data: template,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Update WhatsApp template error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to update WhatsApp template",
         });
     }
 };
 exports.updateTemplate = updateTemplate;
-/**
- * APPROVE TEMPLATE
- */
+/* ==========================================================
+   APPROVE TEMPLATE
+========================================================== */
 const approveTemplate = async (req, res) => {
     try {
+        const id = getParam(req.params.id);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: "Template ID is required",
+            });
+            return;
+        }
+        const existing = await prisma_1.default.whatsAppTemplate.findUnique({
+            where: {
+                id,
+            },
+        });
+        if (!existing) {
+            res.status(404).json({
+                success: false,
+                message: "Template not found",
+            });
+            return;
+        }
         const template = await prisma_1.default.whatsAppTemplate.update({
             where: {
-                id: req.params.id
+                id,
             },
             data: {
                 status: "APPROVED",
-                approvedAt: new Date()
-            }
+                approvedAt: new Date(),
+                rejectionReason: null,
+            },
         });
         res.status(200).json({
             success: true,
-            data: template
+            message: "Template approved successfully",
+            data: template,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Approve WhatsApp template error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to approve WhatsApp template",
         });
     }
 };
 exports.approveTemplate = approveTemplate;
-/**
- * REJECT TEMPLATE
- */
+/* ==========================================================
+   REJECT TEMPLATE
+========================================================== */
 const rejectTemplate = async (req, res) => {
     try {
+        const id = getParam(req.params.id);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: "Template ID is required",
+            });
+            return;
+        }
+        const existing = await prisma_1.default.whatsAppTemplate.findUnique({
+            where: {
+                id,
+            },
+        });
+        if (!existing) {
+            res.status(404).json({
+                success: false,
+                message: "Template not found",
+            });
+            return;
+        }
+        const reason = typeof req.body.reason === "string"
+            ? req.body.reason.trim()
+            : "";
+        if (!reason) {
+            res.status(400).json({
+                success: false,
+                message: "Rejection reason is required",
+            });
+            return;
+        }
         const template = await prisma_1.default.whatsAppTemplate.update({
             where: {
-                id: req.params.id
+                id,
             },
             data: {
                 status: "REJECTED",
-                rejectionReason: req.body.reason
-            }
+                rejectionReason: reason,
+            },
         });
         res.status(200).json({
             success: true,
-            data: template
+            message: "Template rejected successfully",
+            data: template,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Reject WhatsApp template error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to reject WhatsApp template",
         });
     }
 };
 exports.rejectTemplate = rejectTemplate;
-/**
- * TOGGLE TEMPLATE STATUS
- */
+/* ==========================================================
+   TOGGLE TEMPLATE STATUS
+========================================================== */
 const toggleTemplateStatus = async (req, res) => {
     try {
+        const id = getParam(req.params.id);
+        if (!id) {
+            res.status(400).json({
+                success: false,
+                message: "Template ID is required",
+            });
+            return;
+        }
         const template = await prisma_1.default.whatsAppTemplate.findUnique({
             where: {
-                id: req.params.id
-            }
+                id,
+            },
         });
         if (!template) {
             res.status(404).json({
-                success: false
+                success: false,
+                message: "Template not found",
             });
             return;
         }
         const updated = await prisma_1.default.whatsAppTemplate.update({
             where: {
-                id: req.params.id
+                id,
             },
             data: {
-                isActive: !template.isActive
-            }
+                isActive: !template.isActive,
+            },
         });
         res.status(200).json({
             success: true,
-            data: updated
+            message: updated.isActive
+                ? "Template activated successfully"
+                : "Template deactivated successfully",
+            data: updated,
         });
     }
-    catch {
+    catch (error) {
+        console.error("Toggle WhatsApp template status error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to update template status",
         });
     }
 };
 exports.toggleTemplateStatus = toggleTemplateStatus;
-/**
- * TEMPLATE ANALYTICS
- */
+/* ==========================================================
+   TEMPLATE ANALYTICS
+========================================================== */
 const templateAnalytics = async (req, res) => {
     try {
-        const [total, approved, pending, rejected] = await Promise.all([
+        const [total, approved, pending, rejected, active, inactive,] = await Promise.all([
             prisma_1.default.whatsAppTemplate.count(),
             prisma_1.default.whatsAppTemplate.count({
                 where: {
-                    status: "APPROVED"
-                }
+                    status: "APPROVED",
+                },
             }),
             prisma_1.default.whatsAppTemplate.count({
                 where: {
-                    status: "PENDING"
-                }
+                    status: "PENDING",
+                },
             }),
             prisma_1.default.whatsAppTemplate.count({
                 where: {
-                    status: "REJECTED"
-                }
-            })
+                    status: "REJECTED",
+                },
+            }),
+            prisma_1.default.whatsAppTemplate.count({
+                where: {
+                    isActive: true,
+                },
+            }),
+            prisma_1.default.whatsAppTemplate.count({
+                where: {
+                    isActive: false,
+                },
+            }),
         ]);
         res.status(200).json({
             success: true,
@@ -246,13 +382,17 @@ const templateAnalytics = async (req, res) => {
                 total,
                 approved,
                 pending,
-                rejected
-            }
+                rejected,
+                active,
+                inactive,
+            },
         });
     }
-    catch {
+    catch (error) {
+        console.error("WhatsApp template analytics error:", error);
         res.status(500).json({
-            success: false
+            success: false,
+            message: "Failed to fetch template analytics",
         });
     }
 };

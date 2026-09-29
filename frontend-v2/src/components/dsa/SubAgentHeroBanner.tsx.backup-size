@@ -1,0 +1,239 @@
+﻿"use client";
+
+import React from "react";
+
+export default function SubAgentHeroBanner() {
+  return (
+    <section className="relative mb-5 h-[235px] overflow-hidden rounded-[18px] bg-gradient-to-r from-[#061b4b] via-[#073ca8] to-[#0c63df] text-white shadow-lg">
+
+      {/* Background glow */}
+      <div className="absolute -left-20 -top-32 h-[330px] w-[330px] rounded-full bg-blue-400/10 blur-3xl" />
+      <div className="absolute right-[-80px] bottom-[-150px] h-[350px] w-[350px] rounded-full bg-cyan-300/10 blur-3xl" />
+
+      {/* LEFT CONTENT */}
+      <div className="absolute left-8 top-7 z-20 max-w-[570px]">
+
+        <h1 className="text-[38px] font-extrabold leading-[1.05] tracking-tight">
+          Add New{" "}
+          <span className="text-[#f4b82e]">
+            Sub Agent
+          </span>
+        </h1>
+
+        <p className="mt-3 max-w-[540px] text-[15px] leading-6 text-white/90">
+          Register a new Sub Agent under your DSA account and
+          <br />
+          grow your business together.
+        </p>
+
+        {/* BENEFITS */}
+        <div className="mt-6 flex items-center gap-7">
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-500 shadow-lg">
+              <svg
+                width="23"
+                height="23"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M19 8v6M16 11h6" />
+              </svg>
+            </div>
+
+            <div>
+              <div className="text-[13px] font-extrabold">
+                Expand
+              </div>
+              <div className="text-[11px] text-blue-100">
+                Your Team
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1477ff] shadow-lg">
+              <svg
+                width="23"
+                height="23"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 19V5" />
+                <path d="M4 19h17" />
+                <path d="m7 15 4-4 3 2 5-6" />
+              </svg>
+            </div>
+
+            <div>
+              <div className="text-[13px] font-extrabold">
+                Increase
+              </div>
+              <div className="text-[11px] text-blue-100">
+                Your Business
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f4b82e] text-[23px] font-black text-white shadow-lg">
+              ₹
+            </div>
+
+            <div>
+              <div className="text-[13px] font-extrabold">
+                Earn Higher
+              </div>
+              <div className="text-[11px] text-blue-100">
+                Commission
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* GROW TOGETHER */}
+      <div className="absolute right-[315px] top-[35px] z-20 hidden xl:block">
+        <div
+          className="rotate-[-8deg] text-center text-[27px] font-semibold italic leading-7 text-white"
+          style={{
+            fontFamily: "cursive",
+          }}
+        >
+          Grow
+          <br />
+          Together
+        </div>
+
+        <svg
+          className="absolute left-[-25px] top-[48px]"
+          width="145"
+          height="70"
+          viewBox="0 0 145 70"
+          fill="none"
+        >
+          <path
+            d="M8 53C42 68 96 59 124 20"
+            stroke="white"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M113 18L126 18L122 31"
+            stroke="white"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+
+      {/* PROFESSIONAL PERSON ILLUSTRATION */}
+      <div className="absolute right-[205px] bottom-0 z-10 hidden xl:block">
+
+        {/* Body */}
+        <div className="relative h-[205px] w-[150px]">
+
+          {/* Suit */}
+          <div className="absolute bottom-0 left-[19px] h-[125px] w-[115px] rounded-t-[55px] bg-[#172554]" />
+
+          {/* Shirt */}
+          <div className="absolute bottom-0 left-[55px] h-[120px] w-[42px] bg-white" />
+
+          {/* Tie */}
+          <div className="absolute bottom-[65px] left-[72px] h-[70px] w-[13px] bg-[#0f4cc8] [clip-path:polygon(50%_0,100%_15%,72%_100%,50%_88%,28%_100%,0_15%)]" />
+
+          {/* Neck */}
+          <div className="absolute left-[64px] top-[64px] h-[35px] w-[31px] rounded-b-lg bg-[#b96f4b]" />
+
+          {/* Face */}
+          <div className="absolute left-[45px] top-[10px] h-[75px] w-[70px] rounded-[45%] bg-[#c9825b] shadow-md">
+
+            {/* Hair */}
+            <div className="absolute left-[-3px] top-[-5px] h-[36px] w-[76px] rounded-t-[45px] bg-[#101010]" />
+
+            <div className="absolute left-[12px] top-[37px] h-[5px] w-[7px] rounded-full bg-[#171717]" />
+            <div className="absolute right-[12px] top-[37px] h-[5px] w-[7px] rounded-full bg-[#171717]" />
+
+            <div className="absolute left-[27px] top-[53px] h-[3px] w-[18px] rounded-full bg-[#7c3f31]" />
+          </div>
+
+          {/* Arm pointing right */}
+          <div className="absolute right-[-52px] top-[95px] h-[18px] w-[88px] rotate-[-8deg] rounded-full bg-[#172554]" />
+
+          {/* Hand */}
+          <div className="absolute right-[-61px] top-[85px] h-[22px] w-[32px] rotate-[-8deg] rounded-full bg-[#c9825b]" />
+
+          {/* Finger */}
+          <div className="absolute right-[-82px] top-[81px] h-[8px] w-[32px] rotate-[-5deg] rounded-full bg-[#c9825b]" />
+
+        </div>
+      </div>
+
+      {/* RIGHT NETWORK CARD */}
+      <div className="absolute right-5 top-[17px] z-30 h-[201px] w-[285px] rounded-[17px] border border-white/20 bg-[#0754c8]/80 p-3 shadow-xl backdrop-blur-sm">
+
+        {/* ₹ */}
+        <div className="absolute right-5 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-[#f4b82e] text-[22px] font-black text-white shadow-lg">
+          ₹
+        </div>
+
+        {/* Crown */}
+        <div className="absolute left-1/2 top-1 -translate-x-1/2 text-[25px]">
+          ♛
+        </div>
+
+        {/* DSA */}
+        <div className="absolute left-1/2 top-[16px] -translate-x-1/2">
+          <div className="flex h-[61px] w-[61px] items-center justify-center rounded-full border-4 border-white bg-white text-xl font-black text-[#155eef] shadow-xl">
+            D
+          </div>
+
+          <div className="mt-1 text-center text-[9px] font-bold text-white">
+            DSA
+          </div>
+        </div>
+
+        {/* Connecting lines */}
+        <div className="absolute left-1/2 top-[83px] h-[22px] w-px bg-white/60" />
+
+        <div className="absolute left-[68px] top-[101px] h-px w-[145px] rotate-[0deg] bg-white/50" />
+
+        <div className="absolute left-[68px] top-[101px] h-[35px] w-px rotate-[25deg] origin-top bg-white/50" />
+        <div className="absolute right-[68px] top-[101px] h-[35px] w-px rotate-[-25deg] origin-top bg-white/50" />
+
+        {/* Sub Agents */}
+        <div className="absolute bottom-5 left-4 right-4 flex justify-between">
+
+          {["A", "B", "C"].map((item) => (
+            <div
+              key={item}
+              className="flex w-[70px] flex-col items-center"
+            >
+              <div className="flex h-[47px] w-[47px] items-center justify-center rounded-full border-2 border-white bg-gradient-to-br from-[#dbeafe] to-[#93c5fd] text-sm font-black text-[#0f3b91] shadow-lg">
+                {item}
+              </div>
+
+              <span className="mt-1.5 text-[9px] font-bold text-white">
+                Sub Agent
+              </span>
+            </div>
+          ))}
+
+        </div>
+      </div>
+
+    </section>
+  );
+}

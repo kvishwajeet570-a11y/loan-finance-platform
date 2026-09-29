@@ -1,21 +1,27 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CommissionRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class CommissionRepository {
     /* =========================
         CREATE COMMISSION
     ========================= */
     static async createCommission(data) {
-        return prisma_1.prisma.commission.create({
-            data
+        return prisma_1.default.commission.create({
+            data: {
+                ...data,
+                status: "PENDING",
+            },
         });
     }
     /* =========================
         GET COMMISSION BY ID
     ========================= */
     static async getCommissionById(commissionId) {
-        return prisma_1.prisma.commission.findUnique({
+        return prisma_1.default.commission.findUnique({
             where: {
                 id: commissionId
             },
@@ -28,7 +34,7 @@ class CommissionRepository {
         USER COMMISSIONS
     ========================= */
     static async getUserCommissions(userId) {
-        return prisma_1.prisma.commission.findMany({
+        return prisma_1.default.commission.findMany({
             where: {
                 userId
             },
@@ -41,7 +47,7 @@ class CommissionRepository {
         PENDING COMMISSIONS
     ========================= */
     static async getPendingCommissions() {
-        return prisma_1.prisma.commission.findMany({
+        return prisma_1.default.commission.findMany({
             where: {
                 status: "PENDING"
             },
@@ -54,27 +60,27 @@ class CommissionRepository {
         APPROVE COMMISSION
     ========================= */
     static async approveCommission(commissionId, approvedBy) {
-        return prisma_1.prisma.commission.update({
+        return prisma_1.default.commission.update({
             where: {
                 id: commissionId
             },
             data: {
                 status: "APPROVED",
-                approvedBy
+                approvedAt: new Date(),
             }
         });
     }
     /* =========================
         REJECT COMMISSION
     ========================= */
-    static async rejectCommission(commissionId, remarks) {
-        return prisma_1.prisma.commission.update({
+    static async rejectCommission(commissionId, rejectionReason) {
+        return prisma_1.default.commission.update({
             where: {
                 id: commissionId
             },
             data: {
                 status: "REJECTED",
-                remarks
+                rejectionReason
             }
         });
     }
@@ -82,13 +88,12 @@ class CommissionRepository {
         MARK AS PAID
     ========================= */
     static async markCommissionPaid(commissionId) {
-        return prisma_1.prisma.commission.update({
+        return prisma_1.default.commission.update({
             where: {
                 id: commissionId
             },
             data: {
                 status: "PAID",
-                paidAt: new Date()
             }
         });
     }
@@ -98,7 +103,7 @@ class CommissionRepository {
     static async getAllCommissions(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [commissions, total] = await Promise.all([
-            prisma_1.prisma.commission.findMany({
+            prisma_1.default.commission.findMany({
                 skip,
                 take: limit,
                 orderBy: {
@@ -108,7 +113,7 @@ class CommissionRepository {
                     user: true
                 }
             }),
-            prisma_1.prisma.commission.count()
+            prisma_1.default.commission.count()
         ]);
         return {
             total,
@@ -121,23 +126,23 @@ class CommissionRepository {
         SEARCH COMMISSIONS
     ========================= */
     static async searchCommissions(keyword) {
-        return prisma_1.prisma.commission.findMany({
+        return prisma_1.default.commission.findMany({
             where: {
                 OR: [
                     {
-                        commissionType: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
                         status: {
                             contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
-            }
+                            mode: "insensitive",
+                        },
+                    },
+                    {
+                        source: {
+                            contains: keyword,
+                            mode: "insensitive",
+                        },
+                    },
+                ],
+            },
         });
     }
     /* =========================
@@ -145,12 +150,12 @@ class CommissionRepository {
     ========================= */
     static async getCommissionAnalytics() {
         const [totalCommission, pendingCommission, approvedCommission, paidCommission] = await Promise.all([
-            prisma_1.prisma.commission.aggregate({
+            prisma_1.default.commission.aggregate({
                 _sum: {
                     commissionAmount: true
                 }
             }),
-            prisma_1.prisma.commission.aggregate({
+            prisma_1.default.commission.aggregate({
                 where: {
                     status: "PENDING"
                 },
@@ -158,7 +163,7 @@ class CommissionRepository {
                     commissionAmount: true
                 }
             }),
-            prisma_1.prisma.commission.aggregate({
+            prisma_1.default.commission.aggregate({
                 where: {
                     status: "APPROVED"
                 },
@@ -166,7 +171,7 @@ class CommissionRepository {
                     commissionAmount: true
                 }
             }),
-            prisma_1.prisma.commission.aggregate({
+            prisma_1.default.commission.aggregate({
                 where: {
                     status: "PAID"
                 },
@@ -186,7 +191,7 @@ class CommissionRepository {
         TOP EARNERS
     ========================= */
     static async getTopEarners() {
-        return prisma_1.prisma.commission.groupBy({
+        return prisma_1.default.commission.groupBy({
             by: ["userId"],
             _sum: {
                 commissionAmount: true
@@ -203,7 +208,7 @@ class CommissionRepository {
         MONTHLY COMMISSION
     ========================= */
     static async getMonthlyCommission(startDate, endDate) {
-        return prisma_1.prisma.commission.aggregate({
+        return prisma_1.default.commission.aggregate({
             where: {
                 createdAt: {
                     gte: startDate,

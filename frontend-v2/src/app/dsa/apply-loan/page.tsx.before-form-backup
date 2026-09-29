@@ -1,0 +1,278 @@
+﻿"use client";
+
+import { useSearchParams } from "next/navigation";
+import { FormEvent, useState } from "react";
+
+export default function ApplyLoanPage() {
+  const searchParams = useSearchParams();
+
+  const lender =
+    searchParams.get("lender") ||
+    searchParams.get("company") ||
+    "Loan Partner";
+
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pan, setPan] = useState("");
+  const [dob, setDob] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!name.trim()) {
+      alert("Please enter your full name.");
+      return;
+    }
+
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan)) {
+      alert("Please enter a valid PAN number.");
+      return;
+    }
+
+    if (!dob) {
+      alert("Please select your Date of Birth.");
+      return;
+    }
+
+    if (!consent) {
+      alert("Please accept Privacy Policy and Terms & Conditions.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      /*
+       * Frontend validation is ready.
+       * Backend API can be connected here after the final API endpoint
+       * is confirmed.
+       */
+
+      console.log({
+        lender,
+        name,
+        phone,
+        pan,
+        dob,
+      });
+
+      alert(`Application started for ${lender}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-slate-950 px-4 py-8 sm:py-12">
+      <div className="mx-auto w-full max-w-xl">
+
+        {/* CARD */}
+        <div className="overflow-hidden rounded-3xl bg-white shadow-2xl">
+
+          {/* HEADER */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-700 via-indigo-700 to-violet-700 px-6 py-7 text-white sm:px-8">
+
+            <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-white/10" />
+            <div className="absolute -bottom-20 -left-12 h-40 w-40 rounded-full bg-cyan-400/10" />
+
+            <div className="relative">
+              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold backdrop-blur">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Secure Loan Application
+              </div>
+
+              <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+                Apply for {lender}
+              </h1>
+
+              <p className="mt-2 text-sm leading-6 text-blue-100">
+                Enter your basic details to check your loan eligibility.
+              </p>
+
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">
+                    Loan Type
+                  </p>
+                  <p className="mt-1 text-sm font-black">
+                    Personal Loan
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-blue-100">
+                    Application
+                  </p>
+                  <p className="mt-1 text-sm font-black">
+                    Quick Process
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* FORM */}
+          <form onSubmit={handleSubmit} className="p-6 sm:p-8">
+
+            <div className="mb-6">
+              <h2 className="text-xl font-black text-slate-900">
+                Your Details
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Please enter accurate information for faster processing.
+              </p>
+            </div>
+
+            {/* NAME */}
+            <div className="mb-5">
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-700">
+                Full Name
+              </label>
+
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter your full name"
+                autoComplete="name"
+                className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* PHONE */}
+            <div className="mb-5">
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-700">
+                Mobile Number
+              </label>
+
+              <div className="flex h-14 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 focus-within:border-blue-500 focus-within:bg-white focus-within:ring-4 focus-within:ring-blue-100">
+                <div className="flex w-20 shrink-0 items-center justify-center border-r border-slate-200 bg-white text-sm font-black text-slate-700">
+                  +91
+                </div>
+
+                <input
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(e.target.value.replace(/\D/g, ""))
+                  }
+                  placeholder="10-digit mobile number"
+                  autoComplete="tel"
+                  className="min-w-0 flex-1 bg-transparent px-4 text-sm font-semibold text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* PAN */}
+            <div className="mb-5">
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-xs font-black uppercase tracking-wide text-slate-700">
+                  PAN Number
+                </label>
+
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-black text-blue-600">
+                  REQUIRED
+                </span>
+              </div>
+
+              <input
+                type="text"
+                value={pan}
+                onChange={(e) =>
+                  setPan(e.target.value.toUpperCase().replace(/\s/g, ""))
+                }
+                maxLength={10}
+                placeholder="ABCDE1234F"
+                autoComplete="off"
+                className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold uppercase tracking-wider text-slate-900 outline-none transition placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* DOB */}
+            <div className="mb-6">
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-700">
+                Date of Birth
+              </label>
+
+              <input
+                type="date"
+                value={dob}
+                onChange={(e) => setDob(e.target.value)}
+                className="h-14 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+              />
+            </div>
+
+            {/* SECURITY BOX */}
+            <div className="mb-5 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+                  🔒
+                </div>
+
+                <div>
+                  <p className="text-sm font-black text-slate-900">
+                    Your information is secure
+                  </p>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Your details are used only for loan eligibility and
+                    application processing.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* CONSENT */}
+            <label className="mb-6 flex cursor-pointer gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 accent-blue-600"
+              />
+
+              <span className="text-xs leading-5 text-slate-600">
+                I agree to the{" "}
+                <span className="font-bold text-blue-600">
+                  Privacy Policy
+                </span>{" "}
+                and{" "}
+                <span className="font-bold text-blue-600">
+                  Terms & Conditions
+                </span>
+                .
+              </span>
+            </label>
+
+            {/* BUTTON */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex h-14 w-full items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {loading ? "Processing..." : "Apply / Continue →"}
+            </button>
+
+            <p className="mt-4 text-center text-[11px] text-slate-400">
+              By continuing, you agree to our application terms.
+            </p>
+          </form>
+        </div>
+
+        {/* FOOTER */}
+        <p className="mt-5 text-center text-xs text-slate-500">
+          Powered by <span className="font-bold text-slate-300">DSA FinCorp</span>
+        </p>
+      </div>
+    </main>
+  );
+}

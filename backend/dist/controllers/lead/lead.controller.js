@@ -49,7 +49,7 @@ const getLeads = async (req, res) => {
 exports.getLeads = getLeads;
 const getLeadById = async (req, res) => {
     try {
-        const lead = await lead_service_1.default.getLeadById(req.params.id);
+        const lead = await lead_service_1.default.getLeadById(String(req.params.id));
         if (!lead) {
             res.status(404).json({
                 success: false,
@@ -73,7 +73,7 @@ exports.getLeadById = getLeadById;
 const assignLead = async (req, res) => {
     try {
         const lead = await lead_service_1.default.assignLead({
-            leadId: req.params.id,
+            leadId: String(req.params.id),
             assignedTo: req.body.assignedTo,
         });
         res.status(200).json({
@@ -93,7 +93,7 @@ exports.assignLead = assignLead;
 const updateLeadStatus = async (req, res) => {
     try {
         const lead = await lead_service_1.default.updateStatus({
-            leadId: req.params.id,
+            leadId: String(req.params.id),
             status: req.body.status,
         });
         res.status(200).json({
@@ -112,7 +112,7 @@ const updateLeadStatus = async (req, res) => {
 exports.updateLeadStatus = updateLeadStatus;
 const deleteLead = async (req, res) => {
     try {
-        await lead_service_1.default.softDelete(req.params.id);
+        await lead_service_1.default.softDelete(String(req.params.id));
         res.status(200).json({
             success: true,
             message: "Lead deleted successfully",

@@ -1,0 +1,190 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import DsaShell from "@/components/dsa/DsaShell";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+export default function AddSubAgentPage() {
+  const [form, setForm] = useState({
+    name: "",
+    phoneNo: "",
+    email: "",
+    password: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const updateField = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+    setError("");
+
+    if (!form.name || !form.phoneNo || !form.email || !form.password) {
+      setError("Name, mobile, email and password are required.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem("loan_finance_token") || "";
+      const rawUser = localStorage.getItem("loan_finance_user") || "";
+
+      let user: any = null;
+      try {
+        user = rawUser ? JSON.parse(rawUser) : null;
+      } catch {
+        user = null;
+      }
+
+      const dsaId = user?.id || user?.userId || user?.dsaId || "";
+
+      if (!dsaId) {
+        setError("DSA session not found. Please login again.");
+        return;
+      }
+
+      const response = await fetch(`${API}/sub-agent`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          dsaId,
+          ...form,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to create Sub Agent.");
+      }
+
+      setMessage("Sub Agent created successfully.");
+
+      setForm({
+        name: "",
+        phoneNo: "",
+        email: "",
+        password: "",
+        city: "",
+        state: "",
+        pincode: "",
+      });
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <DsaShell>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-900">
+            Add New Sub Agent
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Register a new Sub Agent under your DSA account.
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+        >
+          <h2 className="text-lg font-bold text-slate-800">
+            Sub Agent Registration
+          </h2>
+
+          {message && (
+            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+              {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          )}
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <input
+              value={form.name}
+              onChange={(e) => updateField("name", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="Full Name *"
+            />
+
+            <input
+              value={form.phoneNo}
+              onChange={(e) => updateField("phoneNo", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="Mobile Number *"
+              inputMode="numeric"
+            />
+
+            <input
+              value={form.email}
+              onChange={(e) => updateField("email", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="Email Address *"
+              type="email"
+            />
+
+            <input
+              value={form.password}
+              onChange={(e) => updateField("password", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="Login Password *"
+              type="password"
+            />
+
+            <input
+              value={form.city}
+              onChange={(e) => updateField("city", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="City"
+            />
+
+            <input
+              value={form.state}
+              onChange={(e) => updateField("state", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="State"
+            />
+
+            <input
+              value={form.pincode}
+              onChange={(e) => updateField("pincode", e.target.value)}
+              className="rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500"
+              placeholder="Pincode"
+              inputMode="numeric"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-3 font-bold text-white shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Creating..." : "Add Sub Agent"}
+          </button>
+        </form>
+      </div>
+    </DsaShell>
+  );
+}

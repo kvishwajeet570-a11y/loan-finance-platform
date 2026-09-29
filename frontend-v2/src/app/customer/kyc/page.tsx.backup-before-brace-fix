@@ -1,0 +1,1158 @@
+﻿"use client";
+import "./kyc-advanced.css";
+
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  AlertCircle,
+  ArrowRight,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Download,
+  Edit3,
+  FileCheck2,
+  FileText,
+  Home,
+  LifeBuoy,
+  MapPin,
+  RefreshCw,
+  Shield,
+  ShieldCheck,
+  User,
+  Upload,
+  XCircle,
+} from "lucide-react";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+type KYC = {
+  id: string;
+  userId: string;
+  fullName: string;
+  panNumber: string;
+  dob: string;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  status?: string | null;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
+  expiryDate?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+function getToken() {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("loan_finance_token");
+}
+
+function getUser() {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = localStorage.getItem("loan_finance_user");
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function getUserId() {
+  const user = getUser();
+  return user?.id || user?.userId || null;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "â€”";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "â€”";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function maskPAN(pan?: string | null) {
+  if (!pan) return "Not available";
+
+  const value = pan.trim();
+
+  if (value.length <= 4) return "â€¢â€¢â€¢â€¢";
+
+  return `${"â€¢".repeat(value.length - 4)}${value.slice(-4)}`;
+}
+
+function getStatus(status?: string | null) {
+  const value = String(status || "").toUpperCase().trim();
+
+  if (value === "APPROVED" || value === "VERIFIED") {
+    return {
+      key: "approved",
+      label: "Verified",
+      description: "Your KYC has been successfully verified.",
+      icon: CheckCircle2,
+    };
+  }
+
+  if (value === "REJECTED") {
+    return {
+      key: "rejected",
+      label: "Rejected",
+      description: "Your KYC requires attention.",
+      icon: XCircle,
+    };
+  }
+
+  if (
+    value === "UNDER_REVIEW" ||
+    value === "UNDER REVIEW" ||
+    value === "PROCESSING"
+  ) {
+    return {
+      key: "review",
+      label: "Under Review",
+      description: "Our team is reviewing your KYC.",
+      icon: Clock3,
+    };
+  }
+
+  if (value === "PENDING") {
+    return {
+      key: "pending",
+      label: "Pending",
+      description: "Your KYC is waiting for verification.",
+      icon: Clock3,
+    };
+  }
+
+  return {
+    key: "submitted",
+    label: "Submitted",
+    description: "Your KYC information has been submitted.",
+    icon: ShieldCheck,
+  };
+}
+
+export default function MyKYCPage() {
+  const [kyc, setKyc] = useState<KYC | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
+
+  const [form, setForm] = useState({
+    fullName: "",
+    panNumber: "",
+    dob: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+  });
+
+  const user = getUser();
+
+  async function loadKYC(refresh = false) {
+    try {
+      setError("");
+
+      if (refresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      const token = getToken();
+      const userId = getUserId();
+
+      if (!token || !userId) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/kyc/user/${encodeURIComponent(userId)}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          credentials: "include",
+          cache: "no-store",
+        }
+      );
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      if (response.status === 404) {
+        setKyc(null);
+        return;
+      }
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+
+        throw new Error(
+          `KYC request failed (${response.status}): ${errorBody}`
+        );
+      }
+
+      const result = await response.json();
+
+      const data =
+        result?.data?.kyc ??
+        result?.data ??
+        result?.kyc ??
+        result;
+
+      setKyc(data || null);
+    } catch (err) {
+      console.error("KYC error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to load KYC information."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }
+
+  useEffect(() => {
+    loadKYC();
+  }, []);
+
+  useEffect(() => {
+    if (!kyc) return;
+
+    setForm({
+      fullName: kyc.fullName || "",
+      panNumber: kyc.panNumber || "",
+      dob: kyc.dob || "",
+      address: kyc.address || "",
+      city: kyc.city || "",
+      state: kyc.state || "",
+      pincode: kyc.pincode || "",
+    });
+  }, [kyc]);
+
+  function updateForm(
+    field: keyof typeof form,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function submitKYC() {
+    if (!kyc) return;
+
+    setError("");
+    setSaveMessage("");
+    setSaving(true);
+
+    try {
+      const token = getToken();
+
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/kyc/${encodeURIComponent(kyc.id)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            fullName: form.fullName.trim(),
+            panNumber: form.panNumber.trim().toUpperCase(),
+            dob: form.dob.trim(),
+            address: form.address.trim(),
+            city: form.city.trim(),
+            state: form.state.trim(),
+            pincode: form.pincode.trim(),
+            status: "PENDING",
+          }),
+        }
+      );
+
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(body?.message || "Unable to submit KYC");
+      }
+
+      await loadKYC(true);
+      setEditing(false);
+      setSaveMessage("KYC submitted successfully.");
+    } catch (err) {
+      console.error("KYC submit error:", err);
+      setError(err instanceof Error ? err.message : "Unable to submit KYC.");
+    } finally {
+      setSaving(false);
+    }
+  }
+  async function saveKYC() {
+    if (!kyc) return;
+
+    setError("");
+    setSaveMessage("");
+
+    if (!form.fullName.trim()) {
+      setError("Full name is required.");
+      return;
+    }
+
+    if (!form.panNumber.trim()) {
+      setError("PAN number is required.");
+      return;
+    }
+
+    if (!form.dob.trim()) {
+      setError("Date of birth is required.");
+      return;
+    }
+
+    if (form.pincode && !/^\d{6}$/.test(form.pincode.trim())) {
+      setError("Pincode must contain exactly 6 digits.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      const token = getToken();
+
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/kyc/${encodeURIComponent(kyc.id)}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            fullName: form.fullName.trim(),
+            panNumber: form.panNumber.trim().toUpperCase(),
+            dob: form.dob.trim(),
+            address: form.address.trim(),
+            city: form.city.trim(),
+            state: form.state.trim(),
+            pincode: form.pincode.trim(),
+          }),
+        }
+      );
+
+      const body = await response.json().catch(() => null);
+
+      if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem("loan_finance_token");
+        window.location.href = "/login";
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          body?.message ||
+          `Unable to save KYC information (${response.status})`
+        );
+      }
+
+      const updated =
+        body?.data?.kyc ||
+        body?.data ||
+        body?.kyc ||
+        body;
+
+      if (updated?.id) {
+        setKyc(updated);
+      } else {
+        await loadKYC(true);
+      }
+
+      setEditing(false);
+      setSaveMessage("KYC information saved successfully.");
+
+      window.setTimeout(() => {
+        setSaveMessage("");
+      }, 4000);
+    } catch (err) {
+      console.error("KYC save error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save KYC information."
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const status = useMemo(
+    () => getStatus(kyc?.status),
+    [kyc?.status]
+  );
+
+  const StatusIcon = status.icon;
+
+  const displayName =
+    kyc?.fullName ||
+    user?.name ||
+    "Customer";
+
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((x: string) => x[0])
+    .join("")
+    .toUpperCase();
+
+  if (loading) {
+    const goToKycSection = (id: string) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+  return (
+    <div className="min-h-screen bg-slate-50/80 pb-32">
+      <div className="mx-auto max-w-[1480px] p-4 md:p-6 lg:p-7">
+
+        <section className="relative mb-6 overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-sm">
+          <div className="relative aspect-[4/1] min-h-[190px] w-full overflow-hidden">
+            <img
+              src="/images/kyc/kyc-ai-banner.png"
+              alt="KYC Security and Verification"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+
+            {/* Readability overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/90 via-white/35 to-transparent" />
+
+            <div className="absolute left-5 top-1/2 max-w-[430px] -translate-y-1/2 md:left-8">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-3 py-1.5 text-sm font-bold uppercase tracking-wider text-blue-700 shadow-sm backdrop-blur">
+                <ShieldCheck size={14} />
+                Secure â€¢ Fast â€¢ Trusted
+              </div>
+
+              <h2 className="text-2xl font-extrabold leading-tight text-[#10204b] md:text-3xl">
+                Your Identity,
+                <span className="text-blue-600"> Our Priority</span>
+              </h2>
+
+              <p className="mt-2 max-w-md text-[14px] leading-6 text-slate-600 md:text-sm">
+                Keep your KYC information secure and up to date for smoother
+                loan approvals and financial services.
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-sm font-bold text-blue-700 shadow-sm">
+                  <Shield size={12} />
+                  Secure Verification
+                </span>
+
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/85 px-3 py-1.5 text-sm font-bold text-blue-700 shadow-sm">
+                  <CheckCircle2 size={12} />
+                  Data Protection
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CUSTOMER IDENTITY */}
+        <section className="mb-5 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_15px_45px_rgba(15,23,42,.06)]">
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-violet-50 p-5 md:p-6">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+
+              <div className="flex items-center gap-4">
+                <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-violet-600 text-2xl font-black text-white shadow-xl ring-4 ring-white">
+                  {initials}
+                </div>
+
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-2xl font-black tracking-tight text-slate-900 md:text-3xl">
+                      {displayName}
+                    </h1>
+                    <span className="rounded-full border border-blue-200 bg-white px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-blue-700">
+                      Customer
+                    </span>
+                  </div>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    KYC ID: <span className="font-semibold text-slate-700">{kyc.id}</span>
+                  </p>
+
+                  <p className="mt-2 text-sm font-semibold text-slate-600">
+                    “Your security is our priority”
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <div className="rounded-2xl border border-emerald-100 bg-white px-5 py-4 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <StatusIcon size={22} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                        Current Status
+                      </p>
+                      <p className="text-lg font-black text-slate-900">
+                        {String(kyc.status || "PENDING")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => loadKYC(true)}
+                  disabled={refreshing}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-white px-5 py-4 text-sm font-bold text-blue-700 shadow-sm hover:bg-blue-50 disabled:opacity-60"
+                >
+                  <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* VERIFICATION PROGRESS */}
+        <section className="mb-5 rounded-[28px] border border-slate-200 bg-white p-5 shadow-[0_15px_45px_rgba(15,23,42,.05)] md:p-6">
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[.18em] text-blue-600">
+                KYC Journey
+              </p>
+              <h2 className="mt-1 text-xl font-black text-slate-900">
+                Complete your verification
+              </h2>
+            </div>
+            <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-extrabold text-blue-700">
+              Step 2 of 5
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
+            {[
+              ["01","Personal Details","Completed"],
+              ["02","Identity Verification","In Review"],
+              ["03","Address Verification","Pending"],
+              ["04","Document Upload","Pending"],
+              ["05","Final Approval","Pending"],
+            ].map(([num,title,state],index) => (
+              <div key={num} className="relative">
+                <div className="flex items-center gap-3 md:block">
+                  <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full text-sm font-black shadow-md ${
+                    index === 0
+                      ? "bg-emerald-500 text-white"
+                      : index === 1
+                      ? "bg-blue-600 text-white ring-4 ring-blue-100"
+                      : "bg-slate-100 text-slate-500"
+                  }`}>
+                    {index === 0 ? <Check size={18} strokeWidth={3} /> : num}
+                  </div>
+
+                  <div className="mt-2">
+                    <p className="text-center text-xs font-extrabold text-slate-800">
+                      {title}
+                    </p>
+                    <p className={`mt-1 text-center text-[11px] font-bold ${
+                      index === 0 ? "text-emerald-600" :
+                      index === 1 ? "text-blue-600" : "text-slate-400"
+                    }`}>
+                      {state}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* VERIFICATION CARDS */}
+        <section className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {icon: CreditCard, title:"PAN Card", text:kyc.panNumber ? maskPAN(kyc.panNumber) : "Not added", tone:"blue"},
+            {icon: ShieldCheck, title:"Aadhaar", text:"Verification required", tone:"orange"},
+            {icon: CreditCard, title:"Bank Account", text:"Verification required", tone:"emerald"},
+            {icon: FileText, title:"Documents", text:"Upload required", tone:"violet"},
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.title} className="group rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                <div className="flex items-start justify-between">
+                  <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                    item.tone === "blue" ? "bg-blue-50 text-blue-600" :
+                    item.tone === "orange" ? "bg-orange-50 text-orange-600" :
+                    item.tone === "emerald" ? "bg-emerald-50 text-emerald-600" :
+                    "bg-violet-50 text-violet-600"
+                  }`}>
+                    <Icon size={22} />
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-bold text-slate-500">
+                    Pending
+                  </span>
+                </div>
+
+                <h3 className="mt-4 text-base font-black text-slate-900">{item.title}</h3>
+                <p className="mt-1 truncate text-sm text-slate-500">{item.text}</p>
+
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-50"
+                >
+                  Update Details <ArrowRight size={15} />
+                </button>
+              </div>
+            );
+          })}
+        </section>
+
+        {/* MAIN INFORMATION WORKSPACE */}
+        <section className="grid gap-5 xl:grid-cols-[1.25fr_1fr_320px]">
+
+          {/* PERSONAL */}
+          <div className="rounded-[26px] border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <User size={20} />
+                </div>
+                <div>
+                  <h2 className="font-black text-slate-900">Personal Information</h2>
+                  <p className="text-xs text-slate-500">Your identity details</p>
+                </div>
+              </div>
+
+              {!editing && (
+                <button
+                  type="button"
+                  onClick={() => setEditing(true)}
+                  className="inline-flex items-center gap-2 rounded-xl border border-blue-200 px-3 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"
+                >
+                  <Edit3 size={14} /> Edit
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-4 p-5">
+              {editing ? (
+                <>
+                  {[
+                    ["fullName","Full Name",form.fullName],
+                    ["panNumber","PAN Number",form.panNumber],
+                    ["dob","Date of Birth",form.dob],
+                  ].map(([key,label,value]) => (
+                    <label key={key} className="block">
+                      <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
+                      <input
+                        value={value}
+                        onChange={(e) => updateForm(key as keyof typeof form,e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      />
+                    </label>
+                  ))}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between border-b border-slate-100 py-3">
+                    <span className="text-sm font-semibold text-slate-500">Full Name</span>
+                    <span className="text-sm font-bold text-slate-900">{kyc.fullName || "Not available"}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-slate-100 py-3">
+                    <span className="text-sm font-semibold text-slate-500">PAN Number</span>
+                    <span className="text-sm font-bold text-slate-900">{kyc.panNumber ? maskPAN(kyc.panNumber) : "Not available"}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-sm font-semibold text-slate-500">Date of Birth</span>
+                    <span className="text-sm font-bold text-slate-900">{kyc.dob || "Not available"}</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* ADDRESS */}
+          <div className="rounded-[26px] border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                  <Home size={20} />
+                </div>
+                <div>
+                  <h2 className="font-black text-slate-900">Address Information</h2>
+                  <p className="text-xs text-slate-500">Registered address</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 p-5">
+              {editing ? (
+                <>
+                  {[
+                    ["address","Address",form.address],
+                    ["city","City",form.city],
+                    ["state","State",form.state],
+                    ["pincode","Pincode",form.pincode],
+                  ].map(([key,label,value]) => (
+                    <label key={key} className="block">
+                      <span className="mb-1.5 block text-xs font-bold text-slate-500">{label}</span>
+                      <input
+                        value={value}
+                        onChange={(e) => updateForm(key as keyof typeof form,e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 outline-none"
+                      />
+                    </label>
+                  ))}
+                </>
+              ) : (
+                <>
+                  {[
+                    ["Address",kyc.address],
+                    ["City",kyc.city],
+                    ["State",kyc.state],
+                    ["Pincode",kyc.pincode],
+                  ].map(([label,value],i) => (
+                    <div key={label} className={`flex items-center justify-between py-3 ${i<3 ? "border-b border-slate-100" : ""}`}>
+                      <span className="text-sm font-semibold text-slate-500">{label}</span>
+                      <span className="max-w-[58%] truncate text-right text-sm font-bold text-slate-900">{value || "Not available"}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* COMPLETION */}
+          <div className="rounded-[26px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-blue-50 p-5 shadow-sm">
+            <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-600">KYC Completion</p>
+
+            <div className="mt-5 flex justify-center">
+              <div className="relative flex h-36 w-36 items-center justify-center rounded-full border-[10px] border-emerald-100 bg-white shadow-inner">
+                <div className="text-center">
+                  <div className="text-4xl font-black text-slate-900">40%</div>
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Complete</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-2.5">
+              {[
+                ["Personal details",true],
+                ["Identity verification",false],
+                ["Address verification",false],
+                ["Documents",false],
+              ].map(([label,done]) => (
+                <div key={String(label)} className="flex items-center gap-2 text-sm font-semibold">
+                  {done
+                    ? <CheckCircle2 size={17} className="text-emerald-500" />
+                    : <Clock3 size={17} className="text-slate-300" />
+                  }
+                  <span className={done ? "text-slate-700" : "text-slate-400"}>{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* DOCUMENTS + HISTORY */}
+        <section className="mt-5 grid gap-5 lg:grid-cols-[1.4fr_1fr]">
+
+          <div className="rounded-[26px] border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h2 className="font-black text-slate-900">Uploaded Documents</h2>
+                <p className="mt-1 text-xs text-slate-500">Manage your KYC documents securely</p>
+              </div>
+              <Upload size={20} className="text-blue-600" />
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {["PAN Card","Aadhaar Card","Address Proof","Photograph","Signature"].map((doc) => (
+                <div key={doc} className="flex items-center justify-between gap-3 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <FileText size={18} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800">{doc}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setEditing(true)}
+                    className="rounded-xl border border-blue-200 px-4 py-2 text-xs font-bold text-blue-600 hover:bg-blue-50"
+                  >
+                    Update
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[26px] border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Clock3 size={20} />
+              </div>
+              <div>
+                <h2 className="font-black text-slate-900">Verification History</h2>
+                <p className="text-xs text-slate-500">Track your KYC journey</p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-5">
+              {[
+                ["KYC Submitted","Your KYC record was submitted",true],
+                ["Identity Verification","Verification in progress",false],
+                ["Address Verification","Waiting for verification",false],
+                ["Document Verification","Documents pending",false],
+                ["Final Approval","Pending approval",false],
+              ].map(([title,desc,done]) => (
+                <div key={String(title)} className="flex gap-3">
+                  <div className={`mt-1 h-3 w-3 shrink-0 rounded-full ${done ? "bg-blue-600 ring-4 ring-blue-100" : "bg-slate-300"}`} />
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">{title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* EDIT ACTIONS */}
+        {editing && (
+          <section className="mt-5 rounded-[26px] border border-blue-200 bg-blue-50/70 p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-black text-slate-900">Review your information</h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Save your changes before submitting your KYC.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditing(false);
+                    setError("");
+                  }}
+                  disabled={saving}
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-bold text-slate-600"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveKYC}
+                  disabled={saving}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white"
+                >
+                  {saving ? <RefreshCw size={15} className="animate-spin" /> : <Check size={15} />}
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* MESSAGE */}
+        {(error || saveMessage) && (
+          <div className={`mt-5 rounded-2xl border p-4 text-sm font-semibold ${
+            error
+              ? "border-red-200 bg-red-50 text-red-700"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}>
+            {error || saveMessage}
+          </div>
+        )}
+
+        {/* STICKY SUBMIT */}
+        <div className="fixed bottom-4 left-1/2 z-50 w-[calc(100%-24px)] max-w-[900px] -translate-x-1/2">
+          <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/70 bg-white/95 p-3 shadow-[0_18px_50px_rgba(15,23,42,.18)] backdrop-blur-xl">
+            <div className="hidden min-w-0 sm:block">
+              <p className="text-sm font-black text-slate-900">Almost there!</p>
+              <p className="truncate text-xs text-slate-500">Review your KYC information and submit when ready.</p>
+            </div>
+
+            <div className="ml-auto flex gap-2">
+              <button
+                type="button"
+                onClick={saveKYC}
+                disabled={saving || !kyc}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-5 py-3 text-sm font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+              >
+                {saving ? <RefreshCw size={16} className="animate-spin" /> : <Check size={16} />}
+                Save
+              </button>
+
+              <button
+                type="button"
+                onClick={submitKYC}
+                disabled={saving || !kyc}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-6 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 hover:from-blue-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {saving ? <RefreshCw size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                {saving ? "Submitting..." : "Submit KYC"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  )
+function InfoCard({
+  icon,
+  title,
+  value,
+  status,
+  active,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  status: string;
+  active: boolean;
+}) {
+  const goToKycSection = (id: string) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+  return (
+    <div className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      <div className="flex items-start justify-between">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+          {icon}
+        </div>
+
+        <div
+          className={`flex h-8 w-8 items-center justify-center rounded-full ${
+            active
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-slate-100 text-slate-400"
+          }`}
+        >
+          {active ? (
+            <Check size={17} strokeWidth={3} />
+          ) : (
+            <Clock3 size={17} />
+          )}
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm font-extrabold text-slate-900">
+        {title}
+      </p>
+
+      <p className="mt-1 truncate text-sm font-semibold text-slate-600">
+        {value}
+      </p>
+
+      <p
+        className={`mt-2 text-sm font-bold ${
+          active
+            ? "text-emerald-600"
+            : "text-slate-400"
+        }`}
+      >
+        {status}
+      </p>
+    </div>
+  );
+}
+
+function FormField({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  maxLength,
+  inputMode,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: string;
+  maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+}) {
+  const goToKycSection = (id: string) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+  return (
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-400">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          {icon}
+        </span>
+        {label}
+      </span>
+
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        inputMode={inputMode}
+        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+      />
+    </label>
+  );
+}
+function DataField({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  const goToKycSection = (id: string) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-400">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+          {icon}
+        </span>
+
+        {label}
+      </div>
+
+      <p className="break-words text-sm font-bold text-slate-800">
+        {value || "Not available"}
+      </p>
+    </div>
+  );
+}
+
+function CheckItem({
+  label,
+  done,
+}: {
+  label: string;
+  done: boolean;
+}) {
+  const goToKycSection = (id: string) => {
+    window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+  return (
+    <div className="flex items-center gap-2 text-sm font-semibold">
+      <span
+        className={`flex h-5 w-5 items-center justify-center rounded-full ${
+          done
+            ? "bg-emerald-500 text-white"
+            : "bg-slate-200 text-slate-400"
+        }`}
+      >
+        {done ? (
+          <Check size={12} strokeWidth={3} />
+        ) : (
+          "â€¢"
+        )}
+      </span>
+
+      <span
+        className={
+          done
+            ? "text-slate-700"
+            : "text-slate-400"
+        }
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+
+

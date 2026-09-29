@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCreditAnalytics = exports.deleteCreditScore = exports.getCreditScoreById = exports.getAllCreditScores = exports.checkCreditScore = void 0;
-const creditScore_service_1 = __importDefault(require("../../services/credit-score/creditScore.service"));
+const creditScore_service_1 = __importDefault(require("../../services/creditScore/creditScore.service"));
 const checkCreditScore = async (req, res) => {
     try {
         const { panNo } = req.body;
@@ -48,7 +48,8 @@ const getAllCreditScores = async (req, res) => {
 exports.getAllCreditScores = getAllCreditScores;
 const getCreditScoreById = async (req, res) => {
     try {
-        const data = await creditScore_service_1.default.getCreditScoreById(req.params.id);
+        const id = String(req.params.id);
+        const data = await creditScore_service_1.default.getCreditScoreById(id);
         if (!data) {
             res.status(404).json({
                 success: false,
@@ -71,7 +72,8 @@ const getCreditScoreById = async (req, res) => {
 exports.getCreditScoreById = getCreditScoreById;
 const deleteCreditScore = async (req, res) => {
     try {
-        await creditScore_service_1.default.softDelete(req.params.id);
+        const id = String(req.params.id);
+        await creditScore_service_1.default.softDelete(id);
         res.status(200).json({
             success: true,
             message: "Record deleted successfully",

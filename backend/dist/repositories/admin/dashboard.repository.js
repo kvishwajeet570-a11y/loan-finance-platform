@@ -1,31 +1,34 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DashboardRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 class DashboardRepository {
     /* ===================================
        DASHBOARD OVERVIEW
     =================================== */
     static async getOverview() {
         const [totalUsers, totalLoans, approvedLoans, pendingLoans, rejectedLoans, verifiedUsers,] = await Promise.all([
-            prisma_1.prisma.user.count(),
-            prisma_1.prisma.loanApplication.count(),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.user.count(),
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "APPROVED",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "PENDING",
                 },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     status: "REJECTED",
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     isVerified: true,
                 },
@@ -44,7 +47,7 @@ class DashboardRepository {
        TOTAL DISBURSED AMOUNT
     =================================== */
     static async getDisbursedAmount() {
-        const result = await prisma_1.prisma.loanApplication.aggregate({
+        const result = await prisma_1.default.loanApplication.aggregate({
             where: {
                 status: "APPROVED",
             },
@@ -58,7 +61,7 @@ class DashboardRepository {
        LOAN STATUS CHART
     =================================== */
     static async getLoanStatusAnalytics() {
-        return prisma_1.prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["status"],
             _count: {
                 id: true,
@@ -69,7 +72,7 @@ class DashboardRepository {
        RECENT LOAN APPLICATIONS
     =================================== */
     static async getRecentLoans(limit = 10) {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc",
@@ -90,7 +93,7 @@ class DashboardRepository {
        RECENT USERS
     =================================== */
     static async getRecentUsers(limit = 10) {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             take: limit,
             orderBy: {
                 createdAt: "desc",
@@ -108,7 +111,7 @@ class DashboardRepository {
        MONTHLY USER GROWTH
     =================================== */
     static async getMonthlyUserGrowth() {
-        const users = await prisma_1.prisma.user.findMany({
+        const users = await prisma_1.default.user.findMany({
             select: {
                 createdAt: true,
             },
@@ -119,7 +122,7 @@ class DashboardRepository {
        MONTHLY LOAN GROWTH
     =================================== */
     static async getMonthlyLoanGrowth() {
-        const loans = await prisma_1.prisma.loanApplication.findMany({
+        const loans = await prisma_1.default.loanApplication.findMany({
             select: {
                 createdAt: true,
                 amount: true,
@@ -132,7 +135,7 @@ class DashboardRepository {
        LOAN TYPE ANALYTICS
     =================================== */
     static async getLoanTypeAnalytics() {
-        return prisma_1.prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["loanType"],
             _count: {
                 id: true,
@@ -146,7 +149,7 @@ class DashboardRepository {
        TOP DSA PERFORMANCE
     =================================== */
     static async getTopDsaPerformance() {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 role: "DSA",
             },

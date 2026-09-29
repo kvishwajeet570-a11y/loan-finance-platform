@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class SuperAdminService {
     /**
@@ -13,12 +14,12 @@ class SuperAdminService {
             prisma_1.default.user.count(),
             prisma_1.default.user.count({
                 where: {
-                    role: "admin",
+                    role: "ADMIN",
                 },
             }),
             prisma_1.default.user.count({
                 where: {
-                    role: "dsa",
+                    role: "DSA",
                 },
             }),
             prisma_1.default.partner.count(),
@@ -47,20 +48,22 @@ class SuperAdminService {
      * User Management
      */
     async getAllUsers(page = 1, limit = 20, search = "") {
-        const skip = (page - 1) * limit;
+        const safePage = Math.max(1, Number(page) || 1);
+        const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
+        const skip = (safePage - 1) * safeLimit;
         const where = search
             ? {
                 OR: [
                     {
                         name: {
                             contains: search,
-                            mode: "insensitive",
+                            mode: client_1.Prisma.QueryMode.insensitive,
                         },
                     },
                     {
                         email: {
                             contains: search,
-                            mode: "insensitive",
+                            mode: client_1.Prisma.QueryMode.insensitive,
                         },
                     },
                 ],
@@ -70,7 +73,7 @@ class SuperAdminService {
             prisma_1.default.user.findMany({
                 where,
                 skip,
-                take: limit,
+                take: safeLimit,
                 orderBy: {
                     createdAt: "desc",
                 },
@@ -82,8 +85,9 @@ class SuperAdminService {
         return {
             users,
             total,
-            page,
-            pages: Math.ceil(total / limit),
+            page: safePage,
+            limit: safeLimit,
+            pages: Math.ceil(total / safeLimit),
         };
     }
     /**
@@ -121,7 +125,7 @@ class SuperAdminService {
                 id: userId,
             },
             data: {
-                role: "admin",
+                role: "ADMIN",
             },
         });
     }
@@ -134,7 +138,7 @@ class SuperAdminService {
                 id: userId,
             },
             data: {
-                role: "customer",
+                role: "CUSTOMER",
             },
         });
     }
@@ -146,17 +150,17 @@ class SuperAdminService {
             prisma_1.default.loanApplication.count(),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "approved",
+                    status: "APPROVED",
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "rejected",
+                    status: "REJECTED",
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "pending",
+                    status: "PENDING",
                 },
             }),
             prisma_1.default.loanApplication.aggregate({
@@ -227,12 +231,23 @@ class SuperAdminService {
      * System Health
      */
     async systemHealth() {
-        return {
-            database: "online",
-            api: "online",
-            server: "online",
-            timestamp: new Date(),
-        };
+        try {
+            await prisma_1.default.$queryRaw `SELECT 1`;
+            return {
+                database: "online",
+                api: "online",
+                server: "online",
+                timestamp: new Date(),
+            };
+        }
+        catch (error) {
+            return {
+                database: "offline",
+                api: "online",
+                server: "online",
+                timestamp: new Date(),
+            };
+        }
     }
     /**
      * Monthly Business Report
@@ -241,12 +256,12 @@ class SuperAdminService {
         const year = new Date().getFullYear();
         return prisma_1.default.$queryRaw `
       SELECT
-      EXTRACT(MONTH FROM "createdAt") as month,
-      COUNT(*) as total_loans,
-      SUM(amount) as total_amount
+        EXTRACT(MONTH FROM "createdAt") AS month,
+        COUNT(*) AS total_loans,
+        COALESCE(SUM(amount), 0) AS total_amount
       FROM "LoanApplication"
       WHERE EXTRACT(YEAR FROM "createdAt") = ${year}
-      GROUP BY month
+      GROUP BY EXTRACT(MONTH FROM "createdAt")
       ORDER BY month ASC
     `;
     }
@@ -272,8 +287,7 @@ class SuperAdminService {
             partners,
             payments,
             referrals,
-            totalCommission: commissions._sum
-                .commissionAmount || 0,
+            totalCommission: commissions._sum.commissionAmount || 0,
         };
     }
     /**

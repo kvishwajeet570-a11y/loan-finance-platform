@@ -1,19 +1,14 @@
-import { prisma } from "../../prisma";
+import prisma from "../../prisma/prisma";
 
 export class ProfileRepository {
-
   /* =========================
       GET PROFILE
   ========================= */
 
-  static async getProfile(
-    userId: string
-  ) {
-
+  static async getProfile(userId: string) {
     return prisma.user.findUnique({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       select: {
@@ -23,15 +18,14 @@ export class ProfileRepository {
         phoneNo: true,
         role: true,
         profileImage: true,
-        gender: true,
         dob: true,
         address: true,
         city: true,
         state: true,
         pincode: true,
         isVerified: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
   }
 
@@ -43,7 +37,6 @@ export class ProfileRepository {
     userId: string,
     data: Partial<{
       name: string;
-      gender: string;
       dob: string;
       address: string;
       city: string;
@@ -52,14 +45,12 @@ export class ProfileRepository {
       profileImage: string;
     }>
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
-      data
+      data,
     });
   }
 
@@ -71,16 +62,14 @@ export class ProfileRepository {
     userId: string,
     profileImage: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        profileImage
-      }
+        profileImage,
+      },
     });
   }
 
@@ -88,19 +77,15 @@ export class ProfileRepository {
       REMOVE PROFILE IMAGE
   ========================= */
 
-  static async removeProfileImage(
-    userId: string
-  ) {
-
+  static async removeProfileImage(userId: string) {
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        profileImage: null
-      }
+        profileImage: null,
+      },
     });
   }
 
@@ -115,19 +100,17 @@ export class ProfileRepository {
     state: string,
     pincode: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
         address,
         city,
         state,
-        pincode
-      }
+        pincode,
+      },
     });
   }
 
@@ -139,16 +122,14 @@ export class ProfileRepository {
     userId: string,
     email: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        email
-      }
+        email,
+      },
     });
   }
 
@@ -160,16 +141,14 @@ export class ProfileRepository {
     userId: string,
     phoneNo: string
   ) {
-
     return prisma.user.update({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       data: {
-        phoneNo
-      }
+        phoneNo,
+      },
     });
   }
 
@@ -180,12 +159,11 @@ export class ProfileRepository {
   static async getProfileCompletion(
     userId: string
   ) {
-
     const user =
       await prisma.user.findUnique({
         where: {
-          id: userId
-        }
+          id: userId,
+        },
       });
 
     if (!user) {
@@ -197,12 +175,11 @@ export class ProfileRepository {
       user.email,
       user.phoneNo,
       user.profileImage,
-      user.gender,
       user.dob,
       user.address,
       user.city,
       user.state,
-      user.pincode
+      user.pincode,
     ];
 
     const completed =
@@ -220,44 +197,42 @@ export class ProfileRepository {
   static async getProfileSummary(
     userId: string
   ) {
-
     const [
       user,
       totalLoans,
       totalDocuments,
-      totalNotifications
+      totalNotifications,
     ] = await Promise.all([
-
       prisma.user.findUnique({
         where: {
-          id: userId
-        }
+          id: userId,
+        },
       }),
 
       prisma.loanApplication.count({
         where: {
-          userId
-        }
+          userId,
+        },
       }),
 
       prisma.document.count({
         where: {
-          userId
-        }
+          userId,
+        },
       }),
 
       prisma.notification.count({
         where: {
-          userId
-        }
-      })
+          userId,
+        },
+      }),
     ]);
 
     return {
       user,
       totalLoans,
       totalDocuments,
-      totalNotifications
+      totalNotifications,
     };
   }
 
@@ -268,19 +243,17 @@ export class ProfileRepository {
   static async getAccountStatus(
     userId: string
   ) {
-
     return prisma.user.findUnique({
-
       where: {
-        id: userId
+        id: userId,
       },
 
       select: {
         isVerified: true,
         isBlocked: true,
         role: true,
-        createdAt: true
-      }
+        createdAt: true,
+      },
     });
   }
 
@@ -291,11 +264,10 @@ export class ProfileRepository {
   static async deleteProfile(
     userId: string
   ) {
-
     return prisma.user.delete({
       where: {
-        id: userId
-      }
+        id: userId,
+      },
     });
   }
 
@@ -306,41 +278,39 @@ export class ProfileRepository {
   static async getDashboard(
     userId: string
   ) {
-
     const [
       profile,
       loanCount,
       approvedLoans,
       pendingLoans,
-      unreadNotifications
+      unreadNotifications,
     ] = await Promise.all([
-
       this.getProfile(userId),
 
       prisma.loanApplication.count({
-        where: { userId }
+        where: { userId },
       }),
 
       prisma.loanApplication.count({
         where: {
           userId,
-          status: "APPROVED"
-        }
+          status: "APPROVED",
+        },
       }),
 
       prisma.loanApplication.count({
         where: {
           userId,
-          status: "PENDING"
-        }
+          status: "PENDING",
+        },
       }),
 
       prisma.notification.count({
         where: {
           userId,
-          isRead: false
-        }
-      })
+          isRead: false,
+        },
+      }),
     ]);
 
     return {
@@ -348,7 +318,7 @@ export class ProfileRepository {
       loanCount,
       approvedLoans,
       pendingLoans,
-      unreadNotifications
+      unreadNotifications,
     };
   }
 }

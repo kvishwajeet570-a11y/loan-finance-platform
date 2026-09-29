@@ -1,25 +1,28 @@
-import { prisma } from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 export class CommissionRepository {
 
-  /* =========================
-      CREATE COMMISSION
-  ========================= */
+/* =========================
+    CREATE COMMISSION
+========================= */
 
-  static async createCommission(data: {
-    userId: string;
-    loanId?: string;
-    commissionType: string;
-    loanAmount: number;
-    commissionRate: number;
-    commissionAmount: number;
-    remarks?: string;
-  }) {
+static async createCommission(data: {
+  userId: string;
+  loanId?: string;
+  partnerId?: string;
+  source?: string;
+  amount: number;
+  loanAmount: number;
+  commissionAmount: number;
+}) {
 
-    return prisma.commission.create({
-      data
-    });
-  }
+  return prisma.commission.create({
+    data: {
+      ...data,
+      status: "PENDING",
+    },
+  });
+}
 
   /* =========================
       GET COMMISSION BY ID
@@ -87,31 +90,31 @@ export class CommissionRepository {
         id: commissionId
       },
       data: {
-        status: "APPROVED",
-        approvedBy
-      }
+  status: "APPROVED",
+  approvedAt: new Date(),
+}
     });
   }
 
-  /* =========================
-      REJECT COMMISSION
-  ========================= */
+/* =========================
+    REJECT COMMISSION
+========================= */
 
-  static async rejectCommission(
-    commissionId: string,
-    remarks?: string
-  ) {
+static async rejectCommission(
+  commissionId: string,
+  rejectionReason?: string
+) {
 
-    return prisma.commission.update({
-      where: {
-        id: commissionId
-      },
-      data: {
-        status: "REJECTED",
-        remarks
-      }
-    });
-  }
+  return prisma.commission.update({
+    where: {
+      id: commissionId
+    },
+    data: {
+      status: "REJECTED",
+      rejectionReason
+    }
+  });
+}
 
   /* =========================
       MARK AS PAID
@@ -126,9 +129,8 @@ export class CommissionRepository {
         id: commissionId
       },
       data: {
-        status: "PAID",
-        paidAt: new Date()
-      }
+  status: "PAID",
+}
     });
   }
 
@@ -177,23 +179,23 @@ export class CommissionRepository {
   ) {
 
     return prisma.commission.findMany({
-      where: {
-        OR: [
-          {
-            commissionType: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-          {
-            status: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      }
-    });
+  where: {
+    OR: [
+      {
+        status: {
+          contains: keyword,
+          mode: "insensitive",
+        },
+      },
+      {
+        source: {
+          contains: keyword,
+          mode: "insensitive",
+        },
+      },
+    ],
+  },
+});
   }
 
   /* =========================

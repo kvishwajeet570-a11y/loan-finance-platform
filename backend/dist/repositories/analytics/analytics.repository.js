@@ -1,25 +1,28 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticsRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class AnalyticsRepository {
     /* ==================================
        OVERVIEW ANALYTICS
     ================================== */
     static async getOverviewAnalytics() {
         const [totalUsers, totalLoans, approvedLoans, pendingLoans, rejectedLoans, verifiedUsers] = await Promise.all([
-            prisma_1.prisma.user.count(),
-            prisma_1.prisma.loanApplication.count(),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.user.count(),
+            prisma_1.default.loanApplication.count(),
+            prisma_1.default.loanApplication.count({
                 where: { status: "APPROVED" }
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: { status: "PENDING" }
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: { status: "REJECTED" }
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: { isVerified: true }
             })
         ]);
@@ -36,7 +39,7 @@ class AnalyticsRepository {
        LOAN AMOUNT ANALYTICS
     ================================== */
     static async getLoanAmountAnalytics() {
-        const result = await prisma_1.prisma.loanApplication.aggregate({
+        const result = await prisma_1.default.loanApplication.aggregate({
             _sum: {
                 amount: true
             },
@@ -56,7 +59,7 @@ class AnalyticsRepository {
        LOAN STATUS ANALYTICS
     ================================== */
     static async getLoanStatusAnalytics() {
-        return prisma_1.prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["status"],
             _count: {
                 id: true
@@ -67,7 +70,7 @@ class AnalyticsRepository {
        LOAN TYPE ANALYTICS
     ================================== */
     static async getLoanTypeAnalytics() {
-        return prisma_1.prisma.loanApplication.groupBy({
+        return prisma_1.default.loanApplication.groupBy({
             by: ["loanType"],
             _count: {
                 id: true
@@ -81,7 +84,7 @@ class AnalyticsRepository {
        USER ROLE ANALYTICS
     ================================== */
     static async getUserRoleAnalytics() {
-        return prisma_1.prisma.user.groupBy({
+        return prisma_1.default.user.groupBy({
             by: ["role"],
             _count: {
                 id: true
@@ -92,7 +95,7 @@ class AnalyticsRepository {
        MONTHLY LOAN ANALYTICS
     ================================== */
     static async getMonthlyLoanAnalytics() {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             select: {
                 id: true,
                 amount: true,
@@ -108,7 +111,7 @@ class AnalyticsRepository {
        MONTHLY USER ANALYTICS
     ================================== */
     static async getMonthlyUserAnalytics() {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             select: {
                 id: true,
                 createdAt: true
@@ -122,7 +125,7 @@ class AnalyticsRepository {
        TOP CUSTOMERS
     ================================== */
     static async getTopCustomers() {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 role: "CUSTOMER"
             },
@@ -136,7 +139,7 @@ class AnalyticsRepository {
        RECENT ACTIVITIES
     ================================== */
     static async getRecentActivities() {
-        return prisma_1.prisma.loanApplication.findMany({
+        return prisma_1.default.loanApplication.findMany({
             take: 20,
             orderBy: {
                 createdAt: "desc"

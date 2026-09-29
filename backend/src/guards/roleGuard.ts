@@ -2,8 +2,7 @@ import {
   Response,
   NextFunction,
 } from "express";
-import { AuthRequest } from "./auth.guard";
-
+import { AuthRequest } from "./authGuard";
 export const roleGuard =
   (...roles: string[]) =>
   (

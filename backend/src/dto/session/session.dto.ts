@@ -1,228 +1,157 @@
 import { z } from "zod";
 
-/* =========================================
-   SESSION STATUS
-========================================= */
+/* ==========================================================
+   COMMON ENUMS
+========================================================== */
 
-export const sessionStatusEnum = z.enum([
+export const sessionStatusSchema = z.enum([
   "ACTIVE",
-  "EXPIRED",
-  "REVOKED",
-  "LOGGED_OUT",
+  "INACTIVE",
 ]);
 
-/* =========================================
-   DEVICE TYPE
-========================================= */
-
-export const deviceTypeEnum = z.enum([
-  "WEB",
-  "ANDROID",
-  "IOS",
-  "TABLET",
-  "DESKTOP",
-]);
-
-/* =========================================
+/* ==========================================================
    CREATE SESSION
-========================================= */
+========================================================== */
 
 export const createSessionSchema = z.object({
-  userId: z.string().cuid(),
+  userId: z.string().cuid("Invalid User ID"),
 
-  refreshTokenId:
-    z.string().cuid().optional(),
+  token: z
+    .string()
+    .min(32, "Token is too short")
+    .max(500),
 
-  deviceType:
-    deviceTypeEnum,
+  ipAddress: z
+    .string()
+    .max(100)
+    .optional(),
 
-  deviceName:
-    z.string().max(255).optional(),
+  userAgent: z
+    .string()
+    .max(1000)
+    .optional(),
 
-  browser:
-    z.string().max(100).optional(),
+  isActive: z
+    .boolean()
+    .default(true)
+    .optional(),
 
-  operatingSystem:
-    z.string().max(100).optional(),
-
-  ipAddress:
-    z.string().max(100),
-
-  location:
-    z.string().max(255).optional(),
-
-  userAgent:
-    z.string().max(1000).optional(),
+  expiresAt: z.coerce.date(),
 });
 
-/* =========================================
+/* ==========================================================
    UPDATE SESSION
-========================================= */
+========================================================== */
 
 export const updateSessionSchema = z.object({
-  sessionId:
-    z.string().cuid(),
+  token: z
+    .string()
+    .min(32)
+    .max(500)
+    .optional(),
 
-  lastActivityAt:
-    z.coerce.date().optional(),
+  ipAddress: z
+    .string()
+    .max(100)
+    .optional(),
 
-  ipAddress:
-    z.string().optional(),
+  userAgent: z
+    .string()
+    .max(1000)
+    .optional(),
 
-  location:
-    z.string().optional(),
+  isActive: z
+    .boolean()
+    .optional(),
+
+  logoutAt: z
+    .coerce
+    .date()
+    .optional(),
+
+  expiresAt: z
+    .coerce
+    .date()
+    .optional(),
 });
 
-/* =========================================
-   TERMINATE SESSION
-========================================= */
+/* ==========================================================
+   SESSION ID PARAM
+========================================================== */
 
-export const terminateSessionSchema =
-  z.object({
-    sessionId:
-      z.string().cuid(),
+export const sessionIdSchema = z.object({
+  id: z.string().cuid("Invalid Session ID"),
+});
 
-    reason:
-      z.string()
-        .min(3)
-        .max(500)
-        .optional(),
-  });
+/* ==========================================================
+   USER SESSION PARAM
+========================================================== */
 
-/* =========================================
-   TERMINATE ALL SESSIONS
-========================================= */
+export const userSessionSchema = z.object({
+  userId: z.string().cuid("Invalid User ID"),
+});
 
-export const terminateAllSessionsSchema =
-  z.object({
-    userId:
-      z.string().cuid(),
+/* ==========================================================
+   SESSION QUERY
+========================================================== */
 
-    exceptCurrent:
-      z.boolean().default(true),
-  });
+export const sessionQuerySchema = z.object({
+  page: z.coerce.number().min(1).default(1).optional(),
 
-/* =========================================
-   REVOKE SESSION
-========================================= */
+  limit: z.coerce.number().min(1).max(100).default(20).optional(),
 
-export const revokeSessionSchema =
-  z.object({
-    sessionId:
-      z.string().cuid(),
+  search: z.string().optional(),
 
-    remarks:
-      z.string()
-        .max(500)
-        .optional(),
-  });
+  isActive: z
+    .enum(["true", "false"])
+    .optional(),
 
-/* =========================================
-   SESSION FILTER
-========================================= */
+  from: z
+    .string()
+    .optional(),
 
-export const sessionFilterSchema =
-  z.object({
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
+  to: z
+    .string()
+    .optional(),
+});
 
-    deviceType:
-      deviceTypeEnum
-      .optional(),
+/* ==========================================================
+   CLEANUP QUERY
+========================================================== */
 
-    status:
-      sessionStatusEnum
-      .optional(),
+export const cleanupSessionSchema = z.object({
+  days: z.coerce
+    .number()
+    .min(1)
+    .max(3650)
+    .default(90)
+    .optional(),
+});
 
-    startDate:
-      z.string()
-      .optional(),
+/* ==========================================================
+   TYPE EXPORTS
+========================================================== */
 
-    endDate:
-      z.string()
-      .optional(),
+export type CreateSessionDto = z.infer<
+  typeof createSessionSchema
+>;
 
-    page:
-      z.coerce.number()
-      .default(1),
+export type UpdateSessionDto = z.infer<
+  typeof updateSessionSchema
+>;
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+export type SessionIdDto = z.infer<
+  typeof sessionIdSchema
+>;
 
-/* =========================================
-   SESSION ANALYTICS
-========================================= */
+export type UserSessionDto = z.infer<
+  typeof userSessionSchema
+>;
 
-export const sessionAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string(),
+export type SessionQueryDto = z.infer<
+  typeof sessionQuerySchema
+>;
 
-    endDate:
-      z.string(),
-
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
-  });
-
-/* =========================================
-   ACTIVE SESSION CHECK
-========================================= */
-
-export const activeSessionSchema =
-  z.object({
-    userId:
-      z.string().cuid(),
-  });
-
-/* =========================================
-   TYPES
-========================================= */
-
-export type CreateSessionDto =
-  z.infer<
-    typeof createSessionSchema
-  >;
-
-export type UpdateSessionDto =
-  z.infer<
-    typeof updateSessionSchema
-  >;
-
-export type TerminateSessionDto =
-  z.infer<
-    typeof terminateSessionSchema
-  >;
-
-export type TerminateAllSessionsDto =
-  z.infer<
-    typeof terminateAllSessionsSchema
-  >;
-
-export type RevokeSessionDto =
-  z.infer<
-    typeof revokeSessionSchema
-  >;
-
-export type SessionFilterDto =
-  z.infer<
-    typeof sessionFilterSchema
-  >;
-
-export type SessionAnalyticsDto =
-  z.infer<
-    typeof sessionAnalyticsSchema
-  >;
-
-export type ActiveSessionDto =
-  z.infer<
-    typeof activeSessionSchema
-  >;
+export type CleanupSessionDto = z.infer<
+  typeof cleanupSessionSchema
+>;

@@ -15,14 +15,6 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 /* ========================================
-   AUTH FILTERS
-======================================== */
-__exportStar(require("./auth.filter"), exports);
-/* ========================================
-   USER FILTERS
-======================================== */
-__exportStar(require("./user.filter"), exports);
-/* ========================================
    CUSTOMER FILTERS
 ======================================== */
 __exportStar(require("./customer.filter"), exports);
@@ -41,20 +33,4 @@ __exportStar(require("./partner.filter"), exports);
 /* ========================================
    KYC FILTERS
 ======================================== */
-__exportStar(require("./kyc.filter"), exports);
-/* ========================================
-   PAYMENT FILTERS
-======================================== */
-__exportStar(require("./payment.filter"), exports);
-/* ========================================
-   COMMISSION FILTERS
-======================================== */
-__exportStar(require("./commission.filter"), exports);
-/* ========================================
-   REPORT FILTERS
-======================================== */
-__exportStar(require("./report.filter"), exports);
-/* ========================================
-   ANALYTICS FILTERS
-======================================== */
-__exportStar(require("./analytics.filter"), exports);
+// export * from "./kyc.filter";

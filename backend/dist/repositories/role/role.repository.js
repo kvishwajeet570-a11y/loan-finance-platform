@@ -1,13 +1,16 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RoleRepository = void 0;
-const prisma_1 = require("../../prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class RoleRepository {
     /* =========================
         CREATE ROLE
     ========================= */
     static async createRole(data) {
-        return prisma_1.prisma.role.create({
+        return prisma_1.default.role.create({
             data
         });
     }
@@ -15,7 +18,7 @@ class RoleRepository {
         GET ROLE BY ID
     ========================= */
     static async getRoleById(id) {
-        return prisma_1.prisma.role.findUnique({
+        return prisma_1.default.role.findUnique({
             where: { id },
             include: {
                 permissions: {
@@ -30,7 +33,7 @@ class RoleRepository {
         GET ROLE BY CODE
     ========================= */
     static async getRoleByCode(code) {
-        return prisma_1.prisma.role.findUnique({
+        return prisma_1.default.role.findUnique({
             where: {
                 code
             },
@@ -47,7 +50,7 @@ class RoleRepository {
         GET ALL ROLES
     ========================= */
     static async getAllRoles() {
-        return prisma_1.prisma.role.findMany({
+        return prisma_1.default.role.findMany({
             include: {
                 permissions: {
                     include: {
@@ -64,7 +67,7 @@ class RoleRepository {
         UPDATE ROLE
     ========================= */
     static async updateRole(id, data) {
-        return prisma_1.prisma.role.update({
+        return prisma_1.default.role.update({
             where: {
                 id
             },
@@ -75,7 +78,7 @@ class RoleRepository {
         ACTIVATE ROLE
     ========================= */
     static async activateRole(id) {
-        return prisma_1.prisma.role.update({
+        return prisma_1.default.role.update({
             where: {
                 id
             },
@@ -88,7 +91,7 @@ class RoleRepository {
         DEACTIVATE ROLE
     ========================= */
     static async deactivateRole(id) {
-        return prisma_1.prisma.role.update({
+        return prisma_1.default.role.update({
             where: {
                 id
             },
@@ -101,7 +104,7 @@ class RoleRepository {
         DELETE ROLE
     ========================= */
     static async deleteRole(id) {
-        return prisma_1.prisma.role.delete({
+        return prisma_1.default.role.delete({
             where: { id }
         });
     }
@@ -109,7 +112,7 @@ class RoleRepository {
         ASSIGN PERMISSION
     ========================= */
     static async assignPermission(roleId, permissionId) {
-        return prisma_1.prisma.rolePermission.create({
+        return prisma_1.default.rolePermission.create({
             data: {
                 roleId,
                 permissionId
@@ -120,7 +123,7 @@ class RoleRepository {
         REMOVE PERMISSION
     ========================= */
     static async removePermission(roleId, permissionId) {
-        return prisma_1.prisma.rolePermission.deleteMany({
+        return prisma_1.default.rolePermission.deleteMany({
             where: {
                 roleId,
                 permissionId
@@ -131,7 +134,7 @@ class RoleRepository {
         ROLE PERMISSIONS
     ========================= */
     static async getRolePermissions(roleId) {
-        return prisma_1.prisma.rolePermission.findMany({
+        return prisma_1.default.rolePermission.findMany({
             where: {
                 roleId
             },
@@ -144,7 +147,7 @@ class RoleRepository {
         BULK ASSIGN
     ========================= */
     static async bulkAssignPermissions(roleId, permissionIds) {
-        return prisma_1.prisma.rolePermission.createMany({
+        return prisma_1.default.rolePermission.createMany({
             data: permissionIds.map(permissionId => ({
                 roleId,
                 permissionId
@@ -156,7 +159,7 @@ class RoleRepository {
         SEARCH ROLES
     ========================= */
     static async searchRoles(keyword) {
-        return prisma_1.prisma.role.findMany({
+        return prisma_1.default.role.findMany({
             where: {
                 OR: [
                     {
@@ -186,13 +189,13 @@ class RoleRepository {
     ========================= */
     static async getAnalytics() {
         const [totalRoles, activeRoles, totalPermissions] = await Promise.all([
-            prisma_1.prisma.role.count(),
-            prisma_1.prisma.role.count({
+            prisma_1.default.role.count(),
+            prisma_1.default.role.count({
                 where: {
                     isActive: true
                 }
             }),
-            prisma_1.prisma.rolePermission.count()
+            prisma_1.default.rolePermission.count()
         ]);
         return {
             totalRoles,
@@ -206,7 +209,7 @@ class RoleRepository {
     static async getDashboard() {
         const [analytics, recentRoles] = await Promise.all([
             this.getAnalytics(),
-            prisma_1.prisma.role.findMany({
+            prisma_1.default.role.findMany({
                 take: 10,
                 orderBy: {
                     createdAt: "desc"

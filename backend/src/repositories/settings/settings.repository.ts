@@ -1,22 +1,18 @@
-import { prisma } from "../../prisma";
+import prisma from "../../prisma/prisma";
 
 export class SettingsRepository {
-
   /* =========================
       CREATE SETTING
   ========================= */
 
   static async createSetting(data: {
-    settingKey: string;
-    settingValue: any;
+    key: string;
+    value: string;
     category: string;
     description?: string;
-    isPublic?: boolean;
-    createdBy?: string;
   }) {
-
     return prisma.setting.create({
-      data
+      data,
     });
   }
 
@@ -24,12 +20,9 @@ export class SettingsRepository {
       GET BY ID
   ========================= */
 
-  static async getById(
-    id: string
-  ) {
-
+  static async getById(id: string) {
     return prisma.setting.findUnique({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -37,15 +30,9 @@ export class SettingsRepository {
       GET BY KEY
   ========================= */
 
-  static async getByKey(
-    settingKey: string
-  ) {
-
+  static async getByKey(key: string) {
     return prisma.setting.findUnique({
-
-      where: {
-        settingKey
-      }
+      where: { key },
     });
   }
 
@@ -53,33 +40,14 @@ export class SettingsRepository {
       GET CATEGORY SETTINGS
   ========================= */
 
-  static async getByCategory(
-    category: string
-  ) {
-
+  static async getByCategory(category: string) {
     return prisma.setting.findMany({
-
       where: {
-        category
+        category,
       },
-
       orderBy: {
-        settingKey: "asc"
-      }
-    });
-  }
-
-  /* =========================
-      GET PUBLIC SETTINGS
-  ========================= */
-
-  static async getPublicSettings() {
-
-    return prisma.setting.findMany({
-
-      where: {
-        isPublic: true
-      }
+        key: "asc",
+      },
     });
   }
 
@@ -88,21 +56,18 @@ export class SettingsRepository {
   ========================= */
 
   static async updateSetting(
-    settingKey: string,
-    settingValue: any,
-    updatedBy?: string
+    key: string,
+    value: string,
+    description?: string
   ) {
-
     return prisma.setting.update({
-
       where: {
-        settingKey
+        key,
       },
-
       data: {
-        settingValue,
-        updatedBy
-      }
+        value,
+        description,
+      },
     });
   }
 
@@ -111,26 +76,21 @@ export class SettingsRepository {
   ========================= */
 
   static async upsertSetting(data: {
-    settingKey: string;
-    settingValue: any;
+    key: string;
+    value: string;
     category: string;
     description?: string;
-    isPublic?: boolean;
-    updatedBy?: string;
   }) {
-
     return prisma.setting.upsert({
-
       where: {
-        settingKey: data.settingKey
+        key: data.key,
       },
-
       update: {
-        settingValue: data.settingValue,
-        updatedBy: data.updatedBy
+        value: data.value,
+        category: data.category,
+        description: data.description,
       },
-
-      create: data
+      create: data,
     });
   }
 
@@ -138,15 +98,11 @@ export class SettingsRepository {
       DELETE SETTING
   ========================= */
 
-  static async deleteSetting(
-    settingKey: string
-  ) {
-
+  static async deleteSetting(key: string) {
     return prisma.setting.delete({
-
       where: {
-        settingKey
-      }
+        key,
+      },
     });
   }
 
@@ -156,24 +112,19 @@ export class SettingsRepository {
 
   static async bulkUpdate(
     settings: {
-      settingKey: string;
-      settingValue: any;
+      key: string;
+      value: string;
     }[]
   ) {
-
     return prisma.$transaction(
-
-      settings.map(setting =>
+      settings.map((setting) =>
         prisma.setting.update({
-
           where: {
-            settingKey: setting.settingKey
+            key: setting.key,
           },
-
           data: {
-            settingValue:
-              setting.settingValue
-          }
+            value: setting.value,
+          },
         })
       )
     );
@@ -183,74 +134,62 @@ export class SettingsRepository {
       SEARCH SETTINGS
   ========================= */
 
-  static async searchSettings(
-    keyword: string
-  ) {
+/* =========================
+    SEARCH SETTINGS
+========================= */
 
-    return prisma.setting.findMany({
-
-      where: {
-
-        OR: [
-
-          {
-            settingKey: {
-              contains: keyword,
-              mode: "insensitive"
-            }
+static async searchSettings(keyword: string) {
+  return prisma.setting.findMany({
+    where: {
+      OR: [
+        {
+          key: {
+            contains: keyword,
+            mode: "insensitive",
           },
-
-          {
-            category: {
-              contains: keyword,
-              mode: "insensitive"
-            }
+        },
+        {
+          category: {
+            contains: keyword,
+            mode: "insensitive",
           },
-
-          {
-            description: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      }
-    });
-  }
-
+        },
+        {
+          description: {
+            contains: keyword,
+            mode: "insensitive",
+          },
+        },
+      ],
+    },
+    orderBy: {
+      key: "asc",
+    },
+  });
+}
   /* =========================
       GET ALL SETTINGS
   ========================= */
 
-  static async getAllSettings(
-    page = 1,
-    limit = 50
-  ) {
+  static async getAllSettings(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
 
-    const skip =
-      (page - 1) * limit;
-
-    const [settings, total] =
-      await Promise.all([
-
-        prisma.setting.findMany({
-
-          skip,
-          take: limit,
-
-          orderBy: {
-            category: "asc"
-          }
-        }),
-
-        prisma.setting.count()
-      ]);
+    const [settings, total] = await Promise.all([
+      prisma.setting.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          category: "asc",
+        },
+      }),
+      prisma.setting.count(),
+    ]);
 
     return {
       settings,
       total,
       page,
-      limit
+      limit,
     };
   }
 
@@ -259,24 +198,16 @@ export class SettingsRepository {
   ========================= */
 
   static async getAnalytics() {
+    const totalSettings = await prisma.setting.count();
 
-    const [
-      totalSettings,
-      publicSettings
-    ] = await Promise.all([
-
-      prisma.setting.count(),
-
-      prisma.setting.count({
-        where: {
-          isPublic: true
-        }
-      })
-    ]);
+    const categories = await prisma.setting.groupBy({
+      by: ["category"],
+      _count: true,
+    });
 
     return {
       totalSettings,
-      publicSettings
+      categories,
     };
   }
 
@@ -285,20 +216,16 @@ export class SettingsRepository {
   ========================= */
 
   static async getPlatformConfig() {
+    const settings = await prisma.setting.findMany();
 
-    const settings =
-      await prisma.setting.findMany();
-
-    return settings.reduce(
+    return settings.reduce<Record<string, unknown>>(
       (acc, item) => {
-
-        acc[item.settingKey] =
-          item.settingValue;
-
+        acc[item.key] = item.value;
         return acc;
-
       },
-      {} as Record<string, any>
+      {}
     );
   }
 }
+
+export default SettingsRepository;

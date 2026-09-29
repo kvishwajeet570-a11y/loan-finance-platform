@@ -1,8 +1,5 @@
-import cron from "node-cron";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
+﻿import cron from "node-cron";
+import prisma from "../prisma/prisma";
 /* =========================================
    DAILY LOAN EMI CHECK
 ========================================= */
@@ -90,7 +87,7 @@ export const kycExpiryJob =
     async () => {
       try {
 
-        await prisma.kyc.updateMany({
+        await prisma.kYC.updateMany({
           where: {
             expiryDate: {
               lte: new Date(),
@@ -235,3 +232,4 @@ export const fraudDetectionJob =
       }
     }
   );
+

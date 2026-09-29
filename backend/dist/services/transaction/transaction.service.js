@@ -3,258 +3,135 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const prisma_1 = __importDefault(require("../../prisma/prisma"));
+const transaction_repository_1 = __importDefault(require("../../repositories/transaction/transaction.repository"));
 class TransactionService {
-    /**
-     * Create Transaction
-     */
-    async createTransaction(data) {
-        return prisma_1.default.transaction.create({
-            data: {
-                userId: data.userId,
-                amount: data.amount,
-                type: data.type,
-                category: data.category,
-                remark: data.remark,
-                referenceId: data.referenceId,
-                status: "SUCCESS",
-            },
+    // ==========================================================
+    // CREATE
+    // ==========================================================
+    async create(data) {
+        return transaction_repository_1.default.create(data);
+    }
+    // ==========================================================
+    // GET
+    // ==========================================================
+    async getById(id) {
+        return transaction_repository_1.default.findById(id);
+    }
+    async getByTransactionId(transactionId) {
+        return transaction_repository_1.default.findByTransactionId(transactionId);
+    }
+    async getByReferenceId(referenceId) {
+        return transaction_repository_1.default.findByReferenceId(referenceId);
+    }
+    async getAll(where = {}, page = 1, limit = 20) {
+        return transaction_repository_1.default.findMany(where, page, limit);
+    }
+    // ==========================================================
+    // UPDATE
+    // ==========================================================
+    async update(id, data) {
+        return transaction_repository_1.default.update(id, data);
+    }
+    // ==========================================================
+    // DELETE
+    // ==========================================================
+    async delete(id) {
+        return transaction_repository_1.default.delete(id);
+    }
+    async bulkDelete(ids) {
+        return transaction_repository_1.default.deleteMany(ids);
+    }
+    // ==========================================================
+    // STATUS ACTIONS
+    // ==========================================================
+    async approve(id, approvedBy) {
+        return transaction_repository_1.default.update(id, {
+            status: "success",
+            isApproved: true,
+            approvedBy,
+            approvedAt: new Date(),
         });
     }
-    /**
-     * Credit Wallet
-     */
-    async creditWallet(userId, amount, remark) {
-        return prisma_1.default.$transaction(async (tx) => {
-            await tx.wallet.update({
-                where: { userId },
-                data: {
-                    balance: {
-                        increment: amount,
-                    },
-                },
-            });
-            const transaction = await tx.transaction.create({
-                data: {
-                    userId,
-                    amount,
-                    type: "CREDIT",
-                    category: "WALLET",
-                    remark,
-                    status: "SUCCESS",
-                },
-            });
-            return transaction;
+    async verify(id, verifiedBy) {
+        return transaction_repository_1.default.update(id, {
+            isVerified: true,
+            verifiedBy,
+            verifiedAt: new Date(),
         });
     }
-    /**
-     * Debit Wallet
-     */
-    async debitWallet(userId, amount, remark) {
-        return prisma_1.default.$transaction(async (tx) => {
-            const wallet = await tx.wallet.findUnique({
-                where: { userId },
-            });
-            if (!wallet) {
-                throw new Error("Wallet not found");
-            }
-            if (wallet.balance < amount) {
-                throw new Error("Insufficient balance");
-            }
-            await tx.wallet.update({
-                where: { userId },
-                data: {
-                    balance: {
-                        decrement: amount,
-                    },
-                },
-            });
-            const transaction = await tx.transaction.create({
-                data: {
-                    userId,
-                    amount,
-                    type: "DEBIT",
-                    category: "WALLET",
-                    remark,
-                    status: "SUCCESS",
-                },
-            });
-            return transaction;
+    async reject(id, rejectedBy, rejectReason) {
+        return transaction_repository_1.default.update(id, {
+            status: "failed",
+            rejectedBy,
+            rejectedAt: new Date(),
+            rejectReason,
         });
     }
-    /**
-     * Loan Disbursement
-     */
-    async loanDisbursement(userId, loanId, amount) {
-        return this.creditWallet(userId, amount, `Loan Disbursement #${loanId}`);
-    }
-    /**
-     * EMI Collection
-     */
-    async emiCollection(userId, loanId, amount) {
-        return this.debitWallet(userId, amount, `EMI Payment #${loanId}`);
-    }
-    /**
-     * Commission Credit
-     */
-    async commissionCredit(userId, amount) {
-        return this.creditWallet(userId, amount, "Commission Credit");
-    }
-    /**
-     * Referral Bonus Credit
-     */
-    async referralBonus(userId, amount) {
-        return this.creditWallet(userId, amount, "Referral Bonus");
-    }
-    /**
-     * Get Transaction By ID
-     */
-    async getTransactionById(transactionId) {
-        return prisma_1.default.transaction.findUnique({
-            where: {
-                id: transactionId,
-            },
-            include: {
-                user: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-            },
+    async refund(id, refundAmount, refundReason, refundedBy) {
+        return transaction_repository_1.default.update(id, {
+            status: "refunded",
+            isRefunded: true,
+            refundAmount,
+            refundReason,
+            refundedBy,
+            refundedAt: new Date(),
         });
     }
-    /**
-     * User Transactions
-     */
-    async getUserTransactions(userId, page = 1, limit = 20) {
-        const skip = (page - 1) * limit;
-        const [transactions, total] = await Promise.all([
-            prisma_1.default.transaction.findMany({
-                where: {
-                    userId,
-                },
-                skip,
-                take: limit,
-                orderBy: {
-                    createdAt: "desc",
-                },
-            }),
-            prisma_1.default.transaction.count({
-                where: {
-                    userId,
-                },
-            }),
-        ]);
-        return {
-            transactions,
-            total,
-            page,
-            pages: Math.ceil(total / limit),
-        };
-    }
-    /**
-     * All Transactions
-     */
-    async getAllTransactions(page = 1, limit = 50) {
-        const skip = (page - 1) * limit;
-        const [transactions, total] = await Promise.all([
-            prisma_1.default.transaction.findMany({
-                skip,
-                take: limit,
-                include: {
-                    user: true,
-                },
-                orderBy: {
-                    createdAt: "desc",
-                },
-            }),
-            prisma_1.default.transaction.count(),
-        ]);
-        return {
-            transactions,
-            total,
-            page,
-            pages: Math.ceil(total / limit),
-        };
-    }
-    /**
-     * Transaction Analytics
-     */
-    async getTransactionStats() {
-        const [totalTransactions, creditTransactions, debitTransactions, totalCredit, totalDebit,] = await Promise.all([
-            prisma_1.default.transaction.count(),
-            prisma_1.default.transaction.count({
-                where: {
-                    type: "CREDIT",
-                },
-            }),
-            prisma_1.default.transaction.count({
-                where: {
-                    type: "DEBIT",
-                },
-            }),
-            prisma_1.default.transaction.aggregate({
-                where: {
-                    type: "CREDIT",
-                },
-                _sum: {
-                    amount: true,
-                },
-            }),
-            prisma_1.default.transaction.aggregate({
-                where: {
-                    type: "DEBIT",
-                },
-                _sum: {
-                    amount: true,
-                },
-            }),
-        ]);
-        return {
-            totalTransactions,
-            creditTransactions,
-            debitTransactions,
-            totalCredit: totalCredit._sum.amount || 0,
-            totalDebit: totalDebit._sum.amount || 0,
-        };
-    }
-    /**
-     * Monthly Transaction Report
-     */
-    async monthlyTransactionReport() {
-        const year = new Date().getFullYear();
-        return prisma_1.default.$queryRaw `
-      SELECT
-      EXTRACT(MONTH FROM "createdAt") as month,
-      COUNT(*) as total_transactions,
-      SUM(amount) as total_amount
-      FROM "Transaction"
-      WHERE EXTRACT(YEAR FROM "createdAt") = ${year}
-      GROUP BY month
-      ORDER BY month ASC
-    `;
-    }
-    /**
-     * Top Earners
-     */
-    async topEarners() {
-        return prisma_1.default.transaction.groupBy({
-            by: ["userId"],
-            where: {
-                type: "CREDIT",
-            },
-            _sum: {
-                amount: true,
-            },
-            orderBy: {
-                _sum: {
-                    amount: "desc",
-                },
-            },
-            take: 10,
+    async process(id) {
+        return transaction_repository_1.default.update(id, {
+            status: "processing",
         });
+    }
+    // ==========================================================
+    // BULK
+    // ==========================================================
+    async bulkApprove(ids, approvedBy) {
+        return transaction_repository_1.default.updateMany(ids, {
+            status: "success",
+            isApproved: true,
+            approvedBy,
+            approvedAt: new Date(),
+        });
+    }
+    async bulkReject(ids, rejectedBy, rejectReason) {
+        return transaction_repository_1.default.updateMany(ids, {
+            status: "failed",
+            rejectedBy,
+            rejectedAt: new Date(),
+            rejectReason,
+        });
+    }
+    async bulkRefund(ids, refundedBy) {
+        return transaction_repository_1.default.updateMany(ids, {
+            status: "refunded",
+            isRefunded: true,
+            refundedBy,
+            refundedAt: new Date(),
+        });
+    }
+    // ==========================================================
+    // REPORTS
+    // ==========================================================
+    async dashboard() {
+        return transaction_repository_1.default.dashboard();
+    }
+    async analytics() {
+        return transaction_repository_1.default.groupByStatus();
+    }
+    async statistics() {
+        return transaction_repository_1.default.aggregate();
+    }
+    // ==========================================================
+    // SEARCH
+    // ==========================================================
+    async search(where, page = 1, limit = 20) {
+        return transaction_repository_1.default.findMany(where, page, limit);
+    }
+    // ==========================================================
+    // COUNT
+    // ==========================================================
+    async count(where = {}) {
+        return transaction_repository_1.default.count(where);
     }
 }
 exports.default = new TransactionService();

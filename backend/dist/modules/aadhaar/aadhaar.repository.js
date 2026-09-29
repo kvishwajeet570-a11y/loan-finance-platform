@@ -3,75 +3,101 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AiRepository = void 0;
+exports.AadhaarRepository = void 0;
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
-class AiRepository {
-    static async getUserProfile(userId) {
-        return prisma_1.default.user.findUnique({
-            where: {
-                id: userId,
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phoneNo: true,
-                role: true,
-                createdAt: true,
-            },
-        });
-    }
-    static async getLoanHistory(userId) {
-        return prisma_1.default.loanApplication.findMany({
+class AadhaarRepository {
+    /**
+     * FIND AADHAAR BY USER ID
+     */
+    static async findByUserId(userId) {
+        return prisma_1.default.aadhaar.findUnique({
             where: {
                 userId,
             },
+        });
+    }
+    /**
+     * FIND AADHAAR BY ID
+     */
+    static async findById(id) {
+        return prisma_1.default.aadhaar.findUnique({
+            where: {
+                id,
+            },
+        });
+    }
+    /**
+     * CREATE AADHAAR RECORD
+     */
+    static async create(data) {
+        return prisma_1.default.aadhaar.create({
+            data: {
+                userId: data.userId,
+                maskedAadhaar: data.maskedAadhaar,
+                fullName: data.fullName,
+                dob: data.dob,
+                status: data.status ?? "PENDING",
+            },
+        });
+    }
+    /**
+     * UPDATE AADHAAR DETAILS
+     */
+    static async update(userId, data) {
+        return prisma_1.default.aadhaar.update({
+            where: {
+                userId,
+            },
+            data,
+        });
+    }
+    /**
+     * UPDATE STATUS
+     */
+    static async updateStatus(id, status) {
+        return prisma_1.default.aadhaar.update({
+            where: {
+                id,
+            },
+            data: {
+                status,
+                rejectionReason: null,
+            },
+        });
+    }
+    /**
+     * REJECT AADHAAR
+     */
+    static async reject(id, reason) {
+        return prisma_1.default.aadhaar.update({
+            where: {
+                id,
+            },
+            data: {
+                status: "REJECTED",
+                rejectionReason: reason,
+            },
+        });
+    }
+    /**
+     * GET ALL AADHAAR RECORDS
+     */
+    static async findAll() {
+        return prisma_1.default.aadhaar.findMany({
             orderBy: {
                 createdAt: "desc",
             },
         });
     }
-    static async getLatestLoan(userId) {
-        return prisma_1.default.loanApplication.findFirst({
+    /**
+     * DELETE AADHAAR BY USER ID
+     */
+    static async deleteByUserId(userId) {
+        return prisma_1.default.aadhaar.delete({
             where: {
                 userId,
             },
-            orderBy: {
-                createdAt: "desc",
-            },
         });
-    }
-    static async getUserAnalytics(userId) {
-        const totalLoans = await prisma_1.default.loanApplication.count({
-            where: { userId },
-        });
-        const approvedLoans = await prisma_1.default.loanApplication.count({
-            where: {
-                userId,
-                status: "approved",
-            },
-        });
-        const rejectedLoans = await prisma_1.default.loanApplication.count({
-            where: {
-                userId,
-                status: "rejected",
-            },
-        });
-        return {
-            totalLoans,
-            approvedLoans,
-            rejectedLoans,
-        };
-    }
-    static async getAiContext(userId) {
-        const user = await this.getUserProfile(userId);
-        const loans = await this.getLoanHistory(userId);
-        const analytics = await this.getUserAnalytics(userId);
-        return {
-            user,
-            loans,
-            analytics,
-        };
     }
 }
-exports.AiRepository = AiRepository;
+exports.AadhaarRepository = AadhaarRepository;

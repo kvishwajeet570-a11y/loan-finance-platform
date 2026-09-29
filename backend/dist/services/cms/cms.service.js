@@ -5,9 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class CMSService {
-    /**
-     * Create CMS Page
-     */
+    // ========================================
+    // CREATE PAGE
+    // ========================================
     async createPage(data) {
         const existing = await prisma_1.default.cMSPage.findUnique({
             where: {
@@ -18,23 +18,29 @@ class CMSService {
             throw new Error("Page slug already exists");
         }
         return prisma_1.default.cMSPage.create({
-            data,
+            data: {
+                ...data,
+                publishedAt: data.isPublished ? new Date() : null,
+            },
         });
     }
-    /**
-     * Update CMS Page
-     */
+    // ========================================
+    // UPDATE PAGE
+    // ========================================
     async updatePage(pageId, data) {
         return prisma_1.default.cMSPage.update({
             where: {
                 id: pageId,
             },
-            data,
+            data: {
+                ...data,
+                updatedAt: new Date(),
+            },
         });
     }
-    /**
-     * Delete CMS Page
-     */
+    // ========================================
+    // DELETE PAGE
+    // ========================================
     async deletePage(pageId) {
         return prisma_1.default.cMSPage.delete({
             where: {
@@ -42,19 +48,9 @@ class CMSService {
             },
         });
     }
-    /**
-     * Get Page By Slug
-     */
-    async getPageBySlug(slug) {
-        return prisma_1.default.cMSPage.findUnique({
-            where: {
-                slug,
-            },
-        });
-    }
-    /**
-     * Get Page By ID
-     */
+    // ========================================
+    // GET PAGE BY ID
+    // ========================================
     async getPageById(id) {
         return prisma_1.default.cMSPage.findUnique({
             where: {
@@ -62,33 +58,21 @@ class CMSService {
             },
         });
     }
-    /**
-     * Publish Page
-     */
-    async publishPage(id) {
-        return prisma_1.default.cMSPage.update({
-            where: { id },
-            data: {
-                isPublished: true,
+    // ========================================
+    // GET PAGE BY SLUG
+    // ========================================
+    async getPageBySlug(slug) {
+        return prisma_1.default.cMSPage.findUnique({
+            where: {
+                slug,
             },
         });
     }
-    /**
-     * Unpublish Page
-     */
-    async unpublishPage(id) {
-        return prisma_1.default.cMSPage.update({
-            where: { id },
-            data: {
-                isPublished: false,
-            },
-        });
-    }
-    /**
-     * CMS Listing
-     */
-    async getPages(filters) {
-        const { page = 1, limit = 10, search, } = filters;
+    // ========================================
+    // GET ALL PAGES
+    // ========================================
+    async getAllPages(filters) {
+        const { page = 1, limit = 10, search, pageType, category, isPublished, isActive, } = filters;
         const skip = (page - 1) * limit;
         const where = {};
         if (search) {
@@ -105,7 +89,114 @@ class CMSService {
                         mode: "insensitive",
                     },
                 },
+                {
+                    content: {
+                        contains: search,
+                        mode: "insensitive",
+                    },
+                },
             ];
+        }
+        if (pageType)
+            where.pageType = pageType;
+        if (category)
+            where.category = category;
+        if (isPublished !== undefined)
+            where.isPublished = isPublished;
+        if (isActive !== undefined)
+            where.isActive = isActive;
+        const [pages, total] = await Promise.all([
+            prisma_1.default.cMSPage.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: [
+                    {
+                        sortOrder: "asc",
+                    },
+                    {
+                        updatedAt: "desc",
+                    },
+                ],
+            }),
+            prisma_1.default.cMSPage.count({
+                where,
+            }),
+        ]);
+        return {
+            pages,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+    // ========================================
+    // GET PUBLISHED PAGES
+    // ========================================
+    async getPublishedPages() {
+        return prisma_1.default.cMSPage.findMany({
+            where: {
+                isPublished: true,
+                isActive: true,
+            },
+            orderBy: [
+                {
+                    sortOrder: "asc",
+                },
+                {
+                    publishedAt: "desc",
+                },
+            ],
+        });
+    }
+    // ========================================
+    // SEARCH PAGES
+    // ========================================
+    async searchPages(filters) {
+        const { keyword = "", page = 1, limit = 10, pageType, category, isPublished, } = filters;
+        const skip = (page - 1) * limit;
+        const where = {};
+        if (keyword) {
+            where.OR = [
+                {
+                    title: {
+                        contains: keyword,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    slug: {
+                        contains: keyword,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    content: {
+                        contains: keyword,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    metaTitle: {
+                        contains: keyword,
+                        mode: "insensitive",
+                    },
+                },
+                {
+                    metaDescription: {
+                        contains: keyword,
+                        mode: "insensitive",
+                    },
+                },
+            ];
+        }
+        if (pageType)
+            where.pageType = pageType;
+        if (category)
+            where.category = category;
+        if (isPublished !== undefined) {
+            where.isPublished = isPublished;
         }
         const [pages, total] = await Promise.all([
             prisma_1.default.cMSPage.findMany({
@@ -124,27 +215,65 @@ class CMSService {
             pages,
             total,
             page,
-            pagesCount: Math.ceil(total / limit),
+            limit,
+            totalPages: Math.ceil(total / limit),
         };
     }
-    /**
-     * Homepage CMS Blocks
-     */
-    async getHomePageCMS() {
-        return prisma_1.default.cMSPage.findMany({
+    // ========================================
+    // PUBLISH PAGE
+    // ========================================
+    async publishPage(id) {
+        return prisma_1.default.cMSPage.update({
             where: {
-                isPublished: true,
+                id,
             },
-            orderBy: {
-                createdAt: "asc",
+            data: {
+                isPublished: true,
+                publishedAt: new Date(),
             },
         });
     }
-    /**
-     * CMS Statistics
-     */
-    async getCMSStats() {
-        const [totalPages, publishedPages, draftPages,] = await Promise.all([
+    // ========================================
+    // UNPUBLISH PAGE
+    // ========================================
+    async unpublishPage(id) {
+        return prisma_1.default.cMSPage.update({
+            where: {
+                id,
+            },
+            data: {
+                isPublished: false,
+                publishedAt: null,
+            },
+        });
+    }
+    // ========================================
+    // GET PAGE TYPES
+    // ========================================
+    async getPageTypes() {
+        const pageTypes = await prisma_1.default.cMSPage.findMany({
+            distinct: ["pageType"],
+            select: {
+                pageType: true,
+            },
+            where: {
+                pageType: {
+                    not: null,
+                },
+            },
+            orderBy: {
+                pageType: "asc",
+            },
+        });
+        return pageTypes
+            .map((item) => item.pageType)
+            .filter(Boolean);
+    }
+    // ========================================
+    // CMS ANALYTICS
+    // ========================================
+    async getCmsAnalytics() {
+        const [totalPages, publishedPages, draftPages, activePages, inactivePages, totalViews,] = await Promise.all([
             prisma_1.default.cMSPage.count(),
             prisma_1.default.cMSPage.count({
                 where: {
@@ -156,12 +285,42 @@ class CMSService {
                     isPublished: false,
                 },
             }),
+            prisma_1.default.cMSPage.count({
+                where: {
+                    isActive: true,
+                },
+            }),
+            prisma_1.default.cMSPage.count({
+                where: {
+                    isActive: false,
+                },
+            }),
+            prisma_1.default.cMSPage.aggregate({
+                _sum: {
+                    views: true,
+                },
+            }),
         ]);
         return {
             totalPages,
             publishedPages,
             draftPages,
+            activePages,
+            inactivePages,
+            totalViews: totalViews._sum.views ?? 0,
         };
+    }
+    // ========================================
+    // BULK DELETE
+    // ========================================
+    async bulkDelete(ids) {
+        return prisma_1.default.cMSPage.deleteMany({
+            where: {
+                id: {
+                    in: ids,
+                },
+            },
+        });
     }
 }
 exports.default = new CMSService();

@@ -1,0 +1,1853 @@
+"use client";
+
+import DsaShell from "@/components/dsa/DsaShell";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Activity,
+  AlertCircle,
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  Bell,
+  Building2,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  CreditCard,
+  Download,
+  Eye,
+  FileCheck2,
+  FileText,
+  Filter,
+  Home,
+  LayoutDashboard,
+  Menu,
+  MoreVertical,
+  PanelLeft,
+  RefreshCw,
+  Search,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp,
+  UploadCloud,
+  UserCheck,
+  Users,
+  XCircle,
+  Zap,
+} from "lucide-react";
+
+/* ============================================================
+   TYPES
+============================================================ */
+
+type Status = "PENDING" | "UNDER REVIEW" | "APPROVED" | "REJECTED";
+
+type Customer = {
+  id: number;
+  name: string;
+  email: string;
+  initials: string;
+  pan: string;
+  aadhaar: string;
+  phone: string;
+  location: string;
+  city: string;
+  status: Status;
+  date: string;
+  time: string;
+  createdAt: string;
+};
+
+/* ============================================================`r`n   STATUS BADGE
+============================================================ */
+
+function StatusBadge({ status }: { status: Status }) {
+  if (status === "PENDING") {
+    return (
+      <span className="inline-flex rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-[10px] font-black text-orange-600">
+        PENDING
+      </span>
+    );
+  }
+
+  if (status === "UNDER REVIEW") {
+    return (
+      <span className="inline-flex rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black text-blue-600">
+        UNDER REVIEW
+      </span>
+    );
+  }
+
+  if (status === "APPROVED") {
+    return (
+      <span className="inline-flex rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-600">
+        APPROVED
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-[10px] font-black text-red-600">
+      REJECTED
+    </span>
+  );
+}
+
+/* ============================================================
+   MAIN
+============================================================ */
+
+export default function KYCPage() {
+  const [search, setSearch] = useState("");
+  const [activeFilter, setActiveFilter] = useState("All");
+  const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+  const [openMenuId, setOpenMenuId] = useState<string | number | null>(null);
+  const [dashboardStats, setDashboardStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+  });
+
+  useEffect(() => {
+    const loadKycData = async () => {
+      try {
+        setLoading(true);
+        setApiError("");
+
+        const [recordsResponse, dashboardResponse] = await Promise.all([
+          fetch("http://localhost:5000/api/kyc"),
+          fetch("http://localhost:5000/api/kyc/dashboard"),
+        ]);
+
+        if (!recordsResponse.ok) {
+          throw new Error("Failed to fetch KYC records");
+        }
+
+        if (!dashboardResponse.ok) {
+          throw new Error("Failed to fetch KYC dashboard");
+        }
+
+        const recordsJson = await recordsResponse.json();
+        const dashboardJson = await dashboardResponse.json();
+
+        const records = Array.isArray(recordsJson?.kycs)
+          ? recordsJson.kycs
+          : Array.isArray(recordsJson?.data)
+            ? recordsJson.data
+            : [];
+
+        const mappedCustomers: Customer[] = records.map((item: any) => {
+          const fullName =
+            item.fullName ||
+            item.user?.name ||
+            "Unknown Customer";
+
+          const nameParts = fullName.trim().split(/\s+/);
+
+          return {
+            id: String(item.id) as unknown as number,
+            name: fullName,
+            email: item.user?.email || "",
+            initials:
+              nameParts
+                .slice(0, 2)
+                .map((part: string) => part.charAt(0))
+                .join("")
+                .toUpperCase() || "U",
+            pan: item.panNumber || "",
+            aadhaar: "XXXX-XXXX-XXXX",
+            phone: item.user?.phoneNo || "",
+            location: item.state || "",
+            city: item.city || "",
+            status: String(item.status || "PENDING").toUpperCase() as Status,
+            date: item.createdAt
+              ? new Date(item.createdAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "",
+            time: item.createdAt
+              ? new Date(item.createdAt).toLocaleTimeString("en-IN", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
+            createdAt: item.createdAt || "",
+          };
+        });
+
+        console.log("===== KYC FRONTEND DEBUG =====");
+        console.log("KYC API RESPONSE:", recordsJson);
+        console.log("KYC RECORDS:", records);
+        console.log("MAPPED CUSTOMERS:", mappedCustomers);
+        console.log("KYC RECORD COUNT:", mappedCustomers.length);
+
+        setCustomers(mappedCustomers);
+
+        setDashboardStats({
+          total: Number(dashboardJson?.data?.total || 0),
+          pending: Number(dashboardJson?.data?.pending || 0),
+          approved: Number(dashboardJson?.data?.approved || 0),
+          rejected: Number(dashboardJson?.data?.rejected || 0),
+        });
+      } catch (error) {
+        console.error("KYC API ERROR:", error);
+        setApiError("Unable to load live KYC data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadKycData();
+  }, []);
+
+  const realTotal = customers.length;
+
+  const realPending = customers.filter(
+    (customer) => customer.status === "PENDING"
+  ).length;
+
+  const realUnderReview = customers.filter(
+    (customer) => customer.status === "UNDER REVIEW"
+  ).length;
+
+  const realApproved = customers.filter(
+    (customer) => customer.status === "APPROVED"
+  ).length;
+
+  const realRejected = customers.filter(
+    (customer) => customer.status === "REJECTED"
+  ).length;
+
+  // ==========================================================
+  // LIVE KYC COMPATIBILITY VARIABLES
+  // ==========================================================
+
+  const totalKyc = realTotal;
+  const pending = realPending;
+  const underReview = realUnderReview;
+  const approved = realApproved;
+  const rejected = realRejected;
+
+  // Existing analytics/recent-verification sections use "records".
+  // Keep it connected to the same live API-backed customer data.
+  const records = customers;
+
+  const normaliseStatus = (value: string) => {
+    const status = String(value || "")
+      .trim()
+      .toUpperCase();
+
+    if (status === "UNDER REVIEW" || status === "UNDER_REVIEW") {
+      return "UNDER_REVIEW";
+    }
+
+    return status;
+  };
+
+  const statusLabel = (value: string) => {
+    const status = normaliseStatus(value);
+
+    if (status === "UNDER_REVIEW") return "UNDER REVIEW";
+    if (status === "APPROVED") return "APPROVED";
+    if (status === "REJECTED") return "REJECTED";
+
+    return "PENDING";
+  };
+
+  const formatDate = (value: string) => {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((customer) => {
+      const query = search.toLowerCase().trim();
+
+      const matchesSearch =
+        !query ||
+        customer.name.toLowerCase().includes(query) ||
+        customer.email.toLowerCase().includes(query) ||
+        customer.phone.includes(query) ||
+        customer.pan.toLowerCase().includes(query);
+
+      const matchesFilter =
+        activeFilter === "All" ||
+        (activeFilter === "Pending" && customer.status === "PENDING") ||
+        (activeFilter === "Under Review" &&
+          customer.status === "UNDER REVIEW") ||
+        (activeFilter === "Approved" && customer.status === "APPROVED") ||
+        (activeFilter === "Rejected" && customer.status === "REJECTED");
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [customers, search, activeFilter]);
+
+  const toggleRow = (id: number) => {
+    setSelectedRows((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedRows.length === filteredCustomers.length) {
+      setSelectedRows([]);
+      return;
+    }
+
+    setSelectedRows(filteredCustomers.map((item) => item.id));
+  };
+
+  return (
+    <DsaShell>
+      <div className="min-h-screen bg-[#f4f8ff] text-slate-900">
+
+
+
+
+      {/* ======================================================
+          MAIN AREA
+      ====================================================== */}
+
+      <main
+        className={[
+          "min-h-screen transition-all duration-300",
+          "",
+        ].join(" ")}
+      >
+
+        {/* TOPBAR */}
+        <header className="sticky top-0 z-40 flex h-[58px] items-center gap-3 border-b border-slate-200 bg-white/95 px-4 shadow-sm backdrop-blur">
+
+          <div className="relative max-w-[610px] flex-1">
+            <Search
+              size={17}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-700"
+            />
+
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, phone, PAN, email, application ID..."
+              className="h-9 w-full rounded-xl border border-blue-100 bg-blue-50/70 pl-11 pr-4 text-xs font-semibold outline-none transition focus:border-blue-400 focus:bg-white"
+            />
+          </div>
+
+          <div className="hidden items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-[10px] font-black text-white shadow-lg md:flex">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-white" />
+            Live Data
+          </div>
+
+          <button className="relative flex h-9 w-9 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100">
+            <Bell size={18} />
+            <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-black text-white">
+              3
+            </span>
+          </button>
+
+          <div className="hidden items-center gap-2 md:flex">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-orange-200 to-blue-300 text-sm font-black">
+              PK
+            </div>
+
+            <div>
+              <div className="text-[11px] font-black">Prakash Kumar</div>
+              <div className="text-[9px] font-semibold text-slate-400">
+                DSA Partner
+              </div>
+            </div>
+
+            <ChevronDown size={14} />
+          </div>
+        </header>
+
+        <div className="p-3 md:p-4">
+
+          {/* ==================================================
+              HERO BANNER
+          ================================================== */}
+
+          <section className="relative overflow-hidden rounded-[20px] bg-gradient-to-r from-[#06164a] via-[#063b9f] to-[#0089e8] p-5 text-white shadow-[0_15px_45px_rgba(0,76,180,.25)] md:p-6">
+
+            <div className="absolute -right-16 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+            <div className="absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl" />
+
+            <div className="relative grid items-center gap-6 lg:grid-cols-[1.5fr_.7fr_1fr]">
+
+              {/* HERO TEXT */}
+              <div>
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-white/10 px-3 py-1 text-[9px] font-black uppercase tracking-[1.5px] text-cyan-100 backdrop-blur">
+                  <Sparkles size={12} />
+                  Smart Verification Platform
+                </div>
+
+                <h1 className="text-4xl font-black leading-none tracking-tight md:text-5xl">
+                  KYC <span className="text-cyan-200">Verification</span>
+                </h1>
+
+                <p className="mt-2 max-w-[580px] text-sm font-semibold text-blue-100">
+                  Verify Identities • Build Trust • Grow Together
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {[
+                    "100% Secure",
+                    "AI Document Scan",
+                    "Instant Verification",
+                    "Real-time Updates",
+                    "Trusted Partners",
+                  ].map((item) => (
+                    <span
+                      key={item}
+                      className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[9px] font-bold backdrop-blur"
+                    >
+                      ✓ {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* SHIELD */}
+              <div className="hidden justify-center lg:flex">
+                <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-cyan-200/30 bg-white/5 shadow-[0_0_70px_rgba(34,211,238,.25)]">
+                  <div className="absolute inset-4 rounded-full border border-white/20" />
+                  <div className="absolute inset-8 rounded-full border border-yellow-300/20" />
+
+                  <div className="flex h-28 w-28 flex-col items-center justify-center rounded-[28px] bg-gradient-to-br from-white to-cyan-100 text-blue-700 shadow-2xl">
+                    <ShieldCheck size={48} />
+                    <span className="mt-1 text-[11px] font-black">
+                      VERIFIED
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* HERO RIGHT */}
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                <div className="text-lg font-black">Safe Customers</div>
+                <div className="text-lg font-black text-cyan-200">
+                  Stronger Business
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {[
+                    "PAN Verification",
+                    "Aadhaar Verification",
+                    "Bank Verification",
+                    "Document Check",
+                    "Instant Status Update",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      className="flex items-center gap-2 text-[10px] font-bold"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-400 text-white">
+                        <Check size={12} />
+                      </span>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ==================================================
+              KPI CARDS
+          ================================================== */}
+
+          <section className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+
+            {[
+              {
+                title: "Total KYC",
+                value: String(realTotal),
+                sub: "Verification records",
+                change: "+12%",
+                icon: Users,
+                iconClass: "bg-blue-100 text-blue-600",
+                changeClass: "bg-emerald-50 text-emerald-600",
+              },
+              {
+                title: "Pending",
+                value: String(realPending),
+                sub: "Waiting for review",
+                change: "↓ 5%",
+                icon: Clock3,
+                iconClass: "bg-orange-100 text-orange-500",
+                changeClass: "bg-red-50 text-red-500",
+              },
+              {
+                title: "Under Review",
+                value: String(realUnderReview),
+                sub: "In progress",
+                change: "+8%",
+                icon: RefreshCw,
+                iconClass: "bg-purple-100 text-purple-600",
+                changeClass: "bg-emerald-50 text-emerald-600",
+              },
+              {
+                title: "Approved",
+                value: String(realApproved),
+                sub: "Successfully verified",
+                change: "+18%",
+                icon: CheckCircle2,
+                iconClass: "bg-emerald-100 text-emerald-600",
+                changeClass: "bg-emerald-50 text-emerald-600",
+              },
+              {
+                title: "Rejected",
+                value: String(realRejected),
+                sub: "Verification rejected",
+                change: "↓ 2%",
+                icon: XCircle,
+                iconClass: "bg-red-100 text-red-500",
+                changeClass: "bg-red-50 text-red-500",
+              },
+            ].map((card) => {
+              const Icon = card.icon;
+
+              return (
+                <div
+                  key={card.title}
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={[
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full",
+                        card.iconClass,
+                      ].join(" ")}
+                    >
+                      <Icon size={24} />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-black text-slate-500">
+                        {card.title}
+                      </div>
+
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <span className="text-2xl font-black text-[#07174b]">
+                          {card.value}
+                        </span>
+
+                        <span
+                          className={[
+                            "rounded-md px-1.5 py-1 text-[9px] font-black",
+                            card.changeClass,
+                          ].join(" ")}
+                        >
+                          {card.change}
+                        </span>
+                      </div>
+
+                      <div className="text-[9px] font-semibold text-slate-400">
+                        {card.sub}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* ==================================================
+              ANALYTICS ROW
+          ================================================== */}
+
+          <section className="mt-3 grid gap-3 xl:grid-cols-[1fr_1.45fr_.72fr]">
+
+
+          {/* ============================================================
+              KYC_FINAL_CODE_BANNER_START
+          ============================================================ */}
+
+          <section className="relative mb-4 h-[178px] overflow-hidden rounded-[24px] border border-blue-200/20 bg-[#03143f] shadow-[0_18px_55px_rgba(3,20,63,.28)]">
+
+            {/* Ambient glow */}
+            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-[80px]" />
+            <div className="absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-blue-500/25 blur-[90px]" />
+            <div className="absolute left-1/2 top-[-110px] h-64 w-64 -translate-x-1/2 rounded-full bg-indigo-500/20 blur-[80px]" />
+
+            {/* Grid */}
+            <div
+              className="absolute inset-0 opacity-[0.07]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)",
+                backgroundSize: "24px 24px",
+              }}
+            />
+
+            {/* Top shine */}
+            <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300 to-transparent" />
+
+            {/* Left identity visual */}
+            <div className="absolute left-5 top-1/2 flex -translate-y-1/2 items-center gap-3 sm:left-8">
+
+              <div className="relative h-[86px] w-[118px] -rotate-3 rounded-[18px] border border-white/20 bg-white/[0.08] p-3 shadow-2xl backdrop-blur-xl">
+
+                <div className="flex items-center justify-between">
+                  <div className="h-5 w-5 rounded-full bg-gradient-to-br from-cyan-300 to-blue-500 shadow-[0_0_15px_rgba(34,211,238,.75)]" />
+                  <div className="h-1.5 w-9 rounded-full bg-white/40" />
+                </div>
+
+                <div className="mt-4 h-1.5 w-14 rounded-full bg-white/35" />
+                <div className="mt-2 h-1 w-10 rounded-full bg-white/20" />
+
+                <div className="absolute bottom-2 right-2 rounded-md border border-emerald-300/30 bg-emerald-400/10 px-1.5 py-0.5 text-[6px] font-black tracking-wider text-emerald-200">
+                  VERIFIED
+                </div>
+
+              </div>
+
+              <div className="hidden h-[70px] w-[70px] items-center justify-center rounded-[18px] border border-white/15 bg-white/[0.07] shadow-xl backdrop-blur-xl sm:flex">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-9 w-9 text-cyan-200"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M8 25L32 10l24 15" />
+                  <path d="M12 27h40" />
+                  <path d="M17 30v20" />
+                  <path d="M27 30v20" />
+                  <path d="M37 30v20" />
+                  <path d="M47 30v20" />
+                  <path d="M10 52h44" />
+                </svg>
+
+              </div>
+
+            </div>
+
+            {/* Center shield */}
+            <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+
+              <div className="absolute h-[145px] w-[145px] rounded-full border border-cyan-300/15" />
+              <div className="absolute h-[112px] w-[112px] rounded-full border border-blue-300/15" />
+              <div className="absolute h-[82px] w-[138px] rotate-[-18deg] rounded-[50%] border border-cyan-300/20" />
+
+              <div className="relative flex h-[82px] w-[82px] items-center justify-center rounded-[24px] border border-white/30 bg-white/[0.10] shadow-[0_0_45px_rgba(34,211,238,.38)] backdrop-blur-xl">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-12 w-12 text-cyan-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M32 5l21 8v16c0 14-8.5 25-21 30C19.5 54 11 43 11 29V13l21-8z" />
+                  <path d="M21 31l7 7 15-16" />
+                </svg>
+
+              </div>
+
+              <div className="absolute -right-[54px] top-1 h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_15px_rgba(103,232,249,.95)]" />
+              <div className="absolute -left-[48px] bottom-1 h-2 w-2 rounded-full bg-blue-300 shadow-[0_0_13px_rgba(147,197,253,.95)]" />
+
+            </div>
+
+            {/* Right verification cards */}
+            <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center gap-2 sm:right-8 sm:gap-3">
+
+              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-white/15 bg-white/[0.08] shadow-xl backdrop-blur-xl">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-blue-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                >
+                  <circle cx="32" cy="20" r="9" />
+                  <path d="M15 53c2-10 9-16 17-16s15 6 17 16" />
+                </svg>
+
+              </div>
+
+              <div className="hidden h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-white/15 bg-white/[0.08] shadow-xl backdrop-blur-xl sm:flex">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-cyan-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="14" y="8" width="36" height="48" rx="5" />
+                  <path d="M22 22h20" />
+                  <path d="M22 32h20" />
+                  <path d="M22 42h12" />
+                </svg>
+
+              </div>
+
+              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-emerald-300/30 bg-emerald-400/[0.12] shadow-[0_0_25px_rgba(52,211,153,.18)] backdrop-blur-xl">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-emerald-300"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="32" cy="32" r="22" />
+                  <path d="M21 32l7 7 15-16" />
+                </svg>
+
+              </div>
+
+            </div>
+
+            {/* Bottom security status */}
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-4 py-1.5 backdrop-blur-xl">
+
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_9px_rgba(52,211,153,.95)]" />
+
+              <span className="text-[7px] font-black uppercase tracking-[.24em] text-cyan-100/90">
+                Secure Verification
+              </span>
+
+            </div>
+
+            {/* Gold accent */}
+            <div className="absolute bottom-0 left-[12%] h-[2px] w-[76%] rounded-full bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent shadow-[0_0_15px_rgba(250,204,21,.75)]" />
+
+          </section>
+
+          {/* ============================================================
+              KYC_FINAL_CODE_BANNER_END
+          ============================================================ */}
+            {/* STATUS OVERVIEW */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-black text-slate-900">
+          
+          {/* ============================================================
+              KYC_CODE_PREMIUM_BANNER_START
+          ============================================================ */}
+
+          <section className="relative mb-4 h-[170px] overflow-hidden rounded-[22px] border border-blue-200/20 bg-[#03133f] shadow-[0_20px_60px_rgba(2,20,70,.35)]">
+
+            {/* BACKGROUND GLOWS */}
+
+            <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-400/20 blur-[80px]" />
+
+            <div className="absolute -right-24 -bottom-28 h-80 w-80 rounded-full bg-blue-500/25 blur-[90px]" />
+
+            <div className="absolute left-[42%] top-[-80px] h-56 w-56 rounded-full bg-indigo-500/20 blur-[80px]" />
+
+            {/* PREMIUM GRID */}
+
+            <div
+              className="absolute inset-0 opacity-[0.08]"
+              style={{
+                backgroundImage:
+                  "linear-gradient(rgba(255,255,255,.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.8) 1px, transparent 1px)",
+                backgroundSize: "26px 26px",
+              }}
+            />
+
+            {/* TOP LIGHT */}
+
+            <div className="absolute left-0 right-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/70 to-transparent" />
+
+            {/* LEFT SECURITY VISUAL */}
+
+            <div className="absolute left-5 top-1/2 flex -translate-y-1/2 items-center gap-2 sm:left-7 sm:gap-3">
+
+              {/* PAN CARD */}
+
+              <div className="relative flex h-[82px] w-[108px] rotate-[-5deg] items-center justify-center rounded-[16px] border border-white/20 bg-white/[0.08] shadow-[0_12px_35px_rgba(0,0,0,.25)] backdrop-blur-xl">
+
+                <div className="absolute left-2 top-2 text-[6px] font-black tracking-[.18em] text-cyan-100/80">
+                  IDENTITY
+                </div>
+
+                <div className="h-[48px] w-[76px] rounded-xl border border-cyan-200/30 bg-gradient-to-br from-white/15 to-white/5 p-2">
+
+                  <div className="flex items-center justify-between">
+
+                    <div className="h-5 w-5 rounded-full bg-gradient-to-br from-cyan-300 to-blue-500 shadow-[0_0_12px_rgba(34,211,238,.7)]" />
+
+                    <div className="h-1.5 w-8 rounded-full bg-white/40" />
+
+                  </div>
+
+                  <div className="mt-3 h-1.5 w-12 rounded-full bg-white/30" />
+
+                  <div className="mt-1.5 h-1 w-8 rounded-full bg-white/20" />
+
+                </div>
+
+              </div>
+
+              {/* BANK CARD */}
+
+              <div className="hidden h-[72px] w-[88px] items-center justify-center rounded-[16px] border border-white/15 bg-white/[0.07] shadow-xl backdrop-blur-xl sm:flex">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-10 w-10 text-cyan-200"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M8 25L32 10l24 15" />
+                  <path d="M12 27h40" />
+                  <path d="M17 30v20" />
+                  <path d="M27 30v20" />
+                  <path d="M37 30v20" />
+                  <path d="M47 30v20" />
+                  <path d="M10 52h44" />
+                </svg>
+
+              </div>
+
+            </div>
+
+            {/* CENTER ORBIT */}
+
+            <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center">
+
+              <div className="absolute h-[138px] w-[138px] rounded-full border border-cyan-300/15" />
+
+              <div className="absolute h-[112px] w-[112px] rounded-full border border-blue-300/20" />
+
+              <div className="absolute h-[92px] w-[150px] rotate-[-18deg] rounded-[50%] border border-cyan-300/20" />
+
+              <div className="relative flex h-[78px] w-[78px] items-center justify-center rounded-[23px] border border-white/30 bg-white/[0.10] shadow-[0_0_45px_rgba(34,211,238,.35)] backdrop-blur-xl">
+
+                <div className="absolute inset-2 rounded-[18px] border border-cyan-200/10" />
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="relative h-11 w-11 text-cyan-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M32 5l21 8v16c0 14-8.5 25-21 30C19.5 54 11 43 11 29V13l21-8z" />
+
+                  <path d="M21 31l7 7 15-16" />
+
+                </svg>
+
+              </div>
+
+              {/* ORBIT DOTS */}
+
+              <div className="absolute -right-[55px] top-[10px] h-2.5 w-2.5 rounded-full bg-cyan-300 shadow-[0_0_14px_rgba(103,232,249,.95)]" />
+
+              <div className="absolute -left-[45px] bottom-[8px] h-2 w-2 rounded-full bg-blue-300 shadow-[0_0_12px_rgba(147,197,253,.9)]" />
+
+            </div>
+
+            {/* RIGHT VERIFICATION STACK */}
+
+            <div className="absolute right-5 top-1/2 flex -translate-y-1/2 items-center gap-2 sm:right-8 sm:gap-3">
+
+              {/* USER */}
+
+              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-white/15 bg-white/[0.08] shadow-xl backdrop-blur-xl">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-blue-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                >
+                  <circle cx="32" cy="20" r="9" />
+                  <path d="M15 53c2-10 9-16 17-16s15 6 17 16" />
+                </svg>
+
+              </div>
+
+              {/* DOCUMENT */}
+
+              <div className="hidden h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-white/15 bg-white/[0.08] shadow-xl backdrop-blur-xl sm:flex">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-cyan-100"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="14" y="8" width="36" height="48" rx="5" />
+                  <path d="M22 22h20" />
+                  <path d="M22 32h20" />
+                  <path d="M22 42h12" />
+                </svg>
+
+              </div>
+
+              {/* VERIFIED */}
+
+              <div className="flex h-[62px] w-[62px] items-center justify-center rounded-[17px] border border-emerald-300/30 bg-emerald-400/[0.12] shadow-[0_0_25px_rgba(52,211,153,.16)] backdrop-blur-xl">
+
+                <svg
+                  viewBox="0 0 64 64"
+                  className="h-8 w-8 text-emerald-300"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="32" cy="32" r="22" />
+                  <path d="M21 32l7 7 15-16" />
+                </svg>
+
+              </div>
+
+            </div>
+
+            {/* SECURITY LABEL */}
+
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-white/[0.07] px-4 py-1.5 shadow-lg backdrop-blur-xl">
+
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.9)]" />
+
+              <span className="text-[7px] font-black uppercase tracking-[.25em] text-cyan-100/90">
+                Secure • Verified • Protected
+              </span>
+
+            </div>
+
+            {/* GOLD ACCENT */}
+
+            <div className="absolute bottom-0 left-[15%] h-[2px] w-[70%] rounded-full bg-gradient-to-r from-transparent via-yellow-300/80 to-transparent shadow-[0_0_14px_rgba(250,204,21,.7)]" />
+
+          </section>
+
+          {/* ============================================================
+              KYC_CODE_PREMIUM_BANNER_END
+          ============================================================ */}
+          {}                  KYC Status Overview
+                </h2>
+
+                <button className="text-[10px] font-black text-blue-600">
+                  Details →
+                </button>
+              </div>
+
+              <div className="mt-5 flex items-center gap-5">
+                <div
+                  className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full"
+                  style={{
+                    background: `conic-gradient(
+                      #10b981 0deg ${realTotal > 0 ? (realApproved / realTotal) * 360 : 0}deg,
+                      #1683ff ${realTotal > 0 ? (realApproved / realTotal) * 360 : 0}deg ${
+                        realTotal > 0
+                          ? ((realApproved + realUnderReview) / realTotal) * 360
+                          : 0
+                      }deg,
+                      #ffb800 ${
+                        realTotal > 0
+                          ? ((realApproved + realUnderReview) / realTotal) * 360
+                          : 0
+                      }deg ${
+                        realTotal > 0
+                          ? ((realApproved + realUnderReview + realPending) / realTotal) * 360
+                          : 0
+                      }deg,
+                      #ef4444 ${
+                        realTotal > 0
+                          ? ((realApproved + realUnderReview + realPending) / realTotal) * 360
+                          : 0
+                      }deg 360deg
+                    )`,
+                  }}
+                >
+                  <div className="flex h-24 w-24 flex-col items-center justify-center rounded-full bg-white shadow-inner">
+                    <span className="text-2xl font-black text-[#07174b]">
+                      {realTotal}
+                    </span>
+
+                    <span className="text-[9px] font-bold text-slate-400">
+                      Total KYC
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 space-y-3">
+                  {[
+                    {
+                      label: "Pending",
+                      value: realPending,
+                      color: "bg-yellow-400",
+                    },
+                    {
+                      label: "Under Review",
+                      value: realUnderReview,
+                      color: "bg-blue-500",
+                    },
+                    {
+                      label: "Approved",
+                      value: realApproved,
+                      color: "bg-emerald-500",
+                    },
+                    {
+                      label: "Rejected",
+                      value: realRejected,
+                      color: "bg-red-500",
+                    },
+                  ].map((item) => {
+                    const percentage =
+                      realTotal > 0
+                        ? ((item.value / realTotal) * 100).toFixed(1)
+                        : "0.0";
+
+                    return (
+                      <div
+                        key={item.label}
+                        className="flex items-center justify-between gap-2 text-[10px]"
+                      >
+                        <div className="flex items-center gap-2 font-bold text-slate-600">
+                          <span
+                            className={[
+                              "h-2.5 w-2.5 rounded-full",
+                              item.color,
+                            ].join(" ")}
+                          />
+
+                          {item.label}
+                        </div>
+
+                        <div className="font-black text-slate-900">
+                          {item.value}{" "}
+                          <span className="text-slate-400">
+                            ({percentage}%)
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            {/* TREND */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-black text-slate-900">
+                    KYC Trend (Last 30 Days)
+                  </h2>
+
+                  <p className="mt-1 text-[10px] font-semibold text-slate-400">
+                    Real verification activity
+                  </p>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600">
+                  Last 30 Days
+                </div>
+              </div>
+
+              <div className="relative mt-5 h-[160px] overflow-hidden rounded-xl bg-gradient-to-b from-blue-50/70 to-white">
+                <div className="absolute inset-0 flex flex-col justify-between py-3">
+                  {[40, 30, 20, 10, 0].map((number) => (
+                    <div
+                      key={number}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="w-7 text-right text-[8px] font-bold text-slate-400">
+                        {number}
+                      </span>
+
+                      <div className="h-px flex-1 bg-slate-100" />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="absolute inset-x-10 bottom-5 top-5 flex items-end gap-1">
+                  {Array.from({ length: 30 }).map((_, index) => {
+                    const day = new Date();
+                    day.setHours(0, 0, 0, 0);
+                    day.setDate(day.getDate() - (29 - index));
+
+                    const nextDay = new Date(day);
+                    nextDay.setDate(nextDay.getDate() + 1);
+
+                    const count = records.filter((record) => {
+                      if (!record.createdAt) return false;
+
+                      const created = new Date(record.createdAt);
+
+                      return created >= day && created < nextDay;
+                    }).length;
+
+                    const height = Math.min(
+                      100,
+                      Math.max(4, count * 12)
+                    );
+
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className="flex h-full flex-1 items-end"
+                        title={`${day.toLocaleDateString("en-IN")}: ${count} KYC`}
+                      >
+                        <div
+                          className="w-full rounded-t bg-blue-500 transition-all"
+                          style={{
+                            height: `${height}%`,
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="absolute bottom-0 left-10 right-2 flex justify-between text-[8px] font-bold text-slate-400">
+                  <span>30d ago</span>
+                  <span>20d</span>
+                  <span>10d</span>
+                  <span>Today</span>
+                </div>
+              </div>
+            </div>
+            {/* VERIFICATION STEPS */}
+            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.08)] sm:p-6">
+
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg font-black tracking-tight text-slate-900 sm:text-xl">
+                    Verification Steps
+                  </h2>
+
+                  <p className="mt-1 text-xs font-semibold text-slate-400 sm:text-sm">
+                    Complete each verification step to keep the KYC process moving.
+                  </p>
+                </div>
+
+                <div className="hidden rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-right sm:block">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-blue-500">
+                    KYC Progress
+                  </div>
+
+                  <div className="mt-0.5 text-sm font-black text-blue-700">
+                    2 / 4
+                  </div>
+                </div>
+              </div>
+
+
+              <div className="mt-6 space-y-3">
+
+                {[
+                  {
+                    num: "1",
+                    title: "PAN Verification",
+                    sub: "Verify PAN card details",
+                    status: "Verified",
+                    icon: CreditCard,
+                    color: "emerald",
+                  },
+                  {
+                    num: "2",
+                    title: "Aadhaar Verification",
+                    sub: "Verify Aadhaar details",
+                    status: "Verified",
+                    icon: ShieldCheck,
+                    color: "emerald",
+                  },
+                  {
+                    num: "3",
+                    title: "Bank Verification",
+                    sub: "Verify bank account",
+                    status: "In Progress",
+                    icon: Building2,
+                    color: "blue",
+                  },
+                  {
+                    num: "4",
+                    title: "Document Check",
+                    sub: "Verify uploaded documents",
+                    status: "Pending",
+                    icon: FileCheck2,
+                    color: "orange",
+                  },
+                ].map((step) => {
+                  const Icon = step.icon;
+
+                  const isVerified = step.status === "Verified";
+                  const isProgress = step.status === "In Progress";
+
+                  return (
+                    <div
+                      key={step.num}
+                      className={[
+                        "relative flex items-center gap-4 rounded-2xl border p-4 transition-all duration-200",
+                        "hover:-translate-y-[1px] hover:shadow-md",
+                        isVerified
+                          ? "border-emerald-100 bg-emerald-50/40"
+                          : isProgress
+                          ? "border-blue-100 bg-blue-50/40"
+                          : "border-orange-100 bg-orange-50/30",
+                      ].join(" ")}
+                    >
+
+                      {/* STEP ICON */}
+                      <div className="flex shrink-0 flex-col items-center">
+
+                        <div
+                          className={[
+                            "flex h-11 w-11 items-center justify-center rounded-2xl text-white shadow-md",
+                            isVerified
+                              ? "bg-emerald-500 shadow-emerald-200"
+                              : isProgress
+                              ? "bg-blue-500 shadow-blue-200"
+                              : "bg-orange-400 shadow-orange-200",
+                          ].join(" ")}
+                        >
+                          <Icon size={20} strokeWidth={2.5} />
+                        </div>
+
+                        {step.num !== "4" && (
+                          <div className="mt-2 h-5 w-px bg-slate-200" />
+                        )}
+
+                      </div>
+
+
+                      {/* STEP CONTENT */}
+                      <div className="min-w-0 flex-1">
+
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                          <div className="min-w-0">
+
+                            <div className="text-sm font-black text-slate-900 sm:text-[15px]">
+                              {step.num}. {step.title}
+                            </div>
+
+                            <div className="mt-1 text-xs font-semibold text-slate-500 sm:text-[13px]">
+                              {step.sub}
+                            </div>
+
+                          </div>
+
+
+                          {/* STATUS */}
+                          <span
+                            className={[
+                              "inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-wide",
+                              isVerified
+                                ? "bg-emerald-100 text-emerald-700"
+                                : isProgress
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-orange-100 text-orange-700",
+                            ].join(" ")}
+                          >
+
+                            <span
+                              className={[
+                                "h-1.5 w-1.5 rounded-full",
+                                isVerified
+                                  ? "bg-emerald-500"
+                                  : isProgress
+                                  ? "bg-blue-500"
+                                  : "bg-orange-500",
+                              ].join(" ")}
+                            />
+
+                            {step.status}
+
+                          </span>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+                  );
+                })}
+
+              </div>
+
+
+              {/* BOTTOM INFO */}
+              <div className="mt-5 flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3">
+
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                  <ShieldCheck size={15} />
+                </div>
+
+                <p className="text-[11px] font-semibold leading-5 text-slate-500 sm:text-xs">
+                  Your verification status is updated automatically as each step is completed.
+                </p>
+
+              </div>
+
+            </div>
+          </section>
+
+          {/* ==================================================
+              FILTER BAR
+          ================================================== */}
+
+          <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+
+            <div className="flex flex-col gap-2 xl:flex-row">
+
+              <div className="relative flex-1">
+                <Search
+                  size={15}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-600"
+                />
+
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search by name, phone, email, PAN, Aadhaar, KYC ID..."
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-[10px] font-semibold outline-none focus:border-blue-400 focus:bg-white"
+                />
+              </div>
+
+              <button className="flex h-10 items-center justify-between gap-5 rounded-xl border border-slate-200 px-3 text-[10px] font-black text-slate-600">
+                All States
+                <ChevronDown size={13} />
+              </button>
+
+              <button className="flex h-10 items-center justify-between gap-5 rounded-xl border border-slate-200 px-3 text-[10px] font-black text-slate-600">
+                All Status
+                <ChevronDown size={13} />
+              </button>
+
+              <button className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-[10px] font-black text-slate-600">
+                <CalendarDays size={13} />
+                Select Date Range
+                <ChevronDown size={13} />
+              </button>
+
+              <button className="flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 text-[10px] font-black text-white shadow-lg shadow-blue-200">
+                <Search size={14} />
+                Search
+              </button>
+
+              <button className="flex h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[10px] font-black text-emerald-600">
+                <Download size={14} />
+                Export Excel
+              </button>
+
+              <button className="flex h-10 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-[10px] font-black text-red-600">
+                <Download size={14} />
+                Export PDF
+              </button>
+            </div>
+
+            {/* FILTER PILLS */}
+            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+              {[
+                ["All", String(realTotal)],
+                ["Pending", String(realPending)],
+                ["Under Review", String(realUnderReview)],
+                ["Approved", String(realApproved)],
+                ["Rejected", String(realRejected)],
+              ].map((filter) => (
+                <button
+                  key={filter[0]}
+                  onClick={() => setActiveFilter(filter[0])}
+                  className={[
+                    "flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-[10px] font-black transition",
+                    activeFilter === filter[0]
+                      ? "bg-blue-600 text-white shadow-md"
+                      : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {filter[0]}
+                  <span
+                    className={
+                      activeFilter === filter[0]
+                        ? "text-blue-100"
+                        : "text-slate-400"
+                    }
+                  >
+                    ({filter[1]})
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {/* ==================================================
+              MAIN CONTENT GRID
+          ================================================== */}
+
+          <section className="mt-3 grid gap-3 xl:grid-cols-[1fr_300px]">
+
+            {/* TABLE */}
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+
+              <div className="overflow-x-auto">
+                <table className="min-w-[1000px] w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="w-10 px-3 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={
+                            filteredCustomers.length > 0 &&
+                            selectedRows.length === filteredCustomers.length
+                          }
+                          onChange={toggleAll}
+                          className="accent-blue-600"
+                        />
+                      </th>
+
+                      {[
+                        "#",
+                        "Customer Name",
+                        "PAN / Aadhaar",
+                        "Phone / Email",
+                        "Location",
+                        "Status",
+                        "Submitted On",
+                        "Action",
+                      ].map((heading) => (
+                        <th
+                          key={heading}
+                          className="px-3 py-3 text-left text-[9px] font-black uppercase tracking-wide text-slate-500"
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-sm font-bold text-blue-600"
+                        >
+                          Loading live KYC data...
+                        </td>
+                      </tr>
+                    ) : apiError ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-sm font-bold text-red-600"
+                        >
+                          {apiError}
+                        </td>
+                      </tr>
+                    ) : filteredCustomers.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={8}
+                          className="px-6 py-12 text-center text-sm font-bold text-slate-500"
+                        >
+                          No KYC records found.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                      <tr
+                        key={customer.id}
+                        className="border-b border-slate-100 transition hover:bg-blue-50/40"
+                      >
+                        <td className="px-3 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.includes(customer.id)}
+                            onChange={() => toggleRow(customer.id)}
+                            className="accent-blue-600"
+                          />
+                        </td>
+
+                        <td className="px-3 py-3 text-[10px] font-bold text-slate-400">
+                          {customer.id}
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 text-[11px] font-black text-blue-700">
+                              {customer.initials}
+                            </div>
+
+                            <div>
+                              <div className="text-[10px] font-black text-slate-800">
+                                {customer.name}
+                              </div>
+
+                              <div className="mt-0.5 text-[8px] font-semibold text-slate-400">
+                                {customer.email}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="text-[10px] font-black text-slate-700">
+                            {customer.pan}
+                          </div>
+                          <div className="mt-1 text-[9px] font-semibold text-slate-400">
+                            {customer.aadhaar}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="text-[10px] font-black text-slate-700">
+                            {customer.phone}
+                          </div>
+                          <div className="mt-1 max-w-[145px] truncate text-[8px] text-slate-400">
+                            {customer.email}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="text-[10px] font-black text-slate-700">
+                            {customer.location}
+                          </div>
+                          <div className="mt-1 text-[8px] font-semibold text-slate-400">
+                            {customer.city}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <StatusBadge status={customer.status} />
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="text-[10px] font-black text-slate-600">
+                            {customer.date}
+                          </div>
+                          <div className="mt-1 text-[8px] font-semibold text-slate-400">
+                            {customer.time}
+                          </div>
+                        </td>
+
+                        <td className="px-3 py-3">
+                          <div className="relative flex items-center gap-1">
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                window.location.href = `/dsa/kyc/${customer.id}`;
+                              }}
+                              className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-[9px] font-black text-blue-600 transition hover:bg-blue-100"
+                            >
+                              <Eye size={12} />
+                              View
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setOpenMenuId(
+                                  openMenuId === customer.id
+                                    ? null
+                                    : customer.id
+                                )
+                              }
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+                              aria-label="Open KYC actions"
+                            >
+                              <MoreVertical size={14} />
+                            </button>
+
+                            {openMenuId === customer.id && (
+                              <div className="absolute right-0 top-10 z-50 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    window.location.href = `/dsa/kyc/${customer.id}`;
+                                  }}
+                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[9px] font-black text-slate-700 hover:bg-blue-50 hover:text-blue-600"
+                                >
+                                  <Eye size={12} />
+                                  View Details
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => setOpenMenuId(null)}
+                                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[9px] font-black text-slate-500 hover:bg-slate-50"
+                                >
+                                  Close
+                                </button>
+
+                              </div>
+                            )}
+
+                          </div>
+                        </td>
+                      </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* PAGINATION */}
+              <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row">
+
+                <div className="text-[9px] font-semibold text-slate-400">
+                  Showing 1 to {Math.min(5, filteredCustomers.length)} of {filteredCustomers.length} results
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500">
+                    <ChevronLeft size={13} />
+                  </button>
+
+                  {[1, 2, 3, 4, 5].map((page) => (
+                    <button
+                      key={page}
+                      className={[
+                        "flex h-7 w-7 items-center justify-center rounded-lg text-[9px] font-black",
+                        page === 1
+                          ? "bg-blue-600 text-white shadow-md"
+                          : "border border-slate-200 text-slate-500",
+                      ].join(" ")}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <span className="px-1 text-[9px] text-slate-400">...</span>
+
+                  <button className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-[9px] font-black text-slate-500">
+                    20
+                  </button>
+
+                  <button className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-500">
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+
+                <div className="text-[9px] font-bold text-slate-400">
+                  Show{" "}
+                  <span className="mx-1 rounded border border-slate-200 px-2 py-1 text-slate-700">
+                    5
+                  </span>{" "}
+                  per page
+                </div>
+              </div>
+            </div>
+
+            {/* ==================================================
+                RIGHT SIDEBAR
+            ================================================== */}
+
+            <div className="space-y-3">
+
+              {/* RECENT */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-black">Recent Verifications</h2>
+                  <button className="text-[9px] font-black text-blue-600">
+                    View All
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  {records
+                    .slice()
+                    .sort(
+                      (a, b) =>
+                        new Date(b.createdAt || 0).getTime() -
+                        new Date(a.createdAt || 0).getTime()
+                    )
+                    .slice(0, 5)
+                    .map((record) => {
+                      const name = record.name || "Unknown User";
+
+                      const status = statusLabel(record.status);
+
+                      return (
+                    <div
+                      key={record.id}
+                      className="flex items-center gap-2"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-slate-100 text-[9px] font-black text-blue-700">
+                        {name
+                          .split(" ")
+                          .map((part: string) => part[0])
+                          .join("")
+                          .slice(0, 2)}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[9px] font-black text-slate-700">
+                          {name}
+                        </div>
+
+                        <div
+                          className={[
+                            "mt-1 inline-flex rounded-md px-2 py-1 text-[7px] font-black",
+                            normaliseStatus(record.status) === "APPROVED"
+                              ? "bg-emerald-50 text-emerald-600"
+                              : normaliseStatus(record.status) === "UNDER_REVIEW"
+                              ? "bg-purple-50 text-purple-600"
+                              : "bg-orange-50 text-orange-600",
+                          ].join(" ")}
+                        >
+                          ● {status}
+                        </div>
+                      </div>
+
+                      <div className="text-right text-[7px] font-semibold text-slate-400">
+                        {formatDate(record.createdAt)}
+                      </div>
+                    </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* AI CARD */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#04194e] via-[#0757bf] to-[#00a8ee] p-5 text-white shadow-xl">
+
+                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-cyan-300/20 blur-2xl" />
+
+                <div className="relative">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur">
+                    <Zap size={25} className="text-cyan-200" />
+                  </div>
+
+                  <div className="mt-4 text-lg font-black">
+                    AI Powered
+                  </div>
+
+                  <div className="text-lg font-black text-cyan-200">
+                    KYC Verification
+                  </div>
+
+                  <p className="mt-2 text-[9px] font-semibold leading-4 text-blue-100">
+                    Faster • Safer • More Accurate
+                  </p>
+
+                  <button className="mt-4 flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-[9px] font-black text-blue-700 shadow-lg">
+                    Learn More
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {/* QUICK ACTIONS */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <h2 className="text-sm font-black">Quick Actions</h2>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button className="flex flex-col items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-[8px] font-black text-blue-600">
+                    <UploadCloud size={19} />
+                    Upload KYC
+                  </button>
+
+                  <button className="flex flex-col items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 p-3 text-[8px] font-black text-emerald-600">
+                    <UserCheck size={19} />
+                    Verify User
+                  </button>
+
+                  <button className="flex flex-col items-center gap-2 rounded-xl border border-purple-100 bg-purple-50 p-3 text-[8px] font-black text-purple-600">
+                    <Activity size={19} />
+                    Analytics
+                  </button>
+
+                  <button className="flex flex-col items-center gap-2 rounded-xl border border-orange-100 bg-orange-50 p-3 text-[8px] font-black text-orange-600">
+                    <Download size={19} />
+                    Export
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* FOOTER STATUS */}
+          <div className="mt-3 flex flex-col items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-[9px] font-semibold text-slate-400 sm:flex-row">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              KYC system operational
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span>Last synced: Just now</span>
+              <span className="flex items-center gap-1 text-emerald-600">
+                <TrendingUp size={11} />
+                {realTotal > 0 ? `${realApproved} approved of ${realTotal} total` : "No KYC records"}
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </main>
+      </div>
+    </DsaShell>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

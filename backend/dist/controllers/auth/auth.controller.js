@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteAccount = exports.resetPassword = exports.forgotPassword = exports.loginUser = exports.registerUser = exports.verifyRegisterOtp = exports.sendRegisterOtp = exports.otpLimiter = void 0;
+exports.deleteAccount = exports.resetPassword = exports.verifyForgotOtp = exports.forgotPassword = exports.loginUser = exports.registerUser = exports.verifyRegisterOtp = exports.sendRegisterOtp = exports.otpLimiter = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
@@ -389,6 +389,79 @@ const forgotPassword = async (req, res) => {
     }
 };
 exports.forgotPassword = forgotPassword;
+/* ========================================
+   VERIFY FORGOT PASSWORD OTP
+======================================== */
+const verifyForgotOtp = async (req, res) => {
+    try {
+        const { email, otp, } = req.body;
+        /* VALIDATION */
+        const normalizedEmail = String(email || "")
+            .trim()
+            .toLowerCase();
+        const normalizedOtp = String(otp || "").trim();
+        if (!normalizedEmail ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address",
+            });
+        }
+        if (!/^\d{6}$/.test(normalizedOtp)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter the 6-digit OTP",
+            });
+        }
+        /* FIND USER */
+        const user = await prisma_1.default.user.findUnique({
+            where: {
+                email: normalizedEmail,
+            },
+        });
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+        /* OTP CHECK */
+        if (!user.otp ||
+            user.otp !== normalizedOtp) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid OTP",
+            });
+        }
+        /* OTP EXPIRY CHECK */
+        if (!user.otpExpiry ||
+            user.otpExpiry < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: "OTP expired. Please request a new OTP.",
+            });
+        }
+        /*
+         * IMPORTANT:
+         * Do NOT clear OTP here.
+         *
+         * resetPassword will validate the same OTP again
+         * before changing the password.
+         */
+        return res.status(200).json({
+            success: true,
+            message: "OTP verified successfully",
+        });
+    }
+    catch (error) {
+        console.log(error);
+        return res.status(500).json({
+            success: false,
+            message: "OTP verification failed",
+        });
+    }
+};
+exports.verifyForgotOtp = verifyForgotOtp;
 /* ========================================
    RESET PASSWORD
 ======================================== */

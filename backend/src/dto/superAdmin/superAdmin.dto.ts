@@ -154,8 +154,10 @@ export const assignRoleToAdminSchema =
 
 export const updateGlobalSettingsSchema =
   z.object({
-    settings:
-      z.record(z.any()),
+    settings: z.record(
+      z.string(),
+      z.any()
+    ),
   });
 
 /* =========================================

@@ -4,10 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
+const client_1 = require("@prisma/client");
 class LeaderboardService {
-    /**
-     * Top DSA By Commission
-     */
     async getTopDSAByCommission(limit = 10) {
         return prisma_1.default.commission.groupBy({
             by: ["userId"],
@@ -25,14 +23,11 @@ class LeaderboardService {
             take: limit,
         });
     }
-    /**
-     * Top Loan Closers
-     */
     async getTopLoanClosers(limit = 10) {
         return prisma_1.default.loanApplication.groupBy({
             by: ["assignedTo"],
             where: {
-                status: "approved",
+                status: client_1.LoanStatus.APPROVED,
             },
             _count: {
                 id: true,
@@ -45,9 +40,6 @@ class LeaderboardService {
             take: limit,
         });
     }
-    /**
-     * Top Referral Earners
-     */
     async getTopReferralEarners(limit = 10) {
         return prisma_1.default.referral.groupBy({
             by: ["referrerId"],
@@ -62,9 +54,6 @@ class LeaderboardService {
             take: limit,
         });
     }
-    /**
-     * Top Insurance Sellers
-     */
     async getTopInsuranceAgents(limit = 10) {
         return prisma_1.default.insuranceApplication.groupBy({
             by: ["agentId"],
@@ -82,9 +71,6 @@ class LeaderboardService {
             take: limit,
         });
     }
-    /**
-     * Top Investors
-     */
     async getTopInvestors(limit = 10) {
         return prisma_1.default.userInvestment.groupBy({
             by: ["userId"],
@@ -99,9 +85,6 @@ class LeaderboardService {
             take: limit,
         });
     }
-    /**
-     * Monthly Leaderboard
-     */
     async getMonthlyLeaderboard() {
         const startDate = new Date();
         startDate.setDate(1);
@@ -124,9 +107,6 @@ class LeaderboardService {
             take: 20,
         });
     }
-    /**
-     * Weekly Leaderboard
-     */
     async getWeeklyLeaderboard() {
         const date = new Date();
         date.setDate(date.getDate() - 7);
@@ -149,9 +129,6 @@ class LeaderboardService {
             take: 20,
         });
     }
-    /**
-     * Today's Leaderboard
-     */
     async getTodayLeaderboard() {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -174,9 +151,6 @@ class LeaderboardService {
             take: 20,
         });
     }
-    /**
-     * User Ranking
-     */
     async getUserRank(userId) {
         const leaderboard = await prisma_1.default.commission.groupBy({
             by: ["userId"],
@@ -198,14 +172,11 @@ class LeaderboardService {
             totalParticipants: leaderboard.length,
         };
     }
-    /**
-     * Dashboard Statistics
-     */
     async getLeaderboardStats() {
         const [totalDSA, totalCommission, totalReferrals, totalInvestments,] = await Promise.all([
             prisma_1.default.user.count({
                 where: {
-                    role: "dsa",
+                    role: "DSA",
                 },
             }),
             prisma_1.default.commission.aggregate({
@@ -229,9 +200,6 @@ class LeaderboardService {
                 .amount || 0,
         };
     }
-    /**
-     * Complete Leaderboard
-     */
     async getCompleteLeaderboard() {
         const [topDSA, topReferral, topInvestors, monthly,] = await Promise.all([
             this.getTopDSAByCommission(),

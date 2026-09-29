@@ -4,15 +4,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
+const client_1 = require("@prisma/client");
 class LoanService {
-    /**
-     * Apply Loan
-     */
     async applyLoan(data) {
         const existingUser = await prisma_1.default.user.findUnique({
-            where: {
-                id: data.userId,
-            },
+            where: { id: data.userId },
         });
         if (!existingUser) {
             throw new Error("User not found");
@@ -34,39 +30,26 @@ class LoanService {
                 tenureMonths: tenure,
                 interestRate,
                 monthlyEMI: emi,
-                status: "pending",
+                status: client_1.LoanStatus.PENDING,
             },
         });
     }
-    /**
-     * Get Loan By ID
-     */
     async getLoanById(loanId) {
         return prisma_1.default.loanApplication.findUnique({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
             include: {
                 user: true,
             },
         });
     }
-    /**
-     * User Loan History
-     */
     async getUserLoans(userId) {
         return prisma_1.default.loanApplication.findMany({
-            where: {
-                userId,
-            },
+            where: { userId },
             orderBy: {
                 createdAt: "desc",
             },
         });
     }
-    /**
-     * Get All Loans
-     */
     async getAllLoans(page = 1, limit = 20, search = "") {
         const skip = (page - 1) * limit;
         const where = search
@@ -115,122 +98,92 @@ class LoanService {
             pages: Math.ceil(total / limit),
         };
     }
-    /**
-     * Approve Loan
-     */
     async approveLoan(loanId, approvedBy) {
         const loan = await prisma_1.default.loanApplication.findUnique({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
         });
         if (!loan) {
             throw new Error("Loan not found");
         }
         const updatedLoan = await prisma_1.default.loanApplication.update({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
             data: {
-                status: "approved",
+                status: client_1.LoanStatus.APPROVED,
                 approvedAt: new Date(),
                 approvedBy,
             },
         });
-        await prisma_1.default.notification.create({
-            data: {
-                userId: loan.userId,
-                title: "Loan Approved",
-                message: `Your ₹${loan.amount} loan has been approved.`,
-            },
-        });
+        if (loan.userId) {
+            await prisma_1.default.notification.create({
+                data: {
+                    userId: loan.userId,
+                    title: "Loan Approved",
+                    message: `Your ₹${loan.amount} loan has been approved.`,
+                },
+            });
+        }
         return updatedLoan;
     }
-    /**
-     * Reject Loan
-     */
     async rejectLoan(loanId, reason) {
         const loan = await prisma_1.default.loanApplication.findUnique({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
         });
         if (!loan) {
             throw new Error("Loan not found");
         }
         const updatedLoan = await prisma_1.default.loanApplication.update({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
             data: {
-                status: "rejected",
+                status: client_1.LoanStatus.REJECTED,
                 rejectionReason: reason,
             },
         });
-        await prisma_1.default.notification.create({
-            data: {
-                userId: loan.userId,
-                title: "Loan Rejected",
-                message: reason,
-            },
-        });
+        if (loan.userId) {
+            await prisma_1.default.notification.create({
+                data: {
+                    userId: loan.userId,
+                    title: "Loan Rejected",
+                    message: reason,
+                },
+            });
+        }
         return updatedLoan;
     }
-    /**
-     * Assign Loan To DSA
-     */
     async assignLoan(loanId, dsaId) {
         return prisma_1.default.loanApplication.update({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
             data: {
                 assignedTo: dsaId,
             },
         });
     }
-    /**
-     * Update Loan Status
-     */
     async updateLoanStatus(loanId, status) {
         return prisma_1.default.loanApplication.update({
-            where: {
-                id: loanId,
-            },
-            data: {
-                status,
-            },
+            where: { id: loanId },
+            data: { status },
         });
     }
-    /**
-     * Delete Loan
-     */
     async deleteLoan(loanId) {
         return prisma_1.default.loanApplication.delete({
-            where: {
-                id: loanId,
-            },
+            where: { id: loanId },
         });
     }
-    /**
-     * Loan Dashboard Stats
-     */
     async getLoanStats() {
         const [totalLoans, approvedLoans, rejectedLoans, pendingLoans, totalAmount,] = await Promise.all([
             prisma_1.default.loanApplication.count(),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "approved",
+                    status: client_1.LoanStatus.APPROVED,
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "rejected",
+                    status: client_1.LoanStatus.REJECTED,
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "pending",
+                    status: client_1.LoanStatus.PENDING,
                 },
             }),
             prisma_1.default.loanApplication.aggregate({
@@ -244,13 +197,9 @@ class LoanService {
             approvedLoans,
             rejectedLoans,
             pendingLoans,
-            totalDisbursed: totalAmount._sum
-                .amount || 0,
+            totalDisbursed: totalAmount._sum.amount || 0,
         };
     }
-    /**
-     * Monthly Loan Report
-     */
     async monthlyReport() {
         const currentYear = new Date().getFullYear();
         return prisma_1.default.$queryRaw `
@@ -264,20 +213,13 @@ class LoanService {
       ORDER BY month ASC
     `;
     }
-    /**
-     * EMI Calculator
-     */
     calculateEMI(amount, interest, months) {
         const r = interest / 12 / 100;
         return Math.round((amount *
             r *
             Math.pow(1 + r, months)) /
-            (Math.pow(1 + r, months) -
-                1));
+            (Math.pow(1 + r, months) - 1));
     }
-    /**
-     * Dynamic Interest
-     */
     async calculateInterestRate(amount) {
         if (amount <= 100000)
             return 11;
@@ -287,14 +229,11 @@ class LoanService {
             return 9;
         return 8;
     }
-    /**
-     * Top Performing DSA
-     */
     async topDSA() {
         return prisma_1.default.loanApplication.groupBy({
             by: ["assignedTo"],
             where: {
-                status: "approved",
+                status: client_1.LoanStatus.APPROVED,
             },
             _count: {
                 id: true,

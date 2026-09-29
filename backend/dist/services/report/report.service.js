@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const prisma_1 = __importDefault(require("../../prisma/prisma"));
+const prisma_1 = __importDefault(require("../../config/database/prisma"));
 class ReportService {
     /**
      * Dashboard Summary Report
@@ -38,17 +38,17 @@ class ReportService {
             prisma_1.default.loanApplication.count(),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "approved",
+                    status: "APPROVED",
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "rejected",
+                    status: "REJECTED",
                 },
             }),
             prisma_1.default.loanApplication.count({
                 where: {
-                    status: "pending",
+                    status: "PENDING",
                 },
             }),
             prisma_1.default.loanApplication.aggregate({
@@ -105,7 +105,7 @@ class ReportService {
         return prisma_1.default.loanApplication.groupBy({
             by: ["assignedTo"],
             where: {
-                status: "approved",
+                status: "APPROVED",
             },
             _count: {
                 id: true,

@@ -47,7 +47,7 @@ export const paymentStatusEnum = z.enum([
 ]);
 
 /* =========================================
-   GATEWAY
+   PAYMENT GATEWAY
 ========================================= */
 
 export const paymentGatewayEnum = z.enum([
@@ -63,175 +63,126 @@ export const paymentGatewayEnum = z.enum([
    CREATE PAYMENT
 ========================================= */
 
-export const createPaymentSchema =
-  z.object({
-    userId: z.string().cuid(),
+export const createPaymentSchema = z.object({
+  userId: z.string().cuid(),
 
-    paymentType:
-      paymentTypeEnum,
+  paymentType: paymentTypeEnum,
 
-    amount:
-      z.number()
-      .positive(),
+  amount: z.number().positive(),
 
-    paymentMethod:
-      paymentMethodEnum,
+  paymentMethod: paymentMethodEnum,
 
-    paymentGateway:
-      paymentGatewayEnum,
+  paymentGateway: paymentGatewayEnum,
 
-    loanId:
-      z.string()
-      .cuid()
-      .optional(),
+  loanId: z.string().cuid().optional(),
 
-    partnerId:
-      z.string()
-      .cuid()
-      .optional(),
+  partnerId: z.string().cuid().optional(),
 
-    referenceId:
-      z.string()
-      .optional(),
+  referenceId: z.string().optional(),
 
-    remarks:
-      z.string()
-      .max(500)
-      .optional(),
-  });
+  remarks: z.string().max(500).optional(),
+});
 
 /* =========================================
    PAYMENT SUCCESS
 ========================================= */
 
-export const paymentSuccessSchema =
-  z.object({
-    paymentId:
-      z.string().cuid(),
+export const paymentSuccessSchema = z.object({
+  paymentId: z.string().cuid(),
 
-    transactionId:
+  transactionId: z.string(),
+
+  gatewayPaymentId: z.string().optional(),
+
+  gatewayResponse: z
+    .record(
       z.string(),
-
-    gatewayPaymentId:
-      z.string()
-      .optional(),
-
-    gatewayResponse:
-      z.record(z.any())
-      .optional(),
-  });
+      z.unknown()
+    )
+    .optional(),
+});
 
 /* =========================================
    PAYMENT FAILURE
 ========================================= */
 
-export const paymentFailureSchema =
-  z.object({
-    paymentId:
-      z.string().cuid(),
+export const paymentFailureSchema = z.object({
+  paymentId: z.string().cuid(),
 
-    failureReason:
-      z.string()
-      .min(3)
-      .max(500),
-  });
+  failureReason: z
+    .string()
+    .min(3)
+    .max(500),
+});
 
 /* =========================================
    REFUND PAYMENT
 ========================================= */
 
-export const refundPaymentSchema =
-  z.object({
-    paymentId:
-      z.string().cuid(),
+export const refundPaymentSchema = z.object({
+  paymentId: z.string().cuid(),
 
-    refundAmount:
-      z.number()
-      .positive(),
+  refundAmount: z
+    .number()
+    .positive(),
 
-    refundReason:
-      z.string()
-      .min(3)
-      .max(500),
-  });
+  refundReason: z
+    .string()
+    .min(3)
+    .max(500),
+});
 
 /* =========================================
    VERIFY PAYMENT
 ========================================= */
 
-export const verifyPaymentSchema =
-  z.object({
-    paymentId:
-      z.string().cuid(),
+export const verifyPaymentSchema = z.object({
+  paymentId: z.string().cuid(),
 
-    transactionId:
-      z.string(),
-  });
+  transactionId: z.string(),
+});
 
 /* =========================================
    PAYMENT FILTER
 ========================================= */
 
-export const paymentFilterSchema =
-  z.object({
-    userId:
-      z.string()
-      .cuid()
-      .optional(),
+export const paymentFilterSchema = z.object({
+  userId: z.string().cuid().optional(),
 
-    paymentType:
-      paymentTypeEnum.optional(),
+  paymentType: paymentTypeEnum.optional(),
 
-    status:
-      paymentStatusEnum.optional(),
+  status: paymentStatusEnum.optional(),
 
-    paymentMethod:
-      paymentMethodEnum.optional(),
+  paymentMethod: paymentMethodEnum.optional(),
 
-    paymentGateway:
-      paymentGatewayEnum.optional(),
+  paymentGateway: paymentGatewayEnum.optional(),
 
-    startDate:
-      z.string().optional(),
+  startDate: z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+  endDate: z.string().optional(),
 
-    minAmount:
-      z.number().optional(),
+  minAmount: z.number().optional(),
 
-    maxAmount:
-      z.number().optional(),
+  maxAmount: z.number().optional(),
 
-    page:
-      z.coerce.number()
-      .default(1),
+  page: z.coerce.number().default(1),
 
-    limit:
-      z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
-  });
+  limit: z.coerce.number().min(1).max(100).default(20),
+});
 
 /* =========================================
    PAYMENT ANALYTICS
 ========================================= */
 
-export const paymentAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string().optional(),
+export const paymentAnalyticsSchema = z.object({
+  startDate: z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+  endDate: z.string().optional(),
 
-    paymentType:
-      paymentTypeEnum.optional(),
+  paymentType: paymentTypeEnum.optional(),
 
-    paymentGateway:
-      paymentGatewayEnum.optional(),
-  });
+  paymentGateway: paymentGatewayEnum.optional(),
+});
 
 /* =========================================
    EXPORT TYPES

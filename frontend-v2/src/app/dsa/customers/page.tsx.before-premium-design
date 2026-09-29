@@ -1,0 +1,428 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import DsaShell from "@/components/dsa/DsaShell";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+type Loan = {
+  id: string;
+  userId?: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  loanType?: string;
+  amount?: number;
+  status?: string;
+  city?: string;
+  state?: string;
+  createdAt?: string;
+};
+
+type Customer = {
+  key: string;
+  userId?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  applications: number;
+  totalAmount: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  latestDate?: string;
+};
+
+const money = (v: number) => `₹${Number(v || 0).toLocaleString("en-IN")}`;
+
+function badge(status: string) {
+  const s = status.toUpperCase();
+  if (s === "APPROVED") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (s === "PENDING") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (s === "REJECTED") return "border-red-200 bg-red-50 text-red-700";
+  return "border-slate-200 bg-slate-100 text-slate-600";
+}
+
+export default function DsaCustomersPage() {
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("ALL");
+
+  async function loadCustomers() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const user = JSON.parse(
+        localStorage.getItem("loan_finance_user") || "{}"
+      );
+
+      if (!user?.id) throw new Error("DSA login session not found.");
+
+      const token = localStorage.getItem("loan_finance_token");
+
+      const res = await fetch(`${API}/dsa/${user.id}/loans`, {
+        headers: token
+          ? { Authorization: `Bearer ${token}` }
+          : {},
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || json.success === false) {
+        throw new Error(json.message || "Unable to load customers.");
+      }
+
+      const rows = Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json.loans)
+        ? json.loans
+        : [];
+
+      setLoans(rows);
+    } catch (e: any) {
+      setError(e?.message || "Unable to load customers.");
+      setLoans([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const customers = useMemo<Customer[]>(() => {
+    const map = new Map<string, Customer>();
+
+    for (const loan of loans) {
+      const key = String(
+        loan.userId ||
+          loan.phone ||
+          loan.email ||
+          loan.fullName ||
+          loan.id
+      );
+
+      const existing = map.get(key);
+
+      if (!existing) {
+        map.set(key, {
+          key,
+          userId: loan.userId,
+          name: loan.fullName || "Unnamed Customer",
+          email: loan.email,
+          phone: loan.phone,
+          city: loan.city,
+          state: loan.state,
+          applications: 1,
+          totalAmount: Number(loan.amount || 0),
+          approved:
+            String(loan.status || "").toUpperCase() === "APPROVED" ? 1 : 0,
+          pending:
+            String(loan.status || "").toUpperCase() === "PENDING" ? 1 : 0,
+          rejected:
+            String(loan.status || "").toUpperCase() === "REJECTED" ? 1 : 0,
+          latestDate: loan.createdAt,
+        });
+      } else {
+        existing.applications += 1;
+        existing.totalAmount += Number(loan.amount || 0);
+
+        const s = String(loan.status || "").toUpperCase();
+        if (s === "APPROVED") existing.approved += 1;
+        if (s === "PENDING") existing.pending += 1;
+        if (s === "REJECTED") existing.rejected += 1;
+
+        if (
+          loan.createdAt &&
+          (!existing.latestDate ||
+            new Date(loan.createdAt) > new Date(existing.latestDate))
+        ) {
+          existing.latestDate = loan.createdAt;
+          existing.name = loan.fullName || existing.name;
+          existing.email = loan.email || existing.email;
+          existing.phone = loan.phone || existing.phone;
+          existing.city = loan.city || existing.city;
+          existing.state = loan.state || existing.state;
+        }
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) =>
+        new Date(b.latestDate || 0).getTime() -
+        new Date(a.latestDate || 0).getTime()
+    );
+  }, [loans]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return customers.filter((customer) => {
+      const matchesSearch =
+        !q ||
+        [
+          customer.name,
+          customer.email,
+          customer.phone,
+          customer.city,
+          customer.state,
+          customer.userId,
+        ]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q));
+
+      const matchesStatus =
+        status === "ALL" ||
+        (status === "APPROVED" && customer.approved > 0) ||
+        (status === "PENDING" && customer.pending > 0) ||
+        (status === "REJECTED" && customer.rejected > 0);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [customers, search, status]);
+
+  const stats = useMemo(() => {
+    return {
+      customers: customers.length,
+      applications: loans.length,
+      approved: loans.filter(
+        (x) => String(x.status).toUpperCase() === "APPROVED"
+      ).length,
+      value: loans.reduce((s, x) => s + Number(x.amount || 0), 0),
+    };
+  }, [customers, loans]);
+
+  return (
+    <DsaShell>
+      <div className="min-h-screen bg-[#f5f7fb]">
+        <header className="border-b border-slate-200 bg-white px-5 py-5 md:px-8 xl:px-10">
+          <div className="mx-auto flex max-w-[1850px] flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">
+                Business Management
+              </p>
+              <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">
+                Customers
+              </h1>
+              <p className="mt-1 text-base text-slate-500">
+                Your customers and their loan application history.
+              </p>
+            </div>
+
+            <button
+              onClick={loadCustomers}
+              className="rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+            >
+              ↻ Refresh Customers
+            </button>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[1850px] p-5 md:p-8 xl:p-10">
+          <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-base font-semibold text-slate-500">
+                Total Customers
+              </p>
+              <p className="mt-4 text-4xl font-black text-slate-900">
+                {stats.customers}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-base font-semibold text-slate-500">
+                Applications
+              </p>
+              <p className="mt-4 text-4xl font-black text-blue-600">
+                {stats.applications}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-base font-semibold text-slate-500">
+                Approved Applications
+              </p>
+              <p className="mt-4 text-4xl font-black text-emerald-600">
+                {stats.approved}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-base font-semibold text-slate-500">
+                Total Loan Value
+              </p>
+              <p className="mt-4 text-3xl font-black text-violet-600">
+                {money(stats.value)}
+              </p>
+            </div>
+          </section>
+
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+            <div className="flex flex-col gap-4 xl:flex-row">
+              <div className="relative flex-1">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400">
+                  ⌕
+                </span>
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search customer, phone, email or location..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-base outline-none focus:border-blue-400 focus:bg-white"
+                />
+              </div>
+
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-base font-semibold outline-none"
+              >
+                <option value="ALL">All Customers</option>
+                <option value="APPROVED">Has Approved Loan</option>
+                <option value="PENDING">Has Pending Loan</option>
+                <option value="REJECTED">Has Rejected Loan</option>
+              </select>
+            </div>
+          </section>
+
+          <section className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 px-6 py-5">
+              <h2 className="text-2xl font-black text-slate-900">
+                Customer Directory
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {filtered.length} customers from your assigned applications
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="flex min-h-[320px] items-center justify-center text-base font-semibold text-slate-500">
+                Loading live customer data...
+              </div>
+            ) : error ? (
+              <div className="m-6 rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">
+                <p className="font-bold">Unable to load customers</p>
+                <p className="mt-1 text-sm">{error}</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
+                <div className="text-5xl">👥</div>
+                <h3 className="mt-4 text-xl font-black text-slate-800">
+                  No customers found
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Customers will appear here when loan applications are
+                  assigned to you.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1050px]">
+                  <thead className="bg-slate-50">
+                    <tr className="text-left text-xs font-black uppercase tracking-wider text-slate-500">
+                      <th className="px-6 py-4">Customer</th>
+                      <th className="px-6 py-4">Contact</th>
+                      <th className="px-6 py-4">Location</th>
+                      <th className="px-6 py-4">Applications</th>
+                      <th className="px-6 py-4">Loan Value</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4">Last Activity</th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100">
+                    {filtered.map((customer) => {
+                      const primaryStatus =
+                        customer.approved > 0
+                          ? "APPROVED"
+                          : customer.pending > 0
+                          ? "PENDING"
+                          : customer.rejected > 0
+                          ? "REJECTED"
+                          : "ACTIVE";
+
+                      return (
+                        <tr
+                          key={customer.key}
+                          className="transition hover:bg-blue-50/40"
+                        >
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg font-black text-blue-700">
+                                {customer.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="font-bold text-slate-900">
+                                  {customer.name}
+                                </p>
+                                <p className="text-xs text-slate-400">
+                                  {customer.userId || "Customer record"}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-6 py-5">
+                            <p className="text-sm font-semibold text-slate-700">
+                              {customer.phone || "—"}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {customer.email || "—"}
+                            </p>
+                          </td>
+
+                          <td className="px-6 py-5 text-sm text-slate-600">
+                            {[customer.city, customer.state]
+                              .filter(Boolean)
+                              .join(", ") || "—"}
+                          </td>
+
+                          <td className="px-6 py-5">
+                            <span className="font-black text-slate-900">
+                              {customer.applications}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-5 font-black text-slate-900">
+                            {money(customer.totalAmount)}
+                          </td>
+
+                          <td className="px-6 py-5">
+                            <span
+                              className={`inline-flex rounded-full border px-3 py-1.5 text-xs font-black ${badge(
+                                primaryStatus
+                              )}`}
+                            >
+                              {primaryStatus}
+                            </span>
+                          </td>
+
+                          <td className="px-6 py-5 text-sm font-semibold text-slate-500">
+                            {customer.latestDate
+                              ? new Date(
+                                  customer.latestDate
+                                ).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })
+                              : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
+    </DsaShell>
+  );
+}

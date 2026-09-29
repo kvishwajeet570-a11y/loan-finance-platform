@@ -1,0 +1,294 @@
+﻿"use client";
+import FloatingWhatsApp from "@/components/home/FloatingWhatsApp";
+import WhyChooseUs from "@/components/home/WhyChooseUs";
+import Footer from "@/components/home/Footer";
+import PublicMessageForm from "@/components/home/PublicMessageForm";
+import EMICalculator from "@/components/home/EMICalculator";
+import LoanProducts from "@/components/home/LoanProducts";
+
+import Link from "next/link";
+import StatsStrip from "@/components/home/StatsStrip";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  Car,
+  CheckCircle2,
+  GraduationCap,
+  House,
+  Landmark,
+  Menu,
+  Phone,
+  ShieldCheck,
+  ShoppingCart,
+  Sparkles,
+  UserRound,
+  X,
+  Zap,
+} from "lucide-react";
+import { useState } from "react";
+
+import Hero from "@/components/home/Hero";
+import FaqSection from "@/components/home/FaqSection";
+import BlogSection from "@/components/home/BlogSection";
+
+function Header() {
+  const [open, setOpen] = useState(false);
+
+  const links = [
+    ["Home", "#home"],
+    ["Loans", "#loans"],
+    ["EMI Calculator", "#emi-calculator"],
+    ["About Us", "/about"],
+    ["Contact Us", "#contact-section"],
+  ];
+
+  return (
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 backdrop-blur-xl">
+      <div className="mx-auto flex h-[74px] max-w-7xl items-center justify-between px-5 lg:px-8">
+        <Link href="/" className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-700 to-cyan-500 text-xl font-black text-white shadow-lg">
+            IL
+          </div>
+
+          <div className="leading-tight">
+            <div className="text-lg font-black tracking-tight text-[#10265c]">
+              India Loan Finance
+            </div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+              Your Growth Our Support
+            </div>
+          </div>
+        </Link>
+
+        <nav className="hidden items-center gap-7 lg:flex">
+          {links.map(([label, href]) => (
+            <Link
+              key={label}
+              href={href}
+              className="text-sm font-semibold text-slate-700 transition hover:text-blue-700"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-3 lg:flex">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-[#10265c] shadow-sm hover:border-blue-300"
+          >
+            <UserRound size={16} />
+            Login
+          </Link>
+
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20"
+          >
+            Register / Apply Now
+            <ArrowRight size={16} />
+          </Link>
+
+          <div className="hidden items-center gap-2 xl:flex">
+            <Phone size={17} className="text-orange-500" />
+            <div>
+              <div className="text-sm font-black text-slate-800">
+                +91 8292908077
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Mon - Sat · 9AM - 7PM
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="rounded-xl border border-slate-200 p-2 lg:hidden"
+          aria-label="Toggle navigation"
+        >
+          {open ? <X size={21} /> : <Menu size={21} />}
+        </button>
+      </div>
+
+      {open && (
+        <div className="border-t border-slate-200 bg-white px-5 py-5 lg:hidden">
+          <div className="flex flex-col gap-4">
+            {links.map(([label, href]) => (
+              <Link
+                key={label}
+                href={href}
+                onClick={() => setOpen(false)}
+                className="text-sm font-bold text-slate-700"
+              >
+                {label}
+              </Link>
+            ))}
+
+            <div className="flex gap-3 pt-2">
+              <Link
+                href="/login"
+                className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-center text-sm font-bold"
+              >
+                Login
+              </Link>
+
+              <Link
+                href="/register"
+                className="flex-1 rounded-xl bg-blue-700 px-4 py-3 text-center text-sm font-bold text-white"
+              >
+                Apply Now
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
+  );
+}
+
+
+function HowItWorks() {
+  const steps = [
+    ["01", "Register", "Create your account"],
+    ["02", "Apply", "Submit your details"],
+    ["03", "KYC", "Complete verification"],
+    ["04", "Processing", "Application review"],
+    ["05", "Disbursement", "Funds after approval"],
+  ];
+
+  return (
+    <section className="bg-slate-50 px-5 py-20 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-700">
+            Simple Process
+          </p>
+
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-[#10265c] sm:text-4xl">
+            How It Works?
+          </h2>
+
+          <p className="mt-3 text-sm text-slate-500 sm:text-base">
+            A simple digital journey from application to processing.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-5">
+          {steps.map(([number, title, description], index) => (
+            <div key={number} className="relative text-center">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-700 to-cyan-500 text-sm font-black text-white shadow-lg">
+                {number}
+              </div>
+
+              <h3 className="mt-5 text-base font-black text-slate-900">
+                {title}
+              </h3>
+
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                {description}
+              </p>
+
+              {index < steps.length - 1 && (
+                <div className="absolute left-[calc(50%+38px)] right-[calc(-50%+38px)] top-7 hidden border-t border-dashed border-blue-300 md:block" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+function DsaSection() {
+  return (
+    <section className="px-5 py-20 lg:px-8">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#10265c] via-blue-800 to-cyan-600 p-8 text-white shadow-2xl sm:p-12">
+        <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <div className="flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold">
+              <BriefcaseBusiness size={15} />
+              DSA Partner Program
+            </div>
+
+            <h2 className="mt-5 max-w-2xl text-3xl font-black sm:text-4xl">
+              Become a DSA Partner
+            </h2>
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-blue-100 sm:text-base">
+              Build your business with a dedicated DSA workspace for leads,
+              customers, applications, commissions, referrals and reports.
+            </p>
+          </div>
+
+          <Link
+            href="/register?role=dsa"
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-black text-[#10265c] shadow-xl"
+          >
+            Join as DSA
+            <ArrowRight size={17} />
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+export default function HomePage() {
+  return (
+    <>
+      <main className="min-h-screen bg-white">
+      <Header />
+
+      <Hero />
+
+      <StatsStrip />
+
+      <EMICalculator />
+
+      <LoanProducts />
+
+      <HowItWorks />
+
+      <WhyChooseUs />
+
+      <DsaSection />
+
+      <FaqSection />
+
+      <PublicMessageForm />
+      <BlogSection />
+      <FloatingWhatsApp />
+
+      </main>
+
+      <Footer />
+    </>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

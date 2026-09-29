@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefreshTokenService = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const prisma_1 = require("../prisma/prisma");
+const prisma_1 = __importDefault(require("../prisma/prisma"));
 class RefreshTokenService {
     static async generateRefreshToken(payload) {
         const refreshToken = jsonwebtoken_1.default.sign(payload, process.env.JWT_REFRESH_SECRET, {
@@ -24,7 +24,7 @@ class RefreshTokenService {
     }
     static async refreshAccessToken(refreshToken) {
         const payload = await this.verifyRefreshToken(refreshToken);
-        const user = await prisma_1.prisma.user.findUnique({
+        const user = await prisma_1.default.user.findUnique({
             where: {
                 id: payload.id,
             },

@@ -7,8 +7,7 @@ exports.getStatusAnalytics = exports.updateLoanStatus = exports.createStatusEntr
 const loanStatusHistory_service_1 = __importDefault(require("../../services/loan-status-history/loanStatusHistory.service"));
 const getLoanStatusHistory = async (req, res) => {
     try {
-        const loanId = req.params.loanId;
-        const history = await loanStatusHistory_service_1.default.getByLoanId(loanId);
+        const history = await loanStatusHistory_service_1.default.getByLoanId(req.params.id);
         res.status(200).json({
             success: true,
             data: history,
@@ -33,22 +32,22 @@ const createStatusEntry = async (req, res) => {
         });
         res.status(201).json({
             success: true,
-            message: "Status history created",
+            message: "Status history created successfully",
             data: history,
         });
     }
     catch (error) {
         res.status(400).json({
             success: false,
-            message: error.message,
+            message: error.message || "Failed to create status history",
         });
     }
 };
 exports.createStatusEntry = createStatusEntry;
 const updateLoanStatus = async (req, res) => {
     try {
-        const history = await loanStatusHistory_service_1.default.updateLoanStatus({
-            loanId: req.params.loanId,
+        const result = await loanStatusHistory_service_1.default.updateLoanStatus({
+            loanId: req.params.id,
             status: req.body.status,
             remarks: req.body.remarks,
             changedBy: req.user?.id,
@@ -56,13 +55,13 @@ const updateLoanStatus = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Loan status updated successfully",
-            data: history,
+            data: result,
         });
     }
     catch (error) {
         res.status(400).json({
             success: false,
-            message: error.message,
+            message: error.message || "Failed to update loan status",
         });
     }
 };
@@ -75,10 +74,11 @@ const getStatusAnalytics = async (req, res) => {
             data: analytics,
         });
     }
-    catch {
+    catch (error) {
+        console.error(error);
         res.status(500).json({
             success: false,
-            message: "Analytics fetch failed",
+            message: "Failed to fetch analytics",
         });
     }
 };

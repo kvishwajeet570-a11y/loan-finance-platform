@@ -1,6 +1,6 @@
 import prisma from "../../prisma/prisma";
 
-interface CreateBankAccountDTO {
+export interface CreateBankAccountDTO {
   userId: string;
   accountHolderName: string;
   bankName: string;
@@ -11,10 +11,89 @@ interface CreateBankAccountDTO {
 }
 
 class BankService {
-  /**
-   * Add Bank Account
-   */
-  async addBankAccount(data: CreateBankAccountDTO) {
+  async getBanks({
+    page = 1,
+    limit = 20,
+    search = "",
+    status = "",
+  }: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+  }) {
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+
+    if (search) {
+      where.OR = [
+        {
+          bankName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          accountHolderName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          ifscCode: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    if (status) {
+      where.verificationStatus = status;
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.bankAccount.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phoneNo: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.bankAccount.count({ where }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getBankById(id: string) {
+    return prisma.bankAccount.findUnique({
+      where: { id },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async createBank(data: CreateBankAccountDTO) {
     const existing = await prisma.bankAccount.findFirst({
       where: {
         userId: data.userId,
@@ -45,30 +124,39 @@ class BankService {
     });
   }
 
-  /**
-   * Get User Banks
-   */
-  async getUserBankAccounts(userId: string) {
-    return prisma.bankAccount.findMany({
-      where: { userId },
-      orderBy: {
-        createdAt: "desc",
-      },
+  async updateBank(
+    id: string,
+    data: Partial<CreateBankAccountDTO>
+  ) {
+    if (data.isPrimary) {
+      const account = await prisma.bankAccount.findUnique({
+        where: { id },
+      });
+
+      if (account) {
+        await prisma.bankAccount.updateMany({
+          where: {
+            userId: account.userId,
+          },
+          data: {
+            isPrimary: false,
+          },
+        });
+      }
+    }
+
+    return prisma.bankAccount.update({
+      where: { id },
+      data,
     });
   }
 
-  /**
-   * Get Single Bank
-   */
-  async getBankAccountById(id: string) {
-    return prisma.bankAccount.findUnique({
+  async deleteBank(id: string) {
+    return prisma.bankAccount.delete({
       where: { id },
     });
   }
 
-  /**
-   * Verify Bank
-   */
   async verifyBankAccount(id: string) {
     return prisma.bankAccount.update({
       where: { id },
@@ -79,9 +167,6 @@ class BankService {
     });
   }
 
-  /**
-   * Reject Bank
-   */
   async rejectBankAccount(
     id: string,
     reason: string
@@ -95,9 +180,6 @@ class BankService {
     });
   }
 
-  /**
-   * Set Primary Account
-   */
   async setPrimaryAccount(
     userId: string,
     bankId: string
@@ -117,18 +199,6 @@ class BankService {
     });
   }
 
-  /**
-   * Delete Bank
-   */
-  async deleteBankAccount(id: string) {
-    return prisma.bankAccount.delete({
-      where: { id },
-    });
-  }
-
-  /**
-   * Admin Pending Verification
-   */
   async getPendingVerificationAccounts() {
     return prisma.bankAccount.findMany({
       where: {
@@ -140,9 +210,6 @@ class BankService {
     });
   }
 
-  /**
-   * Search Accounts
-   */
   async searchAccounts(keyword: string) {
     return prisma.bankAccount.findMany({
       where: {
@@ -170,15 +237,13 @@ class BankService {
     });
   }
 
-  /**
-   * Bank Statistics
-   */
-  async getBankStats() {
+  async getBankAnalytics() {
     const [
       totalAccounts,
       verifiedAccounts,
       pendingAccounts,
       rejectedAccounts,
+      primaryAccounts,
     ] = await Promise.all([
       prisma.bankAccount.count(),
       prisma.bankAccount.count({
@@ -196,6 +261,11 @@ class BankService {
           verificationStatus: "REJECTED",
         },
       }),
+      prisma.bankAccount.count({
+        where: {
+          isPrimary: true,
+        },
+      }),
     ]);
 
     return {
@@ -203,7 +273,36 @@ class BankService {
       verifiedAccounts,
       pendingAccounts,
       rejectedAccounts,
+      primaryAccounts,
     };
+  }
+    // ========================================
+  // GET USER BANK ACCOUNTS
+  // ========================================
+  async getUserBankAccounts(userId: string) {
+    return prisma.bankAccount.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNo: true,
+          },
+        },
+      },
+      orderBy: [
+        {
+          isPrimary: "desc",
+        },
+        {
+          createdAt: "desc",
+        },
+      ],
+    });
   }
 }
 

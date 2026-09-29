@@ -10,18 +10,24 @@ class DashboardService {
             prisma_1.default.user.count(),
             prisma_1.default.loanApplication.count(),
             prisma_1.default.loanApplication.count({
-                where: { status: "approved" },
+                where: {
+                    status: "APPROVED",
+                },
             }),
             prisma_1.default.loanApplication.count({
-                where: { status: "rejected" },
+                where: {
+                    status: "REJECTED",
+                },
             }),
             prisma_1.default.loanApplication.count({
-                where: { status: "pending" },
+                where: {
+                    status: "PENDING",
+                },
             }),
         ]);
         const totalDisbursed = await prisma_1.default.loanApplication.aggregate({
             where: {
-                status: "approved",
+                status: "APPROVED",
             },
             _sum: {
                 amount: true,
@@ -33,7 +39,7 @@ class DashboardService {
             approvedLoans,
             rejectedLoans,
             pendingLoans,
-            totalDisbursed: Number(totalDisbursed._sum.amount) || 0,
+            totalDisbursed: Number(totalDisbursed?._sum?.amount ?? 0),
         };
     }
     async getRecentLoans(limit = 10) {

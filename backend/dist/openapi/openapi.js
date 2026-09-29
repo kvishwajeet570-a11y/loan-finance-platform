@@ -18,12 +18,14 @@ const config = {
             description: "Development Server",
         },
     ],
+    paths: {},
 };
 const options = {
     definition: config,
     apis: [
         "./src/routes/*.ts",
         "./src/modules/**/*.routes.ts",
+        "./src/modules/**/*.route.ts",
     ],
 };
 exports.swaggerSpec = (0, swagger_jsdoc_1.default)(options);

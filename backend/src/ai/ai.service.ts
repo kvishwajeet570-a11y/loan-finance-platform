@@ -1,8 +1,7 @@
-// src/services/ai/ai.service.ts
+﻿// src/services/ai/ai.service.ts
 
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { LoanStatus } from "@prisma/client";
+import prisma from "../prisma/prisma";
 
 export class AIService {
   async getDashboardInsights() {
@@ -14,15 +13,25 @@ export class AIService {
       pendingLoans,
     ] = await Promise.all([
       prisma.user.count(),
+
       prisma.loanApplication.count(),
+
       prisma.loanApplication.count({
-        where: { status: "approved" },
+        where: {
+          status: LoanStatus.APPROVED,
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "rejected" },
+        where: {
+          status: LoanStatus.REJECTED,
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "pending" },
+        where: {
+          status: LoanStatus.PENDING,
+        },
       }),
     ]);
 
@@ -53,7 +62,11 @@ export class AIService {
   async getTopLoanTypes() {
     const loans = await prisma.loanApplication.groupBy({
       by: ["loanType"],
-      _count: true,
+
+      _count: {
+        loanType: true,
+      },
+
       orderBy: {
         _count: {
           loanType: "desc",
@@ -65,29 +78,35 @@ export class AIService {
   }
 
   async getRevenuePrediction() {
-    const approved = await prisma.loanApplication.findMany({
+    const approvedLoans = await prisma.loanApplication.findMany({
       where: {
-        status: "approved",
+        status: LoanStatus.APPROVED,
       },
+
       select: {
         amount: true,
       },
     });
 
-    const totalAmount = approved.reduce(
-      (sum, item) => sum + Number(item.amount),
+    const totalAmount = approvedLoans.reduce(
+      (sum, loan) => sum + Number(loan.amount),
       0
     );
 
     const estimatedRevenue = totalAmount * 0.015;
 
+    const nextMonthForecast = estimatedRevenue * 1.12;
+
     return {
       totalDisbursed: totalAmount,
       estimatedRevenue,
-      nextMonthForecast:
-        estimatedRevenue * 1.12,
+      nextMonthForecast,
     };
   }
 }
 
 export default new AIService();
+
+
+
+

@@ -90,8 +90,10 @@ export const generateReportSchema =
       z.string().cuid(),
 
     filters:
-      z.record(z.any())
-      .optional(),
+  z.record(
+    z.string(),
+    z.any()
+  ).optional(),
 
     emailReport:
       z.boolean()

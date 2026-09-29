@@ -1,0 +1,389 @@
+﻿"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+} from "lucide-react";
+
+type Company = {
+  id: string;
+  name: string;
+  category: string;
+  amount: string;
+  interest: string;
+  processing: string;
+  tenure: string;
+  logo: string;
+  highDisbursement?: boolean;
+  website?: string;
+};
+
+const companies: Company[] = [
+  {
+    id: "poonawalla-fincorp",
+    name: "Poonawalla Fincorp",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 11.8%",
+    processing: "1% to 1.2% + GST",
+    tenure: "3 Years",
+    logo: "P",
+    highDisbursement: true,
+    website: "https://poonawallafincorp.com/",
+  },
+  {
+    id: "aditya-birla-capital",
+    name: "Aditya Birla Capital",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.25%",
+    processing: "1.2% to 1.4% + GST",
+    tenure: "4 Years",
+    logo: "AB",
+    highDisbursement: true,
+    website: "https://www.adityabirlacapital.com/",
+  },
+  {
+    id: "bajaj-finance",
+    name: "Bajaj Finance",
+    category: "Personal & Business Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.99%",
+    processing: "1% to 1.5% + GST",
+    tenure: "3 Years",
+    logo: "B",
+    highDisbursement: true,
+    website: "https://www.bajajfinserv.in/",
+  },
+  {
+    id: "tata-capital",
+    name: "Tata Capital",
+    category: "Personal & Business Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.5%",
+    processing: "1% to 1.5% + GST",
+    tenure: "4 Years",
+    logo: "T",
+    highDisbursement: true,
+    website: "https://www.tatacapital.com/",
+  },
+  {
+    id: "hero-fincorp",
+    name: "Hero FinCorp",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.4%",
+    processing: "1.2% to 1.5% + GST",
+    tenure: "2 Years",
+    logo: "H",
+    website: "https://www.herofincorp.com/",
+  },
+  {
+    id: "muthoot-finance",
+    name: "Muthoot Finance",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 13%",
+    processing: "1.2% to 1.5% + GST",
+    tenure: "5 Years",
+    logo: "M",
+    website: "https://www.muthootfinance.com/",
+  },
+  {
+    id: "shriram-finance",
+    name: "Shriram Finance",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12%",
+    processing: "1% to 1.5% + GST",
+    tenure: "5 Years",
+    logo: "S",
+    website: "https://www.shriramfinance.in/",
+  },
+  {
+    id: "mahindra-finance",
+    name: "Mahindra Finance",
+    category: "Personal & Business Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.5%",
+    processing: "1% to 1.5% + GST",
+    tenure: "4 Years",
+    logo: "MF",
+    website: "https://www.mahindrafinance.com/",
+  },
+  {
+    id: "cholamandalam-finance",
+    name: "Cholamandalam Finance",
+    category: "Personal Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.5%",
+    processing: "1% to 1.5% + GST",
+    tenure: "5 Years",
+    logo: "C",
+    website: "https://www.cholamandalam.com/",
+  },
+  {
+    id: "l-t-finance",
+    name: "L&T Finance",
+    category: "Personal & Business Loan",
+    amount: "upto ₹5,00,000",
+    interest: "Starting from 12.5%",
+    processing: "1% to 1.5% + GST",
+    tenure: "4 Years",
+    logo: "L&T",
+    website: "https://www.ltfinance.com/",
+  },
+];
+
+export default function ApplyLoanPage() {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <main className="min-h-screen bg-[#f7f9fc]">
+
+      {/* TOP BLUE BAR */}
+      <div className="h-2 w-full bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700" />
+
+      {/* HEADER */}
+      <header className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
+              Loan Partners
+            </p>
+            <h1 className="mt-1 text-xl font-extrabold text-slate-900">
+              India Loan Finance
+            </h1>
+          </div>
+
+          <div className="hidden text-sm font-medium text-slate-500 sm:block">
+            Multiple loan partners available
+          </div>
+        </div>
+      </header>
+
+      {/* TITLE */}
+      <section className="mx-auto max-w-7xl px-5 pb-5 pt-10">
+        <div className="text-center">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-600">
+            Available Loan Offers
+          </p>
+
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
+            Best{" "}
+            <span className="text-blue-600">Loan Offers</span>{" "}
+            at Your Fingertips!
+          </h2>
+
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-500 md:text-base">
+            Compare available loan partners and choose the company
+            according to your requirement.
+          </p>
+        </div>
+      </section>
+
+      {/* COMPANY OFFERS */}
+      <section className="mx-auto max-w-7xl space-y-5 px-5 pb-16">
+
+        {companies.map((company) => {
+          const isOpen = openId === company.id;
+
+          return (
+            <div
+              key={company.id}
+              className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-lg"
+            >
+
+              {/* MAIN OFFER ROW */}
+              <div className="p-5 md:p-7">
+
+                {/* TOP ROW */}
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+
+                  {/* COMPANY */}
+                  <div className="flex items-center gap-4 lg:min-w-[330px]">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-lg font-extrabold text-blue-700 shadow-sm">
+                      {company.logo}
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-extrabold text-slate-900">
+                        {company.name}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-slate-500">
+                        {company.category}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* HIGH DISBURSEMENT */}
+                  {company.highDisbursement ? (
+                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-2 text-xs font-extrabold uppercase tracking-wide text-white shadow-md">
+                      <Zap size={14} fill="currentColor" />
+                      High Disbursement
+                    </div>
+                  ) : (
+                    <div className="hidden lg:block" />
+                  )}
+
+                  {/* APPLY */}
+                  <Link
+                    href={`/dsa/apply-loan?company=${encodeURIComponent(
+                      company.name
+                    )}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-sky-500 to-indigo-800 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:scale-[1.02] hover:shadow-lg"
+                  >
+                    Apply Now
+                    <ArrowRight size={17} />
+                  </Link>
+                </div>
+
+                {/* DETAILS */}
+                <div className="mt-7 grid grid-cols-1 gap-6 border-t border-slate-100 pt-6 sm:grid-cols-2 lg:grid-cols-4">
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Loan Amount:
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {company.amount}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Interest Rate:
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {company.interest}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Processing Fee:
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {company.processing}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-slate-500">
+                      Tenure:
+                    </p>
+                    <p className="mt-1 text-sm font-bold text-slate-900">
+                      {company.tenure}
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* BOTTOM */}
+                <div className="mt-7 flex flex-col gap-4 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+
+                  <p className="text-sm italic text-slate-500">
+                    View your loan eligibility quickly—just a few simple
+                    fields required!
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenId(isOpen ? null : company.id)
+                    }
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
+                  >
+                    Detailed Offers
+                    {isOpen ? (
+                      <ChevronUp size={17} />
+                    ) : (
+                      <ChevronDown size={17} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* EXPANDED DETAILS */}
+              {isOpen && (
+                <div className="border-t border-slate-200 bg-slate-50 px-5 py-6 md:px-7">
+
+                  <div className="grid gap-4 md:grid-cols-3">
+
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                      <p className="text-xs font-bold uppercase text-slate-400">
+                        Company
+                      </p>
+                      <p className="mt-1 font-bold text-slate-900">
+                        {company.name}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                      <p className="text-xs font-bold uppercase text-slate-400">
+                        Loan Type
+                      </p>
+                      <p className="mt-1 font-bold text-slate-900">
+                        {company.category}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                      <p className="text-xs font-bold uppercase text-slate-400">
+                        Maximum Amount
+                      </p>
+                      <p className="mt-1 font-bold text-slate-900">
+                        {company.amount}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50 p-4">
+                    <p className="text-sm leading-6 text-amber-800">
+                      Eligibility, interest rate, loan amount, tenure,
+                      documents and final approval are subject to the
+                      applicable lender policy and customer profile.
+                    </p>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-3">
+
+                    <Link
+                      href={`/dsa/apply-loan?company=${encodeURIComponent(
+                        company.name
+                      )}`}
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white hover:bg-blue-700"
+                    >
+                      Apply with {company.name}
+                      <ArrowRight size={17} />
+                    </Link>
+
+                    {company.website && (
+                      <a
+                        href={company.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100"
+                      >
+                        Official Website
+                      </a>
+                    )}
+
+                  </div>
+                </div>
+              )}
+
+            </div>
+          );
+        })}
+
+      </section>
+    </main>
+  );
+}

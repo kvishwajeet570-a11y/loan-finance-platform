@@ -1,0 +1,202 @@
+import prisma from "../prisma/prisma";
+
+export interface CreateFastagPayload {
+  customerId: string;
+  vehicleNumber: string;
+  vehicleType: string;
+  mobileNumber: string;
+  amount: number;
+}
+
+export class FastagService {
+  /* ========================================
+     CREATE FASTAG
+  ======================================== */
+  static async createFastag(
+    payload: CreateFastagPayload
+  ) {
+    return prisma.fastTag.create({
+      data: {
+        customerId: payload.customerId,
+        vehicleNumber: payload.vehicleNumber,
+        vehicleType: payload.vehicleType,
+        mobileNumber: payload.mobileNumber,
+        balance: payload.amount,
+        status: "ACTIVE",
+      },
+    });
+  }
+
+  /* ========================================
+     GET FASTAG BY ID
+  ======================================== */
+  static async getFastagById(id: string) {
+    return prisma.fastTag.findUnique({
+      where: { id },
+    });
+  }
+
+  /* ========================================
+     GET CUSTOMER FASTAGS
+  ======================================== */
+  static async getCustomerFastags(
+    customerId: string
+  ) {
+    return prisma.fastTag.findMany({
+      where: {
+        customerId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /* ========================================
+     RECHARGE FASTAG
+  ======================================== */
+  static async rechargeFastag(
+    fastagId: string,
+    amount: number
+  ) {
+    return prisma.$transaction(
+      async (tx: any) => {
+        const fastag =
+          await tx.fastTag.findUnique({
+            where: { id: fastagId },
+          });
+
+        if (!fastag) {
+          throw new Error(
+            "Fastag not found"
+          );
+        }
+
+        const updated =
+          await tx.fastTag.update({
+            where: {
+              id: fastagId,
+            },
+            data: {
+              balance:
+                fastag.balance + amount,
+            },
+          });
+
+        await tx.fastTagTransaction.create({
+          data: {
+            fastagId,
+            amount,
+            type: "RECHARGE",
+            status: "SUCCESS",
+          },
+        });
+
+        return updated;
+      }
+    );
+  }
+
+  /* ========================================
+     DEDUCT TOLL
+  ======================================== */
+  static async deductToll(
+    fastagId: string,
+    amount: number
+  ) {
+    return prisma.$transaction(
+      async (tx: any) => {
+        const fastag =
+          await tx.fastTag.findUnique({
+            where: { id: fastagId },
+          });
+
+        if (!fastag) {
+          throw new Error(
+            "Fastag not found"
+          );
+        }
+
+        if (
+          fastag.balance < amount
+        ) {
+          throw new Error(
+            "Insufficient balance"
+          );
+        }
+
+        const updated =
+          await tx.fasTtag.update({
+            where: {
+              id: fastagId,
+            },
+            data: {
+              balance:
+                fastag.balance - amount,
+            },
+          });
+
+        await tx.fastTagTransaction.create({
+          data: {
+            fastagId,
+            amount,
+            type: "TOLL_DEDUCTION",
+            status: "SUCCESS",
+          },
+        });
+
+        return updated;
+      }
+    );
+  }
+
+  /* ========================================
+     GET TRANSACTIONS
+  ======================================== */
+  static async getTransactions(
+    fastagId: string
+  ) {
+    return prisma.fastTagTransaction.findMany(
+      {
+        where: {
+          fastagId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }
+    );
+  }
+
+  /* ========================================
+     BLOCK FASTAG
+  ======================================== */
+  static async blockFastag(
+    fastagId: string
+  ) {
+    return prisma.fastTag.update({
+      where: {
+        id: fastagId,
+      },
+      data: {
+        status: "BLOCKED",
+      },
+    });
+  }
+
+  /* ========================================
+     ACTIVATE FASTAG
+  ======================================== */
+  static async activateFastag(
+    fastagId: string
+  ) {
+    return prisma.fastTag.update({
+      where: {
+        id: fastagId,
+      },
+      data: {
+        status: "ACTIVE",
+      },
+    });
+  }
+}

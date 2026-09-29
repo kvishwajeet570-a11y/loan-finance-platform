@@ -1,4 +1,5 @@
-import { prisma } from "../../prisma";
+import { Prisma } from "@prisma/client";
+import prisma from "../../prisma/prisma";
 
 export class SecurityLogRepository {
 
@@ -7,22 +8,21 @@ export class SecurityLogRepository {
   ========================= */
 
   static async createLog(data: {
-    userId?: string;
-    eventType: string;
-    severity?: string;
-    ipAddress?: string;
-    deviceInfo?: string;
-    browserInfo?: string;
-    location?: string;
-    status?: string;
-    description?: string;
-    metadata?: any;
-  }) {
-
-    return prisma.securityLog.create({
-      data
-    });
-  }
+  userId: string;
+  action: string;
+  severity?: string;
+  status?: string;
+  ipAddress?: string;
+  deviceInfo?: string;
+  userAgent?: string;
+  module?: string;
+  description?: string;
+  metadata?: Prisma.InputJsonValue;
+}) {
+  return prisma.securityLog.create({
+    data,
+  });
+}
 
   /* =========================
       GET BY ID
@@ -80,7 +80,7 @@ export class SecurityLogRepository {
 
       where: {
         userId,
-        eventType: "LOGIN"
+        action: "LOGIN"
       },
 
       orderBy: {
@@ -98,7 +98,7 @@ export class SecurityLogRepository {
     return prisma.securityLog.findMany({
 
       where: {
-        eventType: "LOGIN",
+        action: "LOGIN",
         status: "FAILED"
       },
 
@@ -157,13 +157,13 @@ export class SecurityLogRepository {
   ========================= */
 
   static async getByEventType(
-    eventType: string
+    action: string
   ) {
 
     return prisma.securityLog.findMany({
 
       where: {
-        eventType
+        action
       },
 
       orderBy: {
@@ -207,7 +207,7 @@ export class SecurityLogRepository {
         OR: [
 
           {
-            eventType: {
+            action: {
               contains: keyword,
               mode: "insensitive"
             }
@@ -276,7 +276,7 @@ export class SecurityLogRepository {
       prisma.securityLog.count({
 
         where: {
-          eventType: "LOGIN",
+          action: "LOGIN",
           status: "FAILED"
         }
       }),

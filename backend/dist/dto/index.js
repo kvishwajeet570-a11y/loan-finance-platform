@@ -103,10 +103,6 @@ __exportStar(require("./faq/faq.dto"), exports);
 ========================================= */
 __exportStar(require("./fastag/fastag.dto"), exports);
 /* =========================================
-   FILE
-========================================= */
-__exportStar(require("./file/file.dto"), exports);
-/* =========================================
    INSURANCE
 ========================================= */
 __exportStar(require("./insurance/insurance.dto"), exports);
@@ -132,12 +128,14 @@ __exportStar(require("./lead/lead.dto"), exports);
 __exportStar(require("./leaderboard/leaderboard.dto"), exports);
 /* =========================================
    LOAN
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./loan/loan.dto"), exports);
+// export * from "./loan/loan.dto";
 /* =========================================
    LOAN STATUS HISTORY
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./loanStatusHistory/loanStatusHistory.dto"), exports);
+// export * from "./loanStatusHistory/loanStatusHistory.dto";
 /* =========================================
    LOGIN HISTORY
 ========================================= */
@@ -156,12 +154,14 @@ __exportStar(require("./notification/notification.dto"), exports);
 __exportStar(require("./notificationTemplate/notificationTemplate.dto"), exports);
 /* =========================================
    OTP
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./otp/otp.dto"), exports);
+// export * from "./otp/otp.dto";
 /* =========================================
    PARTNER
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./partner/partner.dto"), exports);
+// export * from "./partner/partner.dto";
 /* =========================================
    PAYMENT
 ========================================= */
@@ -180,16 +180,19 @@ __exportStar(require("./profile/profile.dto"), exports);
 __exportStar(require("./recharge/recharge.dto"), exports);
 /* =========================================
    RECHARGE HISTORY
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./rechargeHistory/rechargeHistory.dto"), exports);
+// export * from "./rechargeHistory/rechargeHistory.dto";
 /* =========================================
    REFERRAL
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./referral/referral.dto"), exports);
+// export * from "./referral/referral.dto";
 /* =========================================
    REFRESH TOKEN
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./refreshToken/refreshToken.dto"), exports);
+// export * from "./refreshToken/refreshToken.dto";
 /* =========================================
    REPORT
 ========================================= */
@@ -200,8 +203,9 @@ __exportStar(require("./report/report.dto"), exports);
 __exportStar(require("./revenue/revenue.dto"), exports);
 /* =========================================
    ROLE
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./role/role.dto"), exports);
+// export * from "./role/role.dto";
 /* =========================================
    ROLE PERMISSION
 ========================================= */
@@ -244,8 +248,9 @@ __exportStar(require("./transaction/transaction.dto"), exports);
 __exportStar(require("./upload/upload.dto"), exports);
 /* =========================================
    USER
+   TEMP DISABLED - DUPLICATE EXPORTS
 ========================================= */
-__exportStar(require("./user/user.dto"), exports);
+// export * from "./user/user.dto";
 /* =========================================
    WALLET
 ========================================= */

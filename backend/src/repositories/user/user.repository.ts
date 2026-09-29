@@ -1,5 +1,5 @@
-import { prisma } from "../../prisma";
-
+import prisma from "../../prisma/prisma";
+import { Prisma } from "@prisma/client";
 export class UserRepository {
 
   /* =========================

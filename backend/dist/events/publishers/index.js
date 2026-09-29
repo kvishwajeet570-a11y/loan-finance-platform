@@ -18,19 +18,3 @@ Object.defineProperty(exports, "__esModule", { value: true });
    LOAN PUBLISHER
 ======================================== */
 __exportStar(require("./loan.publisher"), exports);
-/* ========================================
-   USER PUBLISHER
-======================================== */
-__exportStar(require("./user.publisher"), exports);
-/* ========================================
-   NOTIFICATION PUBLISHER
-======================================== */
-__exportStar(require("./notification.publisher"), exports);
-/* ========================================
-   COMMISSION PUBLISHER
-======================================== */
-__exportStar(require("./commission.publisher"), exports);
-/* ========================================
-   REFERRAL PUBLISHER
-======================================== */
-__exportStar(require("./referral.publisher"), exports);

@@ -1,309 +1,204 @@
-import { prisma } from "../../prisma";
+import prisma from "../../config/database/prisma";
+
+// TypeScript interfaces for type safety
+interface CreateReportInput {
+  reportName: string;
+  reportType: string;
+  generatedBy: string;
+  format: string;
+}
 
 export class ReportRepository {
+  /* =========================================
+      CREATE & UPDATE OPERATIONS
+  ========================================= */
 
-  /* =========================
-      CREATE REPORT
-  ========================= */
-
-  static async createReport(data: {
-    reportName: string;
-    reportType: string;
-    generatedBy: string;
-    format: string;
-    startDate?: Date;
-    endDate?: Date;
-  }) {
-
-    return prisma.report.create({
-      data
-    });
+  static async createReport(data: CreateReportInput) {
+    return prisma.report.create({ data });
   }
 
-  /* =========================
-      GET REPORT BY ID
-  ========================= */
-
-  static async getById(
-    id: string
-  ) {
-
-    return prisma.report.findUnique({
-      where: { id }
-    });
-  }
-
-  /* =========================
-      UPDATE STATUS
-  ========================= */
-
-  static async updateStatus(
-    id: string,
-    status: string
-  ) {
-
+  static async updateStatus(id: string, status: string) {
     return prisma.report.update({
-
-      where: {
-        id
-      },
-
-      data: {
-        status
-      }
+      where: { id },
+      data: { status },
     });
   }
 
-  /* =========================
-      COMPLETE REPORT
-  ========================= */
-
-  static async completeReport(
-    id: string,
-    fileUrl: string,
-    totalRecords: number
-  ) {
-
+  static async completeReport(id: string, fileUrl: string, totalRecords: number) {
     return prisma.report.update({
-
-      where: {
-        id
-      },
-
+      where: { id },
       data: {
         fileUrl,
         totalRecords,
         status: "COMPLETED",
-        generatedAt: new Date()
-      }
+        generatedAt: new Date(),
+      },
     });
   }
 
-  /* =========================
-      FAIL REPORT
-  ========================= */
-
-  static async failReport(
-    id: string,
-    remarks: string
-  ) {
-
+  static async failReport(id: string, remarks: string) {
     return prisma.report.update({
-
-      where: {
-        id
-      },
-
+      where: { id },
       data: {
         status: "FAILED",
-        remarks
-      }
+        remarks,
+      },
     });
   }
 
-  /* =========================
-      GET ALL REPORTS
-  ========================= */
+  /* =========================================
+      READ OPERATIONS (SINGLE / LIST / SEARCH)
+  ========================================= */
 
-  static async getAllReports(
-    page = 1,
-    limit = 20
-  ) {
+  static async getById(id: string) {
+    return prisma.report.findUnique({ where: { id } });
+  }
 
-    const skip =
-      (page - 1) * limit;
+  static async exists(id: string) {
+    const report = await prisma.report.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    return !!report;
+  }
 
-    const [reports, total] =
-      await Promise.all([
+  static async getAllReports(page: number = 1, limit: number = 20) {
+    const skip = (page - 1) * limit;
 
-        prisma.report.findMany({
-
-          skip,
-          take: limit,
-
-          orderBy: {
-            createdAt: "desc"
-          }
-        }),
-
-        prisma.report.count()
-      ]);
+    const [reports, total] = await Promise.all([
+      prisma.report.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.report.count(),
+    ]);
 
     return {
       reports,
       total,
       page,
-      limit
+      limit,
+      totalPages: Math.ceil(total / limit),
     };
   }
 
-  /* =========================
-      USER REPORTS
-  ========================= */
-
-  static async getUserReports(
-    generatedBy: string
-  ) {
-
+  static async getUserReports(generatedBy: string) {
     return prisma.report.findMany({
-
-      where: {
-        generatedBy
-      },
-
-      orderBy: {
-        createdAt: "desc"
-      }
+      where: { generatedBy },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  /* =========================
-      REPORTS BY TYPE
-  ========================= */
-
-  static async getReportsByType(
-    reportType: string
-  ) {
-
+  static async getReportsByType(reportType: string) {
     return prisma.report.findMany({
-
-      where: {
-        reportType
-      },
-
-      orderBy: {
-        createdAt: "desc"
-      }
+      where: { reportType },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  /* =========================
-      REPORTS BY STATUS
-  ========================= */
-
-  static async getReportsByStatus(
-    status: string
-  ) {
-
+  static async getReportsByStatus(status: string) {
     return prisma.report.findMany({
-
-      where: {
-        status
-      }
+      where: { status },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  /* =========================
-      SEARCH REPORTS
-  ========================= */
-
-  static async searchReports(
-    keyword: string
-  ) {
-
+  static async getRecentReports(limit: number = 10) {
     return prisma.report.findMany({
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    });
+  }
 
+  static async searchReports(keyword: string) {
+    return prisma.report.findMany({
       where: {
-
         OR: [
-
-          {
-            reportName: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          },
-
-          {
-            reportType: {
-              contains: keyword,
-              mode: "insensitive"
-            }
-          }
-        ]
-      }
+          { reportName: { contains: keyword, mode: "insensitive" } },
+          { reportType: { contains: keyword, mode: "insensitive" } },
+        ],
+      },
+      orderBy: { createdAt: "desc" },
     });
   }
 
-  /* =========================
-      DELETE REPORT
-  ========================= */
+  /* =========================================
+      ANALYTICS & DASHBOARD (OPTIMIZED)
+  ========================================= */
 
-  static async deleteReport(
-    id: string
-  ) {
-
-    return prisma.report.delete({
-      where: { id }
-    });
-  }
-
-  /* =========================
-      REPORT ANALYTICS
-  ========================= */
-
+  // Ek hi query mein saare counts nikalne ke liye groupBy use kiya hai
   static async getAnalytics() {
+    const counts = await prisma.report.groupBy({
+  by: ["status"],
+  _count: {
+    _all: true,
+  },
+});
 
-    const [
-      totalReports,
-      completedReports,
-      pendingReports,
-      failedReports
-    ] = await Promise.all([
+const statusMap: Record<string, number> = {
+  PENDING: 0,
+  COMPLETED: 0,
+  FAILED: 0,
+};
 
-      prisma.report.count(),
+let totalReports = 0;
 
-      prisma.report.count({
-        where: {
-          status: "COMPLETED"
-        }
-      }),
-
-      prisma.report.count({
-        where: {
-          status: "PENDING"
-        }
-      }),
-
-      prisma.report.count({
-        where: {
-          status: "FAILED"
-        }
-      })
-    ]);
+counts.forEach((item) => {
+  statusMap[item.status] = item._count._all;
+  totalReports += item._count._all;
+});
 
     return {
       totalReports,
-      completedReports,
-      pendingReports,
-      failedReports
+      completedReports: statusMap.COMPLETED,
+      pendingReports: statusMap.PENDING,
+      failedReports: statusMap.FAILED,
     };
   }
-
-  /* =========================
-      DASHBOARD
-  ========================= */
 
   static async getDashboard() {
-
-    const [
-      analytics,
-      recentReports
-    ] = await Promise.all([
-
+    const [analytics, recentReports] = await Promise.all([
       this.getAnalytics(),
-
-      prisma.report.findMany({
-        take: 10,
-        orderBy: {
-          createdAt: "desc"
-        }
-      })
+      this.getRecentReports(10), // Purane duplicate code ki jagah existing method use kiya
     ]);
 
+    return { analytics, recentReports };
+  }
+
+  static async countReports() {
+    return prisma.report.count();
+  }
+
+  // getAnalytics() ka optimized response hi return karega bina DB par extra load dale
+  static async getStatusWiseCount() {
+    const analytics = await this.getAnalytics();
     return {
-      analytics,
-      recentReports
+      pending: analytics.pendingReports,
+      completed: analytics.completedReports,
+      failed: analytics.failedReports,
+      total: analytics.totalReports
     };
+  }
+
+  /* =========================================
+      DELETE OPERATIONS
+  ========================================= */
+
+  static async deleteReport(id: string) {
+    return prisma.report.delete({ where: { id } });
+  }
+
+  static async bulkDeleteReports(ids: string[]) {
+    return prisma.report.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
+  static async bulkUpdateStatus(ids: string[], status: string) {
+    return prisma.report.updateMany({
+      where: { id: { in: ids } },
+      data: { status },
+    });
   }
 }

@@ -5,15 +5,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class RoleService {
-    /**
-     * Create Role
-     */
     async createRole(data) {
         const existingRole = await prisma_1.default.role.findFirst({
             where: {
                 OR: [
                     { name: data.name },
-                    { slug: data.slug },
+                    { code: data.code },
                 ],
             },
         });
@@ -24,9 +21,6 @@ class RoleService {
             data,
         });
     }
-    /**
-     * Get Role By ID
-     */
     async getRoleById(roleId) {
         return prisma_1.default.role.findUnique({
             where: {
@@ -48,9 +42,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Get All Roles
-     */
     async getAllRoles() {
         return prisma_1.default.role.findMany({
             include: {
@@ -70,9 +61,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Update Role
-     */
     async updateRole(roleId, payload) {
         return prisma_1.default.role.update({
             where: {
@@ -81,9 +69,6 @@ class RoleService {
             data: payload,
         });
     }
-    /**
-     * Delete Role
-     */
     async deleteRole(roleId) {
         const users = await prisma_1.default.user.count({
             where: {
@@ -104,9 +89,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Assign Role To User
-     */
     async assignRoleToUser(userId, roleId) {
         return prisma_1.default.user.update({
             where: {
@@ -117,9 +99,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Remove User Role
-     */
     async removeRoleFromUser(userId) {
         return prisma_1.default.user.update({
             where: {
@@ -130,9 +109,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Assign Permission To Role
-     */
     async assignPermission(roleId, permissionId) {
         const exists = await prisma_1.default.rolePermission.findFirst({
             where: {
@@ -150,9 +126,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Remove Permission
-     */
     async removePermission(roleId, permissionId) {
         return prisma_1.default.rolePermission.deleteMany({
             where: {
@@ -161,9 +134,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Get Role Permissions
-     */
     async getRolePermissions(roleId) {
         return prisma_1.default.rolePermission.findMany({
             where: {
@@ -174,9 +144,6 @@ class RoleService {
             },
         });
     }
-    /**
-     * Role Users
-     */
     async getRoleUsers(roleId) {
         return prisma_1.default.user.findMany({
             where: {
@@ -190,10 +157,7 @@ class RoleService {
             },
         });
     }
-    /**
-     * Clone Role
-     */
-    async cloneRole(roleId, newRoleName, newRoleSlug) {
+    async cloneRole(roleId, newRoleName, newRoleCode) {
         const role = await prisma_1.default.role.findUnique({
             where: {
                 id: roleId,
@@ -208,7 +172,7 @@ class RoleService {
         const newRole = await prisma_1.default.role.create({
             data: {
                 name: newRoleName,
-                slug: newRoleSlug,
+                code: newRoleCode,
                 description: role.description,
             },
         });
@@ -222,9 +186,6 @@ class RoleService {
         }
         return newRole;
     }
-    /**
-     * Role Analytics
-     */
     async getRoleStats() {
         const [totalRoles, totalUsers, totalPermissions, totalMappings,] = await Promise.all([
             prisma_1.default.role.count(),
@@ -239,40 +200,37 @@ class RoleService {
             totalMappings,
         };
     }
-    /**
-     * Seed Default Roles
-     */
     async seedDefaultRoles() {
         const roles = [
             {
                 name: "Super Admin",
-                slug: "super_admin",
+                code: "super_admin",
             },
             {
                 name: "Admin",
-                slug: "admin",
+                code: "admin",
             },
             {
                 name: "Manager",
-                slug: "manager",
+                code: "manager",
             },
             {
                 name: "DSA",
-                slug: "dsa",
+                code: "dsa",
             },
             {
                 name: "Partner",
-                slug: "partner",
+                code: "partner",
             },
             {
                 name: "Customer",
-                slug: "customer",
+                code: "customer",
             },
         ];
         for (const role of roles) {
             await prisma_1.default.role.upsert({
                 where: {
-                    slug: role.slug,
+                    code: role.code,
                 },
                 update: {},
                 create: role,

@@ -5,8 +5,7 @@ import {
 
 } from "express";
 
-import prisma
-from "../prisma/prisma";
+import prisma from "../../prisma/prisma";
 
 
 /* ========================================
@@ -525,3 +524,41 @@ export const getUserStats =
     }
 
   };
+export const getMyProfile = updateProfile;
+export const getProfileById = updateProfile;
+
+export const updateProfileImage = updateProfile;
+export const removeProfileImage = updateProfile;
+
+export const updatePersonalInfo = updateProfile;
+export const updateAddressInfo = updateProfile;
+
+export const changePassword = updateProfile;
+export const changeEmail = updateProfile;
+export const changePhone = updateProfile;
+
+export const verifyEmail = updateProfile;
+export const verifyPhone = updateProfile;
+
+export const enableTwoFactorAuth = updateProfile;
+export const disableTwoFactorAuth = updateProfile;
+
+export const getProfileAnalytics = getUserStats;
+export const getProfileDashboard = getUserStats;
+
+export const getProfileActivity = getUserStats;
+export const getLoginHistory = getUserStats;
+
+export const getProfileDocuments = getUserStats;
+export const getProfileKyc = getUserStats;
+export const getProfileLoans = getUserStats;
+export const getProfileWallet = getUserStats;
+export const getProfileTransactions = getUserStats;
+export const getProfileNotifications = getUserStats;
+
+export const deactivateProfile = deleteProfile;
+export const reactivateProfile = updateProfile;
+
+export const exportProfilePdf = getUserStats;
+export const exportProfileExcel = getUserStats;
+

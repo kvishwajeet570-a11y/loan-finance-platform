@@ -1,0 +1,463 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+type KycData = {
+  id?: string;
+  status?: string;
+  panNumber?: string;
+  aadhaarNumber?: string;
+  address?: string;
+  bankAccountNumber?: string;
+  panVerificationStatus?: string;
+  aadhaarVerificationStatus?: string;
+  bankVerificationStatus?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+function getToken() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem("loan_finance_token") || "";
+}
+
+function getUser() {
+  if (typeof window === "undefined") return null;
+  try {
+    return JSON.parse(localStorage.getItem("loan_finance_user") || "null");
+  } catch {
+    return null;
+  }
+}
+
+function state(value?: string) {
+  return (value || "").toUpperCase();
+}
+
+function Status({
+  value,
+  approved = "VERIFIED",
+}: {
+  value?: string;
+  approved?: string;
+}) {
+  const ok = state(value) === approved;
+
+  return ok ? (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-white">
+        ✓
+      </span>
+      Verified
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-amber-400 text-[10px] text-white">
+        !
+      </span>
+      Pending
+    </span>
+  );
+}
+
+function maskPan(value?: string) {
+  if (!value) return "Not submitted";
+  if (value.length < 5) return value;
+  return `${value.slice(0, 2)}••••••${value.slice(-1)}`;
+}
+
+function maskAadhaar(value?: string) {
+  if (!value) return "Not submitted";
+  const d = value.replace(/\D/g, "");
+  return d.length >= 4 ? `XXXX XXXX ${d.slice(-4)}` : value;
+}
+
+function maskBank(value?: string) {
+  if (!value) return "Not submitted";
+  const d = value.replace(/\D/g, "");
+  return d.length >= 4 ? `XXXX XXXX ${d.slice(-4)}` : value;
+}
+
+function DocumentCard({
+  type,
+  number,
+  verified,
+}: {
+  type: "pan" | "aadhaar";
+  number: string;
+  verified: boolean;
+}) {
+  const pan = type === "pan";
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-extrabold text-[#102a56]">
+            {pan ? "PAN Card" : "Aadhaar Card"}
+          </h3>
+          <p className="text-xs text-slate-500">
+            {pan ? "Permanent Account Number" : "Unique Identification"}
+          </p>
+        </div>
+
+        <Status value={verified ? "VERIFIED" : "PENDING"} />
+      </div>
+
+      <div
+        className={`flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border ${
+          pan
+            ? "border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-50"
+            : "border-orange-100 bg-gradient-to-br from-orange-50 via-white to-green-50"
+        }`}
+      >
+        {pan ? (
+          <div className="w-[78%] rounded-xl border border-slate-200 bg-white p-4 shadow-md">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs font-extrabold text-slate-700">
+                  आयकर विभाग
+                </div>
+                <div className="text-[8px] font-medium text-slate-500">
+                  INCOME TAX DEPARTMENT
+                </div>
+              </div>
+              <div className="text-xl">🇮🇳</div>
+            </div>
+
+            <div className="my-2 h-1 rounded-full bg-blue-100" />
+
+            <div className="text-xl font-black tracking-wide text-[#102a56]">
+              PAN CARD
+            </div>
+
+            <div className="mt-1 text-[8px] font-bold text-slate-500">
+              GOVERNMENT OF INDIA
+            </div>
+          </div>
+        ) : (
+          <div className="w-[78%] rounded-xl border border-slate-200 bg-white p-4 text-center shadow-md">
+            <div className="text-3xl font-black text-red-500">आधार</div>
+
+            <div className="my-2 h-1 rounded-full bg-gradient-to-r from-orange-400 via-white to-green-500" />
+
+            <div className="text-[9px] font-extrabold text-slate-600">
+              GOVERNMENT OF INDIA
+            </div>
+
+            <div className="mt-1 text-[8px] font-bold text-slate-400">
+              UNIQUE IDENTIFICATION
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4 flex items-end justify-between">
+        <div>
+          <div className="text-xs font-medium text-slate-500">
+            {pan ? "PAN Number" : "Aadhaar Number"}
+          </div>
+          <div className="mt-1 text-base font-extrabold tracking-wide text-[#102a56]">
+            {number}
+          </div>
+        </div>
+
+        {verified && (
+          <div className="text-xs font-bold text-emerald-600">
+            ✓ Verified
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function KycStatusPage() {
+  const [kyc, setKyc] = useState<KycData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [support, setSupport] = useState("");
+
+  useEffect(() => {
+    async function loadKyc() {
+      try {
+        const user = getUser();
+
+        if (!user?.id) {
+          setError("Customer session not found.");
+          return;
+        }
+
+        const response = await fetch(`${API}/kyc/user/${user.id}`, {
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          credentials: "include",
+        });
+
+        const json = await response.json();
+
+        if (!response.ok) {
+          throw new Error(json?.message || "Unable to load KYC status.");
+        }
+
+        setKyc(json?.data || null);
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Unable to load KYC status."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadKyc();
+  }, []);
+
+  const user = getUser();
+
+  const panVerified =
+    state(kyc?.panVerificationStatus) === "VERIFIED";
+
+  const aadhaarVerified =
+    state(kyc?.aadhaarVerificationStatus) === "VERIFIED";
+
+  const bankVerified =
+    state(kyc?.bankVerificationStatus) === "VERIFIED";
+
+  const approved = state(kyc?.status) === "APPROVED";
+  const rejected = state(kyc?.status) === "REJECTED";
+
+  const completedSteps = [
+    true,
+    panVerified && aadhaarVerified,
+    false,
+    bankVerified,
+    approved,
+  ].filter(Boolean).length;
+
+  const progress = Math.round((completedSteps / 5) * 100);
+
+  const name =
+    user?.name ||
+    user?.fullName ||
+    user?.firstName ||
+    "Customer";
+
+  const overallText = approved
+    ? "KYC Verified"
+    : rejected
+      ? "KYC Rejected"
+      : "KYC In Progress";
+
+  return (
+    <main className="min-h-screen bg-[#f4f8ff] px-4 pb-24 pt-4 md:px-6">
+      <div className="mx-auto max-w-[1400px] space-y-4">
+
+        {/* STATUS BANNER */}
+        <section className="relative overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+          <div className="relative aspect-[5/1] min-h-[210px] w-full overflow-hidden">
+            <img
+              src="/images/kyc/kyc-status-banner.png"
+              alt="KYC Status Verification Journey"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </div>
+        </section>
+        {/* REAL STATUS */}
+        <section className="rounded-2xl border border-blue-100 bg-white p-6 shadow-sm">
+          {loading ? (
+            <div className="py-10 text-center text-sm font-semibold text-slate-500">
+              Loading your real KYC status...
+            </div>
+          ) : error ? (
+            <div className="rounded-xl border border-red-100 bg-red-50 p-5 text-sm font-semibold text-red-600">
+              {error}
+            </div>
+          ) : !kyc ? (
+            <div className="rounded-xl border border-amber-100 bg-amber-50 p-5">
+              <div className="text-lg font-extrabold text-amber-800">
+                KYC Not Started
+              </div>
+              <p className="mt-1 text-sm text-amber-700">
+                No KYC application has been submitted yet.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`flex h-16 w-16 items-center justify-center rounded-full ${
+                      approved
+                        ? "bg-emerald-50 text-emerald-600"
+                        : rejected
+                          ? "bg-red-50 text-red-600"
+                          : "bg-amber-50 text-amber-600"
+                    }`}
+                  >
+                    <span className="text-3xl font-black">
+                      {approved ? "✓" : rejected ? "!" : "…"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-2xl font-black text-[#102a56]">
+                        {overallText}
+                      </h2>
+
+                      <Status
+                        value={kyc.status}
+                        approved="APPROVED"
+                      />
+                    </div>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Customer:{" "}
+                      <span className="font-bold text-slate-700">
+                        {name}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="min-w-[280px]">
+                  <div className="mb-2 flex justify-between text-sm font-bold text-[#102a56]">
+                    <span>Verification Progress</span>
+                    <span>{progress}%</span>
+                  </div>
+
+                  <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full ${
+                        approved ? "bg-emerald-500" : "bg-blue-500"
+                      }`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* DOCUMENTS */}
+              <div className="mt-7 border-t border-slate-100 pt-7">
+                <div className="mb-5">
+                  <h2 className="text-xl font-black text-[#102a56]">
+                    Document Verification
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Status shown below comes directly from your KYC record.
+                  </p>
+                </div>
+
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <DocumentCard
+                    type="pan"
+                    number={maskPan(kyc.panNumber)}
+                    verified={panVerified}
+                  />
+
+                  <DocumentCard
+                    type="aadhaar"
+                    number={maskAadhaar(kyc.aadhaarNumber)}
+                    verified={aadhaarVerified}
+                  />
+                </div>
+              </div>
+
+              {/* VERIFICATION STEPS */}
+              <div className="mt-7 border-t border-slate-100 pt-7">
+                <h2 className="text-xl font-black text-[#102a56]">
+                  Verification Steps
+                </h2>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ["Personal Details", true],
+                    ["PAN Verification", panVerified],
+                    ["Aadhaar Verification", aadhaarVerified],
+                    ["Bank Verification", bankVerified],
+                  ].map(([label, done]) => (
+                    <div
+                      key={String(label)}
+                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-4"
+                    >
+                      <span className="text-sm font-bold text-slate-700">
+                        {label}
+                      </span>
+
+                      <span
+                        className={`text-xs font-extrabold ${
+                          done
+                            ? "text-emerald-600"
+                            : "text-amber-600"
+                        }`}
+                      >
+                        {done ? "✓ Verified" : "Pending"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* BANK */}
+              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm font-extrabold text-[#102a56]">
+                      🏦 Bank Account Verification
+                    </div>
+                    <div className="mt-1 text-sm text-slate-500">
+                      {maskBank(kyc.bankAccountNumber)}
+                    </div>
+                  </div>
+
+                  <Status
+                    value={bankVerified ? "VERIFIED" : "PENDING"}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* SUPPORT */}
+        <section className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-black text-[#102a56]">
+                Need Help?
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Contact support if your verification is taking longer than expected.
+              </p>
+
+              {support && (
+                <p className="mt-2 text-sm font-bold text-emerald-600">
+                  {support}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                setSupport(
+                  "Support request noted. Please contact the support team for assistance."
+                )
+              }
+              className="rounded-xl border border-blue-200 bg-white px-6 py-3 text-sm font-bold text-blue-600 shadow-sm hover:bg-blue-50"
+            >
+              🎧 Contact Support
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+

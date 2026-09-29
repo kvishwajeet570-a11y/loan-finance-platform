@@ -1,0 +1,994 @@
+﻿"use client";
+
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  Search,
+  SlidersHorizontal,
+  ChevronDown,
+  ChevronUp,
+  ArrowRight,
+  CheckCircle2,
+  Zap,
+  ShieldCheck,
+  Star,
+  Building2,
+  IndianRupee,
+  Percent,
+  CalendarDays,
+  X,
+} from "lucide-react";
+
+type Offer = {
+  id: string;
+  company: string;
+  short: string;
+  loan: string;
+  category: string;
+  amount: string;
+  rate: string;
+  fee: string;
+  tenure: string;
+  rating: string;
+  customers: string;
+  tag?: string;
+                            featured?: boolean;
+  instant?: boolean;
+};
+
+const offers: Offer[] = [
+  {
+    id: "poonawalla-personal",
+    company: "Poonawalla Fincorp",
+    short: "P",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹20 Lakh",
+    rate: "10.99%",
+    fee: "Up to 2%",
+    tenure: "7 Years",
+    rating: "4.7",
+    customers: "2.5L+",
+    tag: "Popular",
+  },
+  {
+    id: "bajaj-personal",
+    company: "Bajaj Finance",
+    short: "B",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹40 Lakh",
+    rate: "11%",
+    fee: "Up to 2%",
+    tenure: "8 Years",
+    rating: "4.8",
+    customers: "5L+",
+    tag: "Top Partner",
+                            featured: true,
+  },
+  {
+    id: "tata-personal",
+    company: "Tata Capital",
+    short: "T",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹35 Lakh",
+    rate: "10.99%",
+    fee: "Up to 2%",
+    tenure: "7 Years",
+    rating: "4.7",
+    customers: "3L+",
+                            featured: true,
+  },
+  {
+    id: "aditya-personal",
+    company: "Aditya Birla Capital",
+    short: "AB",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹30 Lakh",
+    rate: "11.25%",
+    fee: "Up to 2%",
+    tenure: "7 Years",
+    rating: "4.6",
+    customers: "2L+",
+    tag: "Fast Processing",
+  },
+  {
+    id: "lt-personal",
+    company: "L&T Finance",
+    short: "L&T",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹15 Lakh",
+    rate: "11.99%",
+    fee: "Up to 2%",
+    tenure: "6 Years",
+    rating: "4.6",
+    customers: "1.5L+",
+    instant: true,
+  },
+  {
+    id: "shriram-business",
+    company: "Shriram Finance",
+    short: "SF",
+    loan: "Business Loan",
+    category: "Business",
+    amount: "â‚¹50 Lakh",
+    rate: "12%",
+    fee: "As applicable",
+    tenure: "7 Years",
+    rating: "4.6",
+    customers: "3L+",
+    tag: "Business Special",
+  },
+  {
+    id: "mahindra-business",
+    company: "Mahindra Finance",
+    short: "MF",
+    loan: "Business Loan",
+    category: "Business",
+    amount: "â‚¹25 Lakh",
+    rate: "11.5%",
+    fee: "As applicable",
+    tenure: "7 Years",
+    rating: "4.5",
+    customers: "2L+",
+  },
+  {
+    id: "hero-personal",
+    company: "Hero FinCorp",
+    short: "HF",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹15 Lakh",
+    rate: "12%",
+    fee: "Up to 2%",
+    tenure: "5 Years",
+    rating: "4.5",
+    customers: "1L+",
+    instant: true,
+  },
+  {
+    id: "muthoot-personal",
+    company: "Muthoot Finance",
+    short: "M",
+    loan: "Personal Loan",
+    category: "Personal",
+    amount: "â‚¹10 Lakh",
+    rate: "12.5%",
+    fee: "Up to 2%",
+    tenure: "5 Years",
+    rating: "4.5",
+    customers: "1L+",
+  },
+  {
+    id: "chola-vehicle",
+    company: "Cholamandalam Finance",
+    short: "C",
+    loan: "Vehicle Loan",
+    category: "Vehicle",
+    amount: "â‚¹30 Lakh",
+    rate: "10.5%",
+    fee: "As applicable",
+    tenure: "7 Years",
+    rating: "4.6",
+    customers: "2L+",
+    tag: "Vehicle Special",
+  },
+  {
+    id: "tata-home",
+    company: "Tata Capital",
+    short: "T",
+    loan: "Home Loan",
+    category: "Home",
+    amount: "â‚¹2 Crore",
+    rate: "8.75%",
+    fee: "As applicable",
+    tenure: "30 Years",
+    rating: "4.8",
+    customers: "4L+",
+  },
+  {
+    id: "bajaj-business",
+    company: "Bajaj Finance",
+    short: "B",
+    loan: "Business Loan",
+    category: "Business",
+    amount: "â‚¹80 Lakh",
+    rate: "11.5%",
+    fee: "Up to 2%",
+    tenure: "7 Years",
+    rating: "4.8",
+    customers: "4L+",
+                            featured: true,
+  },
+  {
+    id: "poonawalla-business",
+    company: "Poonawalla Fincorp",
+    short: "P",
+    loan: "Business Loan",
+    category: "Business",
+    amount: "â‚¹30 Lakh",
+    rate: "12%",
+    fee: "Up to 2%",
+    tenure: "6 Years",
+    rating: "4.7",
+    customers: "1.5L+",
+  },
+  {
+    id: "mahindra-vehicle",
+    company: "Mahindra Finance",
+    short: "MF",
+    loan: "Vehicle Loan",
+    category: "Vehicle",
+    amount: "â‚¹35 Lakh",
+    rate: "10.25%",
+    fee: "As applicable",
+    tenure: "7 Years",
+    rating: "4.6",
+    customers: "2L+",
+                            featured: true,
+  },
+  {
+    id: "shriram-vehicle",
+    company: "Shriram Finance",
+    short: "SF",
+    loan: "Commercial Vehicle Loan",
+    category: "Vehicle",
+    amount: "â‚¹40 Lakh",
+    rate: "10.75%",
+    fee: "As applicable",
+    tenure: "7 Years",
+    rating: "4.6",
+    customers: "2L+",
+  },
+  {
+    id: "instant-1",
+    company: "Fibe",
+    short: "F",
+    loan: "Instant Personal Loan",
+    category: "Instant",
+    amount: "â‚¹5 Lakh",
+    rate: "12.5%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    rating: "4.5",
+    customers: "1L+",
+    instant: true,
+    tag: "Instant",
+  },
+  {
+    id: "instant-2",
+    company: "Moneyview",
+    short: "MV",
+    loan: "Instant Personal Loan",
+    category: "Instant",
+    amount: "â‚¹10 Lakh",
+    rate: "12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    rating: "4.5",
+    customers: "2L+",
+    instant: true,
+  },
+  {
+    id: "instant-3",
+    company: "SmartCoin",
+    short: "SC",
+    loan: "Instant Loan",
+    category: "Instant",
+    amount: "â‚¹1 Lakh",
+    rate: "12%",
+    fee: "As applicable",
+    tenure: "24 Months",
+    rating: "4.4",
+    customers: "1L+",
+    instant: true,
+  },
+];
+
+const categories = [
+  "All",
+  "Personal",
+  "Business",
+  "Home",
+  "Vehicle",
+  "Instant",
+];
+
+export default function ApplyLoanPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const selectedOfferId = searchParams.get("offer");
+  const selectedCompany = searchParams.get("company");
+  const selectedProduct = searchParams.get("product");
+
+  const selectedOffer = useMemo(() => {
+    if (selectedOfferId) {
+      const byId = offers.find((offer) => offer.id === selectedOfferId);
+      if (byId) return byId;
+    }
+
+    if (selectedCompany && selectedProduct) {
+      return offers.find(
+        (offer) =>
+          offer.company === selectedCompany &&
+          offer.loan === selectedProduct
+      );
+    }
+
+    return offers[0];
+  }, [selectedOfferId, selectedCompany, selectedProduct]);
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [applyOffer, setApplyOffer] = useState<Offer | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [pan, setPan] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return offers.filter((offer) => {
+      const matchesSearch =
+        !query ||
+        offer.company.toLowerCase().includes(query) ||
+        offer.loan.toLowerCase().includes(query);
+
+      const matchesCategory =
+        category === "All" || offer.category === category;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [search, category]);
+
+  const applyNow = (offer: Offer) => {
+    setApplyOffer(offer);
+    setFullName("");
+    setPhone("");
+    setPan("");
+    setAcceptedTerms(false);
+  };
+
+  return (
+    <main className="min-h-screen bg-[#f5f7fb] text-slate-900">
+      <style jsx>{`
+        .loan-card {
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            border-color 0.25s ease;
+        }
+
+        .loan-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 22px 55px rgba(15, 23, 42, 0.1);
+          border-color: rgba(37, 99, 235, 0.25);
+        }
+
+        .apply-button {
+          transition: all 0.2s ease;
+        }
+
+        .apply-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 28px rgba(37, 99, 235, 0.3);
+        }
+      `}</style>
+
+      {/* HEADER */}
+      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-[1240px] items-center justify-between px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-blue-700 to-cyan-500 font-black text-white shadow-lg shadow-blue-200">
+              IL
+            </div>
+
+            <div>
+              <div className="text-[16px] font-black text-slate-950">
+                India Loan Finance
+              </div>
+              <div className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                Your Growth â€¢ Our Support
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden items-center gap-5 md:flex">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+              <ShieldCheck size={17} className="text-emerald-500" />
+              Secure Application
+            </div>
+
+            <div className="rounded-full bg-blue-50 px-4 py-2 text-xs font-black text-blue-700">
+              {offers.length}+ Offers
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* HERO */}
+      <section className="mx-auto max-w-[1240px] px-5 pb-6 pt-10">
+        <div className="overflow-hidden rounded-[28px] bg-gradient-to-br from-[#081b4b] via-[#123c91] to-[#2563eb] p-7 text-white shadow-2xl shadow-blue-200 md:p-10">
+          <div className="flex flex-col justify-between gap-8 lg:flex-row lg:items-end">
+            <div>
+              <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-cyan-200">
+                <Zap size={15} />
+                Loan Marketplace
+              </div>
+
+              <h1 className="max-w-3xl text-3xl font-black tracking-tight md:text-5xl">
+                Choose the right loan from
+                <span className="text-cyan-300"> multiple partners.</span>
+              </h1>
+
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-blue-100 md:text-base">
+                Compare loan amount, interest rate, processing fee and tenure
+                before starting your application.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                <div className="text-2xl font-black">{offers.length}+</div>
+                <div className="mt-1 text-[10px] font-bold uppercase text-blue-200">
+                  Offers
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur">
+                <div className="text-2xl font-black">6</div>
+                <div className="mt-1 text-[10px] font-bold uppercase text-blue-200">
+                  Categories
+                </div>
+              </div>
+
+              <div className="hidden rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur sm:block">
+                <div className="text-2xl font-black">24Ã—7</div>
+                <div className="mt-1 text-[10px] font-bold uppercase text-blue-200">
+                  Online
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SEARCH */}
+        <div className="-mt-5 relative z-10 rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm p-3 shadow-xl">
+          <div className="flex flex-col gap-3 lg:flex-row">
+            <div className="relative flex-1">
+              <Search
+                size={19}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search company, personal loan, business loan..."
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:bg-white"
+              />
+            </div>
+
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 px-5 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            >
+              <SlidersHorizontal size={17} />
+              Filters
+            </button>
+          </div>
+
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            {categories.map((item) => (
+              <button
+                key={item}
+                onClick={() => setCategory(item)}
+                className={`whitespace-nowrap rounded-xl px-5 py-2.5 text-xs font-black transition ${
+                  category === item
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {item} Loan
+              </button>
+            ))}
+          </div>
+
+          {showFilters && (
+            <div className="mt-3 flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 p-4">
+              <div className="text-xs font-bold text-blue-800">
+                Showing {filtered.length} available loan offers
+              </div>
+
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setCategory("All");
+                  setShowFilters(false);
+                }}
+                className="flex items-center gap-1 text-xs font-black text-blue-600"
+              >
+                <X size={14} />
+                Reset
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* TITLE */}
+      <section className="mx-auto max-w-[1240px] px-5 pb-4">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-600">
+              Available Offers
+            </p>
+
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
+              Compare & Apply
+            </h2>
+          </div>
+
+          <div className="text-xs font-semibold text-slate-400">
+            {filtered.length} offers available
+          </div>
+        </div>
+      </section>
+
+      {/* LONG HORIZONTAL CARDS */}
+      <section className="mx-auto max-w-[1240px] space-y-4 px-5 pb-20">
+        {filtered.map((offer) => {
+          const isExpanded = expanded === offer.id;
+
+          return (
+            <article
+              key={offer.id}
+              className="loan-card overflow-hidden rounded-[22px] border border-slate-200 bg-slate-50/70 shadow-sm"
+            >
+              <div className="p-5 md:p-6">
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
+                  {/* COMPANY */}
+                  <div className="flex min-w-[280px] flex-1 items-center gap-4">
+                    <div className="relative">
+                      <div className="flex h-[62px] w-[62px] items-center justify-center rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-indigo-100 text-lg font-black text-blue-700 shadow-sm">
+                        {offer.short}
+                      </div>
+
+                      {offer.instant && (
+                        <div className="absolute -right-2 -top-2 rounded-full bg-emerald-500 px-2 py-1 text-[8px] font-black text-white shadow">
+                          FAST
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-[17px] font-black text-slate-950">
+                          {offer.company}
+                        </h3>
+
+                        {offer.featured && (
+                          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-amber-700">
+                            â­ Featured
+                          </span>
+                        )}
+
+                        {offer.tag && (
+                          <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wide text-blue-700">
+                            {offer.tag}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-sm font-bold text-slate-600">
+                          {offer.loan}
+                        </span>
+
+                        <span className="text-slate-300">â€¢</span>
+
+                        <span className="flex items-center gap-1 text-xs font-bold text-amber-500">
+                          <Star size={12} fill="currentColor" />
+                          {offer.rating}
+                        </span>
+                      </div>
+
+                      <div className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-slate-400">
+                        <Building2 size={12} />
+                        {offer.customers} customers served
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DISBURSEMENT */}
+                  <div className="hidden xl:block">
+                    <div className="rounded-full border border-emerald-100 bg-emerald-50 px-5 py-2.5 text-[10px] font-black uppercase tracking-wide text-emerald-700">
+                      <span className="mr-1">â†’</span>
+                            âš¡ HIGH DISBURSEMENT
+                    </div>
+                  </div>
+
+                  {/* APPLY */}
+                  <button
+                    onClick={() => applyNow(offer)}
+                    className="apply-button flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-200 xl:min-w-[155px]"
+                  >
+                    Apply Now
+                    <ArrowRight size={17} />
+                  </button>
+                </div>
+
+                {/* METRICS */}
+                <div className="my-5 h-px bg-slate-100" />
+
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      <IndianRupee size={13} />
+                      Loan Amount
+                    </div>
+                    <div className="mt-2 text-sm font-black text-slate-950">
+                      Up to {offer.amount}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      <Percent size={13} />
+                      Interest Rate
+                    </div>
+                    <div className="mt-2 text-sm font-black text-slate-950">
+                      From {offer.rate}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <div className="text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      Processing Fee
+                    </div>
+                    <div className="mt-2 text-sm font-black text-slate-950">
+                      {offer.fee}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                      <CalendarDays size={13} />
+                      Tenure
+                    </div>
+                    <div className="mt-2 text-sm font-black text-slate-950">
+                      {offer.tenure}
+                    </div>
+                  </div>
+                </div>
+
+                {/* BOTTOM */}
+                <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <CheckCircle2
+                      size={16}
+                      className="text-emerald-500"
+                    />
+                    Eligibility depends on lender policy & customer profile
+                  </div>
+
+                  <button
+                    onClick={() =>
+                      setExpanded(isExpanded ? null : offer.id)
+                    }
+                    className="flex items-center justify-center gap-1 text-xs font-black text-blue-600 hover:text-indigo-700"
+                  >
+                    {isExpanded ? "Hide Offer Details" : "Detailed Offers"}
+                    {isExpanded ? (
+                      <ChevronUp size={15} />
+                    ) : (
+                      <ChevronDown size={15} />
+                    )}
+                  </button>
+                </div>
+
+                {/* DETAILS */}
+                {isExpanded && (
+                  <div className="mt-4 rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+                    <div className="grid gap-3 md:grid-cols-3">
+                      <div className="rounded-xl bg-white p-4">
+                        <div className="text-[10px] font-black uppercase text-slate-400">
+                          Application
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-sm font-black text-emerald-600">
+                          <CheckCircle2 size={15} />
+                          Online Process
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-4">
+                        <div className="text-[10px] font-black uppercase text-slate-400">
+                          Verification
+                        </div>
+                        <div className="mt-2 text-sm font-black text-slate-800">
+                          KYC & Profile Check
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-4">
+                        <div className="text-[10px] font-black uppercase text-slate-400">
+                          Partner Status
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-sm font-black text-emerald-600">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                          Available
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-col justify-between gap-4 rounded-xl border border-white bg-white/70 p-4 md:flex-row md:items-center">
+                      <div>
+                        <div className="text-sm font-black text-slate-900">
+                          Ready to check eligibility?
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          Continue with this lender and loan product.
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => applyNow(offer)}
+                        className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-blue-500/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/30"
+                      >
+                        Continue Application
+                        <ArrowRight size={15} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm px-6 py-16 text-center shadow-sm">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <Search size={28} />
+            </div>
+
+            <h3 className="mt-5 text-xl font-black text-slate-900">
+              No matching loan offers
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-500">
+              Try another company name or select a different loan category.
+            </p>
+
+            <button
+              onClick={() => {
+                setSearch("");
+                setCategory("All");
+              }}
+              className="mt-5 rounded-xl bg-blue-600 px-5 py-3 text-xs font-black text-white"
+            >
+              Show All Offers
+            </button>
+          </div>
+        )}
+      </section>
+
+      {/* APPLY NOW MODAL */}
+      {applyOffer && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-md"
+          onClick={() => setApplyOffer(null)}
+        >
+          <div className="relative w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+
+            {/* HEADER */}
+            <div className="border-b border-white/10 bg-gradient-to-r from-blue-700 via-indigo-700 to-violet-700 px-6 py-6 text-white">
+              <button
+                type="button"
+                onClick={() => setApplyOffer(null)}
+                className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/15 text-xl font-bold text-white backdrop-blur transition hover:bg-white/25"
+              >
+                Ã—</button>
+
+              <div className="pr-10">
+                <h2 className="text-xl font-black text-slate-900">
+                  <span className="block text-xs font-bold uppercase tracking-[0.18em] text-blue-100">Loan Application</span>
+                  <span className="mt-1 block text-2xl font-black tracking-tight">Applying for {applyOffer.company}</span>
+                </h2>
+
+                <p className="mt-1 text-sm font-semibold text-slate-600">
+                  <span className="mt-2 inline-flex items-center rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold text-blue-50 backdrop-blur">Interest Rate: {applyOffer.rate}</span>
+                </p>
+              </div>
+            </div>
+
+            {/* FORM */}
+            <div className="space-y-5 bg-slate-50/80 px-6 py-7">
+
+              {/* FULL NAME */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Full Name
+                </label>
+
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter full name"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm px-4 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+
+              {/* PHONE */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  Phone
+                </label>
+
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) =>
+                    setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))
+                  }
+                  placeholder="Enter 10 digit mobile number"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm px-4 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+
+              {/* PAN */}
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">
+                  PAN
+                </label>
+
+                <input
+                  type="text"
+                  value={pan}
+                  onChange={(e) =>
+                    setPan(e.target.value.toUpperCase().slice(0, 10))
+                  }
+                  placeholder="Enter PAN number"
+                  className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/70 shadow-sm px-4 text-sm font-semibold uppercase outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+
+              {/* TERMS */}
+              <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-blue-600"
+                />
+
+                <span>
+                  I accept{" "}
+                  <span className="font-semibold text-blue-600 underline">
+                    Privacy Policy
+                  </span>{" "}
+                  and{" "}
+                  <span className="font-semibold text-blue-600 underline">
+                    Terms & Conditions
+                  </span>
+                </span>
+              </label>
+
+              {/* APPLY / LOGIN */}
+              <button
+                type="button"
+                disabled={
+                  !fullName.trim() ||
+                  phone.length !== 10 ||
+                  pan.length !== 10 ||
+                  !acceptedTerms
+                }
+                onClick={async () => {
+                  if (
+                    !fullName.trim() ||
+                    phone.length !== 10 ||
+                    pan.length !== 10 ||
+                    !acceptedTerms ||
+                    !applyOffer
+                  ) {
+                    return;
+                  }
+
+                  try {
+                    const API =
+                      process.env.NEXT_PUBLIC_API_URL ||
+                      "http://localhost:5000/api";
+
+                    const params = new URLSearchParams(window.location.search);
+
+                    const response = await fetch(`${API}/loan/start`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify({
+                        fullName: fullName.trim(),
+                        phone: phone.trim(),
+                        panNo: pan.trim().toUpperCase(),
+                        loanType: applyOffer.loan,
+                        referralCode: params.get("ref") || undefined,
+                        source: params.get("utm_source") ? "DSA" : "PUBLIC",
+                        utmSource: params.get("utm_source") || undefined,
+                        utmMedium: params.get("utm_medium") || undefined,
+                        utmCampaign: params.get("utm_campaign") || undefined,
+                      }),
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || !result.success) {
+                      alert(result.message || "Application submit nahi ho payi.");
+                      return;
+                    }
+
+                    setApplyOffer(null);
+
+                    const lenderUrls: Record<string, string> = {
+                      "Poonawalla Fincorp":
+                        "https://instant-pocket-loan.poonawallafincorp.com/",
+                      "Bajaj Finance":
+                        "https://www.bajajfinserv.in/personal-loan",
+                      "Moneyview":
+                        "https://moneyview.in/apply-loan/signup",
+                    };
+
+                    const lenderUrl =
+                      lenderUrls[applyOffer.company] ||
+                      "https://www.poonawallafincorp.com/";
+
+                    window.location.href = lenderUrl;
+                  } catch (error) {
+                    console.error("Application submission error:", error);
+                    alert("Server se connection nahi ho pa raha. Please try again.");
+                  }
+                }}
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+              >
+                Continue Application
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+      {/* DISCLAIMER */}
+      <footer className="border-t border-slate-200 bg-white">
+        <div className="mx-auto max-w-[1240px] px-5 py-8">
+          <div className="flex flex-col gap-3 text-[11px] leading-5 text-slate-400 md:flex-row md:justify-between">
+            <p>
+              Loan approval, interest rate, amount, tenure and processing fee
+              are subject to the respective lender's policies and applicant
+              eligibility.
+            </p>
+
+            <p className="shrink-0 font-bold">
+              India Loan Finance â€¢ Loan Partner Platform
+            </p>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}
+
+
+
+
+
+
+
+
+

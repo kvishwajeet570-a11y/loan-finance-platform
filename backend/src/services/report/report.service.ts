@@ -1,4 +1,4 @@
-import prisma from "../../prisma/prisma";
+import prisma from "../../config/database/prisma";
 
 class ReportService {
   /**
@@ -55,19 +55,19 @@ class ReportService {
 
       prisma.loanApplication.count({
         where: {
-          status: "approved",
+          status: "APPROVED",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "rejected",
+          status: "REJECTED",
         },
       }),
 
       prisma.loanApplication.count({
         where: {
-          status: "pending",
+          status: "PENDING",
         },
       }),
 
@@ -140,7 +140,7 @@ class ReportService {
       by: ["assignedTo"],
 
       where: {
-        status: "approved",
+        status: "APPROVED",
       },
 
       _count: {

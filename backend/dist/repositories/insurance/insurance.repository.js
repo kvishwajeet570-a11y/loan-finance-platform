@@ -1,241 +1,225 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InsuranceRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class InsuranceRepository {
     /* ==========================
-        CREATE POLICY
+        INSURANCE PRODUCTS
     ========================== */
-    static async createPolicy(data) {
-        return prisma_1.prisma.insurancePolicy.create({
-            data
+    static async createInsurance(data) {
+        return prisma_1.default.insurance.create({
+            data,
         });
     }
-    /* ==========================
-        GET POLICY BY ID
-    ========================== */
-    static async getPolicyById(policyId) {
-        return prisma_1.prisma.insurancePolicy.findUnique({
-            where: {
-                id: policyId
-            },
+    static async getInsuranceById(id) {
+        return prisma_1.default.insurance.findUnique({
+            where: { id },
             include: {
-                user: true
-            }
-        });
-    }
-    /* ==========================
-        GET POLICY NUMBER
-    ========================== */
-    static async getPolicyByNumber(policyNumber) {
-        return prisma_1.prisma.insurancePolicy.findUnique({
-            where: {
-                policyNumber
-            }
-        });
-    }
-    /* ==========================
-        USER POLICIES
-    ========================== */
-    static async getUserPolicies(userId) {
-        return prisma_1.prisma.insurancePolicy.findMany({
-            where: {
-                userId
+                applications: true,
+                claims: true,
             },
-            orderBy: {
-                createdAt: "desc"
-            }
         });
     }
-    /* ==========================
-        ACTIVE POLICIES
-    ========================== */
-    static async getActivePolicies() {
-        return prisma_1.prisma.insurancePolicy.findMany({
+    static async getInsuranceByPolicyNumber(policyNumber) {
+        return prisma_1.default.insurance.findUnique({
             where: {
-                status: "ACTIVE"
-            }
-        });
-    }
-    /* ==========================
-        EXPIRED POLICIES
-    ========================== */
-    static async getExpiredPolicies() {
-        return prisma_1.prisma.insurancePolicy.findMany({
-            where: {
-                expiryDate: {
-                    lt: new Date()
-                }
-            }
-        });
-    }
-    /* ==========================
-        RENEWAL DUE
-    ========================== */
-    static async getRenewalDuePolicies(days = 30) {
-        const targetDate = new Date();
-        targetDate.setDate(targetDate.getDate() + days);
-        return prisma_1.prisma.insurancePolicy.findMany({
-            where: {
-                expiryDate: {
-                    lte: targetDate
-                },
-                status: "ACTIVE"
-            }
-        });
-    }
-    /* ==========================
-        UPDATE POLICY
-    ========================== */
-    static async updatePolicy(policyId, data) {
-        return prisma_1.prisma.insurancePolicy.update({
-            where: {
-                id: policyId
+                policyNumber,
             },
-            data
         });
     }
-    /* ==========================
-        CANCEL POLICY
-    ========================== */
-    static async cancelPolicy(policyId) {
-        return prisma_1.prisma.insurancePolicy.update({
-            where: {
-                id: policyId
-            },
-            data: {
-                status: "CANCELLED"
-            }
-        });
-    }
-    /* ==========================
-        RENEW POLICY
-    ========================== */
-    static async renewPolicy(policyId, expiryDate) {
-        return prisma_1.prisma.insurancePolicy.update({
-            where: {
-                id: policyId
-            },
-            data: {
-                expiryDate,
-                status: "ACTIVE"
-            }
-        });
-    }
-    /* ==========================
-        DELETE POLICY
-    ========================== */
-    static async deletePolicy(policyId) {
-        return prisma_1.prisma.insurancePolicy.delete({
-            where: {
-                id: policyId
-            }
-        });
-    }
-    /* ==========================
-        SEARCH POLICIES
-    ========================== */
-    static async searchPolicies(keyword) {
-        return prisma_1.prisma.insurancePolicy.findMany({
-            where: {
-                OR: [
-                    {
-                        policyNumber: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
-                        provider: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-                    {
-                        policyType: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    }
-                ]
-            }
-        });
-    }
-    /* ==========================
-        ALL POLICIES
-    ========================== */
-    static async getAllPolicies(page = 1, limit = 20) {
+    static async getAllInsurances(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
-        const [policies, total] = await Promise.all([
-            prisma_1.prisma.insurancePolicy.findMany({
+        const [data, total] = await Promise.all([
+            prisma_1.default.insurance.findMany({
                 skip,
                 take: limit,
                 orderBy: {
-                    createdAt: "desc"
+                    createdAt: "desc",
                 },
-                include: {
-                    user: true
-                }
             }),
-            prisma_1.prisma.insurancePolicy.count()
+            prisma_1.default.insurance.count(),
         ]);
         return {
             total,
             page,
             limit,
-            policies
+            data,
         };
     }
+    static async updateInsurance(id, data) {
+        return prisma_1.default.insurance.update({
+            where: { id },
+            data,
+        });
+    }
+    static async deleteInsurance(id) {
+        return prisma_1.default.insurance.delete({
+            where: { id },
+        });
+    }
     /* ==========================
-        INSURANCE ANALYTICS
+        APPLICATIONS
+    ========================== */
+    static async createApplication(data) {
+        return prisma_1.default.insuranceApplication.create({
+            data: {
+                ...data,
+                status: "PENDING",
+            },
+        });
+    }
+    static async getApplicationById(applicationId) {
+        return prisma_1.default.insuranceApplication.findUnique({
+            where: {
+                id: applicationId,
+            },
+            include: {
+                user: true,
+                insuranceRef: true,
+                claims: true,
+            },
+        });
+    }
+    static async getUserApplications(userId) {
+        return prisma_1.default.insuranceApplication.findMany({
+            where: {
+                userId,
+            },
+            include: {
+                insuranceRef: true,
+                claims: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    static async approveApplication(applicationId) {
+        return prisma_1.default.insuranceApplication.update({
+            where: {
+                id: applicationId,
+            },
+            data: {
+                status: "APPROVED",
+                approvedAt: new Date(),
+            },
+        });
+    }
+    static async rejectApplication(applicationId, reason) {
+        return prisma_1.default.insuranceApplication.update({
+            where: {
+                id: applicationId,
+            },
+            data: {
+                status: "REJECTED",
+                rejectedAt: new Date(),
+                rejectionReason: reason,
+            },
+        });
+    }
+    /* ==========================
+        CLAIMS
+    ========================== */
+    static async createClaim(data) {
+        return prisma_1.default.insuranceClaim.create({
+            data,
+        });
+    }
+    static async getClaimById(claimId) {
+        return prisma_1.default.insuranceClaim.findUnique({
+            where: {
+                id: claimId,
+            },
+            include: {
+                application: true,
+                insurance: true,
+            },
+        });
+    }
+    static async getApplicationClaims(applicationId) {
+        return prisma_1.default.insuranceClaim.findMany({
+            where: {
+                applicationId,
+            },
+            include: {
+                insurance: true,
+            },
+            orderBy: {
+                createdAt: "desc",
+            },
+        });
+    }
+    static async approveClaim(claimId) {
+        return prisma_1.default.insuranceClaim.update({
+            where: {
+                id: claimId,
+            },
+            data: {
+                status: "APPROVED",
+                approvedAt: new Date(),
+            },
+        });
+    }
+    static async rejectClaim(claimId, reason) {
+        return prisma_1.default.insuranceClaim.update({
+            where: {
+                id: claimId,
+            },
+            data: {
+                status: "REJECTED",
+                rejectedAt: new Date(),
+                rejectionReason: reason,
+            },
+        });
+    }
+    /* ==========================
+        ANALYTICS
     ========================== */
     static async getAnalytics() {
-        const [totalPolicies, activePolicies, expiredPolicies, premiumSum, coverageSum] = await Promise.all([
-            prisma_1.prisma.insurancePolicy.count(),
-            prisma_1.prisma.insurancePolicy.count({
+        const [totalPolicies, totalApplications, approvedApplications, rejectedApplications, pendingApplications, totalClaims, approvedClaims, rejectedClaims,] = await Promise.all([
+            prisma_1.default.insurance.count(),
+            prisma_1.default.insuranceApplication.count(),
+            prisma_1.default.insuranceApplication.count({
                 where: {
-                    status: "ACTIVE"
-                }
+                    status: "APPROVED",
+                },
             }),
-            prisma_1.prisma.insurancePolicy.count({
+            prisma_1.default.insuranceApplication.count({
                 where: {
-                    expiryDate: {
-                        lt: new Date()
-                    }
-                }
+                    status: "REJECTED",
+                },
             }),
-            prisma_1.prisma.insurancePolicy.aggregate({
-                _sum: {
-                    premiumAmount: true
-                }
+            prisma_1.default.insuranceApplication.count({
+                where: {
+                    status: "PENDING",
+                },
             }),
-            prisma_1.prisma.insurancePolicy.aggregate({
-                _sum: {
-                    coverageAmount: true
-                }
-            })
+            prisma_1.default.insuranceClaim.count(),
+            prisma_1.default.insuranceClaim.count({
+                where: {
+                    status: "APPROVED",
+                },
+            }),
+            prisma_1.default.insuranceClaim.count({
+                where: {
+                    status: "REJECTED",
+                },
+            }),
         ]);
         return {
             totalPolicies,
-            activePolicies,
-            expiredPolicies,
-            totalPremium: premiumSum._sum.premiumAmount || 0,
-            totalCoverage: coverageSum._sum.coverageAmount || 0
+            totalApplications,
+            approvedApplications,
+            rejectedApplications,
+            pendingApplications,
+            totalClaims,
+            approvedClaims,
+            rejectedClaims,
         };
-    }
-    /* ==========================
-        PROVIDER ANALYTICS
-    ========================== */
-    static async providerAnalytics() {
-        return prisma_1.prisma.insurancePolicy.groupBy({
-            by: ["provider"],
-            _count: {
-                provider: true
-            },
-            _sum: {
-                premiumAmount: true
-            }
-        });
     }
 }
 exports.InsuranceRepository = InsuranceRepository;
+exports.default = InsuranceRepository;

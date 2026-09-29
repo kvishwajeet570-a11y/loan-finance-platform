@@ -1,0 +1,518 @@
+﻿"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+type Lender = {
+  id: string;
+  name: string;
+  short: string;
+  category: string;
+  amount: string;
+  rate: string;
+  fee: string;
+  tenure: string;
+  highDisbursement?: boolean;
+  description: string;
+};
+
+const lenders: Lender[] = [
+  {
+    id: "poonawalla-fincorp",
+    name: "Poonawalla Fincorp",
+    short: "P",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 11.8%",
+    fee: "1% to 1.2% + GST",
+    tenure: "3 Years",
+    highDisbursement: true,
+    description: "Personal loan eligibility subject to lender policy and customer profile."
+  },
+  {
+    id: "aditya-birla-capital",
+    name: "Aditya Birla Capital",
+    short: "AB",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12.25%",
+    fee: "1.2% to 1.4% + GST",
+    tenure: "4 Years",
+    highDisbursement: true,
+    description: "Loan offers and final terms depend on eligibility and applicable lender policy."
+  },
+  {
+    id: "bajaj-finance",
+    name: "Bajaj Finance",
+    short: "B",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 11%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    highDisbursement: true,
+    description: "Available loan amount, rate and tenure are subject to eligibility."
+  },
+  {
+    id: "tata-capital",
+    name: "Tata Capital",
+    short: "T",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    highDisbursement: true,
+    description: "Final approval and pricing depend on the applicable lender policy."
+  },
+  {
+    id: "shriram-finance",
+    name: "Shriram Finance",
+    short: "SF",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    highDisbursement: true,
+    description: "Loan terms vary according to customer profile and lender assessment."
+  },
+  {
+    id: "hero-fincorp",
+    name: "Hero FinCorp",
+    short: "HF",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12.4%",
+    fee: "1.2% to 1.5% + GST",
+    tenure: "2 Years",
+    description: "Eligibility and final loan terms are subject to lender assessment."
+  },
+  {
+    id: "muthoot-finance",
+    name: "Muthoot Finance",
+    short: "M",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    description: "Final terms depend on the selected product and customer eligibility."
+  },
+  {
+    id: "mahindra-finance",
+    name: "Mahindra Finance",
+    short: "MF",
+    category: "Finance",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    description: "Loan amount, pricing and tenure are subject to applicable policy."
+  },
+  {
+    id: "l-and-t-finance",
+    name: "L&T Finance",
+    short: "L&T",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    highDisbursement: true,
+    description: "Eligibility and approval depend on customer profile and lender policy."
+  },
+  {
+    id: "cholamandalam-finance",
+    name: "Cholamandalam Finance",
+    short: "C",
+    category: "Finance",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    description: "Final loan terms are determined after eligibility assessment."
+  },
+  {
+    id: "moneyview",
+    name: "Moneyview",
+    short: "MV",
+    category: "Digital Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12.33% per month",
+    fee: "1% to 1.5% + GST",
+    tenure: "2 Years",
+    highDisbursement: true,
+    description: "Digital loan eligibility is subject to applicable partner/lender criteria."
+  },
+  {
+    id: "unity",
+    name: "Unity Small Finance Bank",
+    short: "U",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 13%",
+    fee: "1.3% to 1.5% + GST",
+    tenure: "60 Months",
+    highDisbursement: true,
+    description: "Final approval, pricing and loan amount depend on eligibility."
+  },
+  {
+    id: "pref",
+    name: "PREF",
+    short: "P",
+    category: "Personal Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12.99%",
+    fee: "1% to 1.5% + GST",
+    tenure: "3 Years",
+    highDisbursement: true,
+    description: "Offers and eligibility are subject to the applicable lending arrangement."
+  },
+  {
+    id: "bharat-loan",
+    name: "Bharat Loan",
+    short: "BL",
+    category: "Digital Loan",
+    amount: "up to ₹1,00,000",
+    rate: "Starting from 12%",
+    fee: "1.2% + GST",
+    tenure: "60 Months",
+    description: "Loan amount and final terms are subject to eligibility."
+  },
+  {
+    id: "smartcoin",
+    name: "SmartCoin",
+    short: "SC",
+    category: "Digital Loan",
+    amount: "up to ₹1,00,000",
+    rate: "Starting from 12%",
+    fee: "1.2% + GST",
+    tenure: "60 Months",
+    description: "Applicable loan terms depend on eligibility and lender assessment."
+  },
+  {
+    id: "payrupik",
+    name: "PayRupik",
+    short: "PR",
+    category: "Personal Loan",
+    amount: "up to ₹30,00,000",
+    rate: "Starting from 11%",
+    fee: "1% to 1.5% + GST",
+    tenure: "7 Years",
+    description: "Final loan amount, rate and tenure are subject to eligibility."
+  },
+  {
+    id: "fibe",
+    name: "Fibe",
+    short: "Fi",
+    category: "Digital Loan",
+    amount: "up to ₹5,00,000",
+    rate: "Starting from 12%",
+    fee: "As applicable",
+    tenure: "5 Years",
+    description: "Final terms and approval depend on applicable eligibility criteria."
+  }
+];
+
+export default function DSAProductsPage() {
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  return (
+    <main className="min-h-screen bg-white">
+
+      {/* HEADER */}
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-7">
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+            <div>
+              <p className="mb-2 text-sm font-semibold text-blue-600">
+                LOAN PRODUCTS
+              </p>
+
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
+                Personal Loan Offers
+              </h1>
+
+              <p className="mt-2 max-w-2xl text-sm text-slate-500">
+                Explore available loan products and submit a customer referral
+                for the lender you select.
+              </p>
+            </div>
+
+            <div className="rounded-xl bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-700">
+              {lenders.length} Loan Products
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* FILTER / CATEGORY BAR */}
+      <section className="border-b border-slate-100 bg-white">
+        <div className="mx-auto max-w-7xl px-5 py-4">
+
+          <div className="flex flex-wrap gap-3">
+
+            <span className="rounded-lg border border-blue-600 bg-blue-600 px-5 py-2 text-sm font-semibold text-white">
+              Instant Loans
+            </span>
+
+            <span className="rounded-lg border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600">
+              Personal Loan
+            </span>
+
+            <span className="rounded-lg border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600">
+              Business Loan
+            </span>
+
+            <span className="rounded-lg border border-slate-200 px-5 py-2 text-sm font-medium text-slate-600">
+              Credit Products
+            </span>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* TITLE */}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-5 pb-8 pt-10 text-center">
+
+          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
+            Loan Offers at Your Fingertips
+          </h2>
+
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+            Compare product information and select a lender to continue with
+            the customer application process.
+          </p>
+
+        </div>
+      </section>
+
+      {/* LOAN CARDS */}
+      <section className="bg-slate-50 px-4 pb-16 pt-2 md:px-6">
+
+        <div className="mx-auto max-w-7xl space-y-6">
+
+          {lenders.map((lender) => {
+
+            const applyUrl =
+              `/dsa/apply-loan?company=${encodeURIComponent(lender.name)}`;
+
+            const isOpen = openId === lender.id;
+
+            return (
+              <div
+                key={lender.id}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
+              >
+
+                {/* TOP ROW */}
+                <div className="p-6 md:p-7">
+
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+
+                    {/* COMPANY */}
+                    <div className="flex min-w-[240px] items-center gap-4">
+
+                      <div className="flex h-16 w-28 items-center justify-center rounded-xl border border-slate-100 bg-white text-xl font-black text-blue-700 shadow-sm">
+                        {lender.short}
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900">
+                          {lender.name}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                          {lender.category}
+                        </p>
+                      </div>
+
+                    </div>
+
+                    {/* BADGE + APPLY */}
+                    <div className="flex items-center gap-3">
+
+                      {lender.highDisbursement && (
+                        <span className="hidden rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm md:inline-flex">
+                          ⚡ HIGH DISBURSEMENT
+                        </span>
+                      )}
+
+                      <Link
+                        href={applyUrl}
+                        className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-800 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:from-cyan-600 hover:to-blue-900"
+                      >
+                        Apply Now
+                      </Link>
+
+                    </div>
+
+                  </div>
+
+                  {/* MOBILE BADGE */}
+                  {lender.highDisbursement && (
+                    <div className="mt-4 md:hidden">
+                      <span className="inline-flex rounded-full bg-blue-600 px-4 py-2 text-xs font-bold text-white">
+                        ⚡ HIGH DISBURSEMENT
+                      </span>
+                    </div>
+                  )}
+
+                  {/* DETAILS */}
+                  <div className="mt-8 grid grid-cols-2 gap-6 border-t border-slate-100 pt-6 md:grid-cols-4">
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Loan Amount:
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {lender.amount}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Interest Rate:
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {lender.rate}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Processing Fee:
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {lender.fee}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-medium text-slate-500">
+                        Tenure:
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {lender.tenure}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  {/* BOTTOM */}
+                  <div className="mt-7 flex flex-col gap-4 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
+
+                    <p className="text-sm italic text-slate-500">
+                      View your loan eligibility quickly—just a few simple fields required!
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenId(isOpen ? null : lender.id)
+                      }
+                      className="flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      {isOpen ? "Hide Details" : "Detailed Offers"}
+                      <span
+                        className={`transition-transform ${
+                          isOpen ? "rotate-180" : ""
+                        }`}
+                      >
+                        ↓
+                      </span>
+                    </button>
+
+                  </div>
+
+                </div>
+
+                {/* DETAILED OFFER */}
+                {isOpen && (
+                  <div className="border-t border-slate-200 bg-slate-50 px-6 py-6">
+
+                    <div className="grid gap-4 md:grid-cols-3">
+
+                      <div className="rounded-xl bg-white p-5">
+                        <p className="text-xs font-semibold uppercase text-slate-400">
+                          Product
+                        </p>
+                        <p className="mt-2 font-bold text-slate-900">
+                          {lender.category}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-5">
+                        <p className="text-xs font-semibold uppercase text-slate-400">
+                          Available Amount
+                        </p>
+                        <p className="mt-2 font-bold text-slate-900">
+                          {lender.amount}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl bg-white p-5">
+                        <p className="text-xs font-semibold uppercase text-slate-400">
+                          Tenure
+                        </p>
+                        <p className="mt-2 font-bold text-slate-900">
+                          {lender.tenure}
+                        </p>
+                      </div>
+
+                    </div>
+
+                    <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                      {lender.description}
+                      {" "}
+                      Interest rate, processing fee, loan amount, documents
+                      and final approval may vary according to the applicable
+                      lender policy and customer eligibility.
+                    </div>
+
+                    <div className="mt-5 flex justify-end">
+
+                      <Link
+                        href={applyUrl}
+                        className="rounded-lg bg-blue-700 px-6 py-3 text-sm font-bold text-white hover:bg-blue-800"
+                      >
+                        Apply for {lender.name}
+                      </Link>
+
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+            );
+          })}
+
+        </div>
+      </section>
+
+      {/* DISCLAIMER */}
+      <section className="bg-white px-5 py-8">
+        <div className="mx-auto max-w-5xl text-center">
+
+          <p className="text-xs leading-5 text-slate-500">
+            The products and indicative terms displayed above are for
+            informational purposes. Eligibility, interest rate, processing
+            fee, loan amount, tenure, documentation and final approval are
+            subject to the applicable lender/product policy and customer
+            profile.
+          </p>
+
+        </div>
+      </section>
+
+    </main>
+  );
+}

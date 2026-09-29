@@ -1,15 +1,18 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProfileRepository = void 0;
-const prisma_1 = require("../../prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class ProfileRepository {
     /* =========================
         GET PROFILE
     ========================= */
     static async getProfile(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
-                id: userId
+                id: userId,
             },
             select: {
                 id: true,
@@ -18,104 +21,103 @@ class ProfileRepository {
                 phoneNo: true,
                 role: true,
                 profileImage: true,
-                gender: true,
                 dob: true,
                 address: true,
                 city: true,
                 state: true,
                 pincode: true,
                 isVerified: true,
-                createdAt: true
-            }
+                createdAt: true,
+            },
         });
     }
     /* =========================
         UPDATE PROFILE
     ========================= */
     static async updateProfile(userId, data) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
-            data
+            data,
         });
     }
     /* =========================
         UPDATE PROFILE IMAGE
     ========================= */
     static async updateProfileImage(userId, profileImage) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
             data: {
-                profileImage
-            }
+                profileImage,
+            },
         });
     }
     /* =========================
         REMOVE PROFILE IMAGE
     ========================= */
     static async removeProfileImage(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
             data: {
-                profileImage: null
-            }
+                profileImage: null,
+            },
         });
     }
     /* =========================
         UPDATE ADDRESS
     ========================= */
     static async updateAddress(userId, address, city, state, pincode) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
             data: {
                 address,
                 city,
                 state,
-                pincode
-            }
+                pincode,
+            },
         });
     }
     /* =========================
         CHANGE EMAIL
     ========================= */
     static async updateEmail(userId, email) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
             data: {
-                email
-            }
+                email,
+            },
         });
     }
     /* =========================
         CHANGE PHONE
     ========================= */
     static async updatePhone(userId, phoneNo) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
-                id: userId
+                id: userId,
             },
             data: {
-                phoneNo
-            }
+                phoneNo,
+            },
         });
     }
     /* =========================
         PROFILE COMPLETION
     ========================= */
     static async getProfileCompletion(userId) {
-        const user = await prisma_1.prisma.user.findUnique({
+        const user = await prisma_1.default.user.findUnique({
             where: {
-                id: userId
-            }
+                id: userId,
+            },
         });
         if (!user) {
             return 0;
@@ -125,12 +127,11 @@ class ProfileRepository {
             user.email,
             user.phoneNo,
             user.profileImage,
-            user.gender,
             user.dob,
             user.address,
             user.city,
             user.state,
-            user.pincode
+            user.pincode,
         ];
         const completed = fields.filter(Boolean).length;
         return Math.round((completed / fields.length) * 100);
@@ -139,95 +140,95 @@ class ProfileRepository {
         PROFILE SUMMARY
     ========================= */
     static async getProfileSummary(userId) {
-        const [user, totalLoans, totalDocuments, totalNotifications] = await Promise.all([
-            prisma_1.prisma.user.findUnique({
+        const [user, totalLoans, totalDocuments, totalNotifications,] = await Promise.all([
+            prisma_1.default.user.findUnique({
                 where: {
-                    id: userId
-                }
+                    id: userId,
+                },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
-                    userId
-                }
+                    userId,
+                },
             }),
-            prisma_1.prisma.document.count({
+            prisma_1.default.document.count({
                 where: {
-                    userId
-                }
+                    userId,
+                },
             }),
-            prisma_1.prisma.notification.count({
+            prisma_1.default.notification.count({
                 where: {
-                    userId
-                }
-            })
+                    userId,
+                },
+            }),
         ]);
         return {
             user,
             totalLoans,
             totalDocuments,
-            totalNotifications
+            totalNotifications,
         };
     }
     /* =========================
         ACCOUNT STATUS
     ========================= */
     static async getAccountStatus(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
-                id: userId
+                id: userId,
             },
             select: {
                 isVerified: true,
                 isBlocked: true,
                 role: true,
-                createdAt: true
-            }
+                createdAt: true,
+            },
         });
     }
     /* =========================
         DELETE ACCOUNT
     ========================= */
     static async deleteProfile(userId) {
-        return prisma_1.prisma.user.delete({
+        return prisma_1.default.user.delete({
             where: {
-                id: userId
-            }
+                id: userId,
+            },
         });
     }
     /* =========================
         PROFILE DASHBOARD
     ========================= */
     static async getDashboard(userId) {
-        const [profile, loanCount, approvedLoans, pendingLoans, unreadNotifications] = await Promise.all([
+        const [profile, loanCount, approvedLoans, pendingLoans, unreadNotifications,] = await Promise.all([
             this.getProfile(userId),
-            prisma_1.prisma.loanApplication.count({
-                where: { userId }
+            prisma_1.default.loanApplication.count({
+                where: { userId },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     userId,
-                    status: "APPROVED"
-                }
+                    status: "APPROVED",
+                },
             }),
-            prisma_1.prisma.loanApplication.count({
+            prisma_1.default.loanApplication.count({
                 where: {
                     userId,
-                    status: "PENDING"
-                }
+                    status: "PENDING",
+                },
             }),
-            prisma_1.prisma.notification.count({
+            prisma_1.default.notification.count({
                 where: {
                     userId,
-                    isRead: false
-                }
-            })
+                    isRead: false,
+                },
+            }),
         ]);
         return {
             profile,
             loanCount,
             approvedLoans,
             pendingLoans,
-            unreadNotifications
+            unreadNotifications,
         };
     }
 }

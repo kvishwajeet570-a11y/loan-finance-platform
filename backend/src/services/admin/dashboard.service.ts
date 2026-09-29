@@ -10,26 +10,37 @@ class DashboardService {
       pendingLoans,
     ] = await Promise.all([
       prisma.user.count(),
+
       prisma.loanApplication.count(),
+
       prisma.loanApplication.count({
-        where: { status: "approved" },
+        where: {
+          status: "APPROVED",
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "rejected" },
+        where: {
+          status: "REJECTED",
+        },
       }),
+
       prisma.loanApplication.count({
-        where: { status: "pending" },
+        where: {
+          status: "PENDING",
+        },
       }),
     ]);
 
-    const totalDisbursed = await prisma.loanApplication.aggregate({
-      where: {
-        status: "approved",
-      },
-      _sum: {
-        amount: true,
-      },
-    });
+    const totalDisbursed =
+      await prisma.loanApplication.aggregate({
+        where: {
+          status: "APPROVED",
+        },
+        _sum: {
+          amount: true,
+        },
+      });
 
     return {
       totalUsers,
@@ -37,8 +48,9 @@ class DashboardService {
       approvedLoans,
       rejectedLoans,
       pendingLoans,
-      totalDisbursed:
-        Number(totalDisbursed._sum.amount) || 0,
+      totalDisbursed: Number(
+        totalDisbursed?._sum?.amount ?? 0
+      ),
     };
   }
 

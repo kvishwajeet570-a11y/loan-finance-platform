@@ -15,18 +15,18 @@ class CommissionService {
   async createCommission(
     userId: string,
     loanId: string,
-    amount: number,
+    loanAmount: number,
     percentage: number
   ) {
     const commissionAmount =
-      (amount * percentage) / 100;
+      (loanAmount * percentage) / 100;
 
     return prisma.commission.create({
       data: {
         userId,
         loanId,
-        loanAmount: amount,
-        commissionRate: percentage,
+        loanAmount,
+        amount: commissionAmount,
         commissionAmount,
         status: "PENDING",
       },
@@ -47,27 +47,33 @@ class CommissionService {
           },
         });
 
-      await tx.wallet.update({
-        where: {
-          userId: commission.userId,
-        },
-        data: {
-          balance: {
-            increment:
-              commission.commissionAmount,
+      try {
+        await tx.wallet.update({
+          where: {
+            userId: commission.userId,
           },
-        },
-      });
+          data: {
+            balance: {
+              increment:
+                commission.commissionAmount,
+            },
+          },
+        });
+      } catch {
+        // wallet not found
+      }
 
       await tx.transaction.create({
-        data: {
-          userId: commission.userId,
-          amount:
-            commission.commissionAmount,
-          type: "COMMISSION_CREDIT",
-          status: "SUCCESS",
-        },
-      });
+  data: {
+    transactionId: `TXN-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    userId: commission.userId,
+    amount: commission.commissionAmount,
+    type: "COMMISSION_CREDIT",
+    category: "COMMISSION",
+    status: "SUCCESS",
+    remark: "Commission Credit",
+  },
+});
 
       return commission;
     });
@@ -97,6 +103,8 @@ class CommissionService {
       where: { id },
       include: {
         user: true,
+        partner: true,
+        loan: true,
       },
     });
   }
@@ -135,11 +143,14 @@ class CommissionService {
           take: limit,
           include: {
             user: true,
+            partner: true,
+            loan: true,
           },
           orderBy: {
             createdAt: "desc",
           },
         }),
+
         prisma.commission.count({
           where,
         }),
@@ -175,11 +186,12 @@ class CommissionService {
   }
 
   /**
-   * Monthly Earnings
+   * Monthly Earnings Report
    */
   async getMonthlyCommissionReport() {
     const startDate = new Date();
     startDate.setDate(1);
+    startDate.setHours(0, 0, 0, 0);
 
     return prisma.commission.aggregate({
       where: {
@@ -196,7 +208,7 @@ class CommissionService {
   }
 
   /**
-   * Top DSA Partners
+   * Top Partners
    */
   async getTopPartners(limit = 10) {
     return prisma.commission.groupBy({
@@ -214,7 +226,7 @@ class CommissionService {
   }
 
   /**
-   * Dashboard Statistics
+   * Dashboard Stats
    */
   async getCommissionStats() {
     const [

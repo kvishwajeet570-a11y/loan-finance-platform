@@ -1,7 +1,10 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.KycRepository = void 0;
-const prisma_1 = require("../../prisma/prisma");
+const prisma_1 = __importDefault(require("../../prisma/prisma"));
 class KycRepository {
     /* ==========================
        GET ALL KYC RECORDS
@@ -9,7 +12,7 @@ class KycRepository {
     static async getAllKyc(page = 1, limit = 20) {
         const skip = (page - 1) * limit;
         const [records, total] = await Promise.all([
-            prisma_1.prisma.user.findMany({
+            prisma_1.default.user.findMany({
                 skip,
                 take: limit,
                 orderBy: {
@@ -24,7 +27,7 @@ class KycRepository {
                     createdAt: true,
                 },
             }),
-            prisma_1.prisma.user.count(),
+            prisma_1.default.user.count(),
         ]);
         return {
             records,
@@ -38,7 +41,7 @@ class KycRepository {
        PENDING KYC
     ========================== */
     static async getPendingKyc() {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 isVerified: false,
             },
@@ -51,7 +54,7 @@ class KycRepository {
        VERIFIED USERS
     ========================== */
     static async getVerifiedUsers() {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 isVerified: true,
             },
@@ -64,7 +67,7 @@ class KycRepository {
        USER KYC DETAILS
     ========================== */
     static async getUserKyc(userId) {
-        return prisma_1.prisma.user.findUnique({
+        return prisma_1.default.user.findUnique({
             where: {
                 id: userId,
             },
@@ -82,7 +85,7 @@ class KycRepository {
        VERIFY USER
     ========================== */
     static async verifyKyc(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -95,7 +98,7 @@ class KycRepository {
        REJECT KYC
     ========================== */
     static async rejectKyc(userId) {
-        return prisma_1.prisma.user.update({
+        return prisma_1.default.user.update({
             where: {
                 id: userId,
             },
@@ -109,13 +112,13 @@ class KycRepository {
     ========================== */
     static async getKycStats() {
         const [totalUsers, verifiedUsers, pendingUsers,] = await Promise.all([
-            prisma_1.prisma.user.count(),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count(),
+            prisma_1.default.user.count({
                 where: {
                     isVerified: true,
                 },
             }),
-            prisma_1.prisma.user.count({
+            prisma_1.default.user.count({
                 where: {
                     isVerified: false,
                 },
@@ -136,7 +139,7 @@ class KycRepository {
        SEARCH KYC USERS
     ========================== */
     static async searchUsers(keyword) {
-        return prisma_1.prisma.user.findMany({
+        return prisma_1.default.user.findMany({
             where: {
                 OR: [
                     {

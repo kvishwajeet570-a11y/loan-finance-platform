@@ -1,0 +1,158 @@
+import prisma from "../../prisma/prisma";
+
+interface LeadFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+}
+
+class LeadService {
+  async createLead(data: any) {
+    return prisma.lead.create({
+      data,
+    });
+  }
+
+  async getLeads(filters: LeadFilters = {}) {
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      status = "",
+    } = filters;
+
+    const where: any = {
+      isDeleted: false,
+    };
+
+    if (search) {
+      where.OR = [
+        {
+          fullName: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+        {
+          mobileNumber: {
+            contains: search,
+          },
+        },
+        {
+          email: {
+            contains: search,
+            mode: "insensitive",
+          },
+        },
+      ];
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.lead.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+
+      prisma.lead.count({
+        where,
+      }),
+    ]);
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getLeadById(id: string) {
+    return prisma.lead.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+      },
+    });
+  }
+
+  async assignLead(data: {
+    leadId: string;
+    assignedTo: string;
+  }) {
+    return prisma.lead.update({
+      where: {
+        id: data.leadId,
+      },
+      data: {
+        assignedTo: data.assignedTo,
+      },
+    });
+  }
+
+  async updateStatus(data: {
+    leadId: string;
+    status: string;
+  }) {
+    return prisma.lead.update({
+      where: {
+        id: data.leadId,
+      },
+      data: {
+        status: data.status,
+      },
+    });
+  }
+
+  async softDelete(id: string) {
+    return prisma.lead.update({
+      where: {
+        id: String(id),
+      },
+      data: {
+        isDeleted: true,
+      },
+    });
+  }
+
+  async getAnalytics() {
+    const totalLeads = await prisma.lead.count({
+      where: {
+        isDeleted: false,
+      },
+    });
+
+    const newLeads = await prisma.lead.count({
+      where: {
+        status: "NEW",
+        isDeleted: false,
+      },
+    });
+
+    const assignedLeads = await prisma.lead.count({
+      where: {
+        assignedTo: {
+          not: null,
+        },
+        isDeleted: false,
+      },
+    });
+
+    return {
+      totalLeads,
+      newLeads,
+      assignedLeads,
+    };
+  }
+}
+
+export default new LeadService();

@@ -1,8 +1,20 @@
-import { Request, Response, NextFunction } from "express";
-import { AnyZodObject, ZodError } from "zod";
+import {
+  Request,
+  Response,
+  NextFunction,
+} from "express";
+
+import {
+  ZodError,
+  ZodType,
+} from "zod";
+
+/* =========================================
+   VALIDATION MIDDLEWARE
+========================================= */
 
 const validation =
-  (schema: AnyZodObject) =>
+  (schema: ZodType) =>
   async (
     req: Request,
     res: Response,
@@ -15,20 +27,22 @@ const validation =
         params: req.params,
       });
 
-      next();
-    } catch (error) {
+      return next();
+    } catch (error: unknown) {
       if (error instanceof ZodError) {
         return res.status(400).json({
           success: false,
           message: "Validation Failed",
-          errors: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
+
+          errors: error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+            code: issue.code,
           })),
         });
       }
 
-      next(error);
+      return next(error);
     }
   };
 

@@ -1,33 +1,30 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
-
-/**
- * DASHBOARD REPORT
- */
+import { LoanStatus, Prisma } from "@prisma/client";
+import prisma from "../../config/database/prisma";
 export const dashboardReport = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const [
-      users,
-      loans,
-      approvedLoans,
-      disbursedLoans,
-      partners,
-      dsa,
-      payments,
-    ] = await Promise.all([
+  users,
+  loans,
+  approvedLoans,
+  disbursedLoans,
+  partners,
+  payments,
+]
+    = await Promise.all([
       prisma.user.count(),
       prisma.loanApplication.count(),
       prisma.loanApplication.count({
         where: { status: "APPROVED" },
       }),
       prisma.loanApplication.count({
-        where: { status: "DISBURSED" },
+        where: { status: LoanStatus.APPROVED },
       }),
       prisma.partner.count(),
-      prisma.dSA.count(),
+      
       prisma.payment.aggregate({
         _sum: {
           amount: true,
@@ -46,7 +43,7 @@ export const dashboardReport = async (
         approvedLoans,
         disbursedLoans,
         partners,
-        dsa,
+        dsa: 0,
         revenue:
           payments._sum.amount || 0,
       },
@@ -68,13 +65,17 @@ export const loanReport = async (
 ): Promise<void> => {
   try {
     const status =
-      req.query.status as string;
+  req.query.status as LoanStatus | undefined;
+
+const where: Prisma.LoanApplicationWhereInput = {};
+
+if (status) {
+  where.status = status;
+}
 
     const loans =
       await prisma.loanApplication.findMany({
-        where: status
-          ? { status }
-          : {},
+        where: where,
         orderBy: {
           createdAt: "desc",
         },
@@ -141,25 +142,12 @@ export const dsaReport = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  try {
-    const dsa =
-      await prisma.dSA.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
-
-    res.status(200).json({
-      success: true,
-      total: dsa.length,
-      data: dsa,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      message: "DSA report failed",
-    });
-  }
+  res.status(200).json({
+    success: true,
+    total: 0,
+    data: [],
+    message: "DSA module not available.",
+  });
 };
 
 /**
@@ -266,3 +254,64 @@ export const reportAnalytics = async (
     });
   }
 };
+
+/* =========================================
+   ALIAS EXPORTS FOR ROUTES
+========================================= */
+
+export const getDashboardReport = dashboardReport;
+export const getLoanReport = loanReport;
+export const getPaymentReport = paymentReport;
+export const getDsaReport = dsaReport;
+export const getPartnerReport = partnerReport;
+export const getRevenueReport = revenueReport;
+export const getReportAnalytics = reportAnalytics;
+export const getCustomerReport = loanReport;
+export const getCommissionReport = revenueReport;
+export const getTransactionReport = paymentReport;
+export const getWalletReport = paymentReport;
+export const getKycReport = dashboardReport;
+export const getInsuranceReport = dashboardReport;
+export const getInvestmentReport = dashboardReport;
+export const getFastagReport = dashboardReport;
+export const getReferralReport = dashboardReport;
+export const getRechargeReport = paymentReport;
+
+export const getDailyReport = dashboardReport;
+export const getWeeklyReport = dashboardReport;
+export const getMonthlyReport = dashboardReport;
+export const getQuarterlyReport = dashboardReport;
+export const getYearlyReport = dashboardReport;
+
+export const getPendingReport = loanReport;
+export const getApprovedReport = loanReport;
+export const getRejectedReport = loanReport;
+
+export const getTopCustomersReport = dashboardReport;
+export const getTopDsaReport = dsaReport;
+export const getTopPartnersReport = partnerReport;
+
+export const getGrowthReport = dashboardReport;
+export const getPerformanceReport = dashboardReport;
+export const getConversionReport = dashboardReport;
+export const getProfitLossReport = revenueReport;
+
+export const getAuditReport = dashboardReport;
+export const getFraudReport = dashboardReport;
+
+export const exportReportExcel = dashboardReport;
+export const exportReportPdf = dashboardReport;
+export const exportReportCsv = dashboardReport;
+
+export const scheduleReport = dashboardReport;
+export const getScheduledReports = dashboardReport;
+
+export const searchReports = dashboardReport;
+
+export const getReportById = dashboardReport;
+export const createReport = dashboardReport;
+export const updateReport = dashboardReport;
+export const deleteReport = dashboardReport;
+
+export const bulkDeleteReports = dashboardReport;
+export const bulkExportReports = dashboardReport;

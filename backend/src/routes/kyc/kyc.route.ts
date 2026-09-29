@@ -9,6 +9,7 @@ import {
   deleteKyc,
 
   submitKyc,
+  submitExistingKyc,
 
   approveKyc,
   rejectKyc,

@@ -29,7 +29,7 @@ export const loginMethodEnum = z.enum([
    DEVICE TYPE
 ========================================= */
 
-export const deviceTypeEnum = z.enum([
+export const loginHistoryDeviceTypeEnum = z.enum([
   "WEB",
   "ANDROID",
   "IOS",
@@ -42,199 +42,186 @@ export const deviceTypeEnum = z.enum([
    CREATE LOGIN HISTORY
 ========================================= */
 
-export const createLoginHistorySchema =
-  z.object({
-    userId: z.string().cuid(),
+export const createLoginHistorySchema = z.object({
+  userId: z.string().cuid(),
 
-    loginMethod:
-      loginMethodEnum,
+  loginMethod:
+    loginMethodEnum,
 
-    status:
-      loginStatusEnum,
+  status:
+    loginStatusEnum,
 
-    ipAddress:
-      z.string(),
+  ipAddress:
+    z.string(),
 
-    userAgent:
-      z.string(),
+  userAgent:
+    z.string(),
 
-    deviceType:
-      deviceTypeEnum,
+  deviceType:
+    loginHistoryDeviceTypeEnum,
 
-    deviceName:
-      z.string().optional(),
+  deviceName:
+    z.string().optional(),
 
-    browser:
-      z.string().optional(),
+  browser:
+    z.string().optional(),
 
-    operatingSystem:
-      z.string().optional(),
+  operatingSystem:
+    z.string().optional(),
 
-    country:
-      z.string().optional(),
+  country:
+    z.string().optional(),
 
-    state:
-      z.string().optional(),
+  state:
+    z.string().optional(),
 
-    city:
-      z.string().optional(),
+  city:
+    z.string().optional(),
 
-    latitude:
-      z.number().optional(),
+  latitude:
+    z.number().optional(),
 
-    longitude:
-      z.number().optional(),
-  });
+  longitude:
+    z.number().optional(),
+});
 
 /* =========================================
    LOGOUT EVENT
 ========================================= */
 
-export const logoutHistorySchema =
-  z.object({
-    userId: z.string().cuid(),
+export const logoutHistorySchema = z.object({
+  userId:
+    z.string().cuid(),
 
-    sessionId:
-      z.string().optional(),
+  sessionId:
+    z.string().optional(),
 
-    logoutReason:
-      z.string().optional(),
-  });
+  logoutReason:
+    z.string().optional(),
+});
 
 /* =========================================
    FAILED LOGIN TRACKING
 ========================================= */
 
-export const failedLoginSchema =
-  z.object({
-    email:
-      z.string().email(),
+export const failedLoginSchema = z.object({
+  email:
+    z.string().email(),
 
-    ipAddress:
-      z.string(),
+  ipAddress:
+    z.string(),
 
-    reason:
-      z.string()
+  reason:
+    z.string()
       .min(3)
       .max(500),
-  });
+});
 
 /* =========================================
    SUSPICIOUS LOGIN
 ========================================= */
 
-export const suspiciousLoginSchema =
-  z.object({
-    userId: z.string().cuid(),
+export const suspiciousLoginSchema = z.object({
+  userId:
+    z.string().cuid(),
 
-    ipAddress:
-      z.string(),
+  ipAddress:
+    z.string(),
 
-    riskScore:
-      z.number()
+  riskScore:
+    z.number()
       .min(0)
       .max(100),
 
-    reason:
-      z.string(),
-  });
+  reason:
+    z.string(),
+});
 
 /* =========================================
    LOGIN HISTORY FILTER
 ========================================= */
 
-export const loginHistoryFilterSchema =
-  z.object({
-    userId:
-      z.string().cuid().optional(),
+export const loginHistoryFilterSchema = z.object({
+  userId:
+    z.string()
+      .cuid()
+      .optional(),
 
-    status:
-      loginStatusEnum.optional(),
+  status:
+    loginStatusEnum.optional(),
 
-    loginMethod:
-      loginMethodEnum.optional(),
+  loginMethod:
+    loginMethodEnum.optional(),
 
-    deviceType:
-      deviceTypeEnum.optional(),
+  deviceType:
+    loginHistoryDeviceTypeEnum.optional(),
 
-    startDate:
-      z.string().optional(),
+  startDate:
+    z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+  endDate:
+    z.string().optional(),
 
-    page:
-      z.coerce.number()
+  page:
+    z.coerce
+      .number()
       .default(1),
 
-    limit:
-      z.coerce.number()
+  limit:
+    z.coerce
+      .number()
       .min(1)
       .max(100)
       .default(20),
-  });
+});
 
 /* =========================================
    ACTIVE SESSION FILTER
 ========================================= */
 
-export const activeSessionSchema =
-  z.object({
-    userId:
-      z.string().cuid().optional(),
-  });
+export const loginHistoryActiveSessionSchema = z.object({
+  userId:
+    z.string()
+      .cuid()
+      .optional(),
+});
 
 /* =========================================
    LOGIN ANALYTICS
 ========================================= */
 
-export const loginAnalyticsSchema =
-  z.object({
-    startDate:
-      z.string().optional(),
+export const loginAnalyticsSchema = z.object({
+  startDate:
+    z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+  endDate:
+    z.string().optional(),
 
-    deviceType:
-      deviceTypeEnum.optional(),
-  });
+  deviceType:
+    loginHistoryDeviceTypeEnum.optional(),
+});
 
 /* =========================================
    EXPORT TYPES
 ========================================= */
 
 export type CreateLoginHistoryDto =
-  z.infer<
-    typeof createLoginHistorySchema
-  >;
+  z.infer<typeof createLoginHistorySchema>;
 
 export type LogoutHistoryDto =
-  z.infer<
-    typeof logoutHistorySchema
-  >;
+  z.infer<typeof logoutHistorySchema>;
 
 export type FailedLoginDto =
-  z.infer<
-    typeof failedLoginSchema
-  >;
+  z.infer<typeof failedLoginSchema>;
 
 export type SuspiciousLoginDto =
-  z.infer<
-    typeof suspiciousLoginSchema
-  >;
+  z.infer<typeof suspiciousLoginSchema>;
 
 export type LoginHistoryFilterDto =
-  z.infer<
-    typeof loginHistoryFilterSchema
-  >;
+  z.infer<typeof loginHistoryFilterSchema>;
 
-export type ActiveSessionDto =
-  z.infer<
-    typeof activeSessionSchema
-  >;
+export type LoginHistoryActiveSessionDto =
+  z.infer<typeof loginHistoryActiveSessionSchema>;
 
 export type LoginAnalyticsDto =
-  z.infer<
-    typeof loginAnalyticsSchema
-  >;
+  z.infer<typeof loginAnalyticsSchema>;

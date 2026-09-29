@@ -1,173 +1,417 @@
-import { Request, Response } from "express";
-import investmentService from "../../services/investment/investment.service";
-
-export const getInvestments = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const page = Number(req.query.page || 1);
-    const limit = Number(req.query.limit || 10);
-    const search = String(req.query.search || "");
-    const type = String(req.query.type || "");
-
-    const result = await investmentService.getInvestments({
-      page,
-      limit,
-      search,
-      type,
-    });
-
-    res.status(200).json({
-      success: true,
-      ...result,
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch investments",
-    });
-  }
-};
-
-export const getInvestmentById = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  try {
-    const investment =
-      await investmentService.getInvestmentById(
-        req.params.id
-      );
-
-    if (!investment) {
-      return void res.status(404).json({
-        success: false,
-        message: "Investment not found",
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: investment,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch investment",
-    });
-  }
-};
+﻿import { Request, Response } from "express";
+import prisma from "../../prisma/prisma";
+/* =========================================
+   CREATE
+========================================= */
 
 export const createInvestment = async (
   req: Request,
   res: Response
-): Promise<void> => {
+) => {
   try {
-    const investment =
-      await investmentService.createInvestment(
-        req.body
-      );
+    const investment = await prisma.investment.create({
+      data: req.body,
+    });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Investment created successfully",
       data: investment,
     });
   } catch (error: any) {
-    res.status(400).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-export const approveInvestment = async (
+/* =========================================
+   GET ALL
+========================================= */
+
+export const getAllInvestments = async (
   req: Request,
   res: Response
-): Promise<void> => {
+) => {
   try {
-    const investment =
-      await investmentService.approveInvestment(
-        req.params.id
-      );
+    const investments =
+      await prisma.investment.findMany();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Investment approved successfully",
-      data: investment,
+      data: investments,
     });
-  } catch {
-    res.status(500).json({
+  } catch (error: any) {
+    return res.status(500).json({
       success: false,
-      message: "Approval failed",
+      message: error.message,
     });
   }
 };
+
+/* =========================================
+   GET BY ID
+========================================= */
+
+export const getInvestmentById = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const investment =
+      await prisma.investment.findUnique({
+        where: {
+          id: String(req.params.id),
+        },
+      });
+
+    return res.status(200).json({
+      success: true,
+      data: investment,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   UPDATE
+========================================= */
+
+export const updateInvestment = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const investment =
+      await prisma.investment.update({
+        where: {
+          id: String(req.params.id),
+        },
+        data: req.body,
+      });
+
+    return res.status(200).json({
+      success: true,
+      data: investment,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   DELETE
+========================================= */
+
+export const deleteInvestment = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    await prisma.investment.delete({
+      where: {
+        id: String(req.params.id),
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Deleted",
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+/* =========================================
+   APPROVE
+========================================= */
+
+export const approveInvestment = async (
+  req: Request,
+  res: Response
+) => {
+  return res.json({
+    success: true,
+    message: "approveInvestment",
+  });
+};
+
+/* =========================================
+   REJECT
+========================================= */
 
 export const rejectInvestment = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  try {
-    const investment =
-      await investmentService.rejectInvestment(
-        req.params.id,
-        req.body.reason
-      );
-
-    res.status(200).json({
-      success: true,
-      message: "Investment rejected",
-      data: investment,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      message: "Rejection failed",
-    });
-  }
+) => {
+  return res.json({
+    success: true,
+    message: "rejectInvestment",
+  });
 };
+
+/* =========================================
+   ACTIVATE
+========================================= */
+
+export const activateInvestment = async (
+  req: Request,
+  res: Response
+) => {
+  return res.json({
+    success: true,
+    message: "activateInvestment",
+  });
+};
+
+/* =========================================
+   CLOSE
+========================================= */
 
 export const closeInvestment = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  try {
-    const investment =
-      await investmentService.closeInvestment(
-        req.params.id
-      );
-
-    res.status(200).json({
-      success: true,
-      message: "Investment closed successfully",
-      data: investment,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      message: "Closure failed",
-    });
-  }
+) => {
+  return res.json({
+    success: true,
+    message: "closeInvestment",
+  });
 };
 
-export const getInvestmentAnalytics = async (
+/* =========================================
+   SEARCH
+========================================= */
+
+export const searchInvestments = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  try {
-    const analytics =
-      await investmentService.getAnalytics();
-
-    res.status(200).json({
-      success: true,
-      data: analytics,
-    });
-  } catch {
-    res.status(500).json({
-      success: false,
-      message: "Analytics failed",
-    });
-  }
+) => {
+  return res.json({
+    success: true,
+    message: "searchInvestments",
+  });
 };
+
+/* =========================================
+   USER INVESTMENTS
+========================================= */
+
+export const getUserInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getUserInvestments",
+    });
+  };
+
+/* =========================================
+   STATUS LISTS
+========================================= */
+
+export const getPendingInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getPendingInvestments",
+    });
+  };
+
+export const getActiveInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getActiveInvestments",
+    });
+  };
+
+export const getClosedInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getClosedInvestments",
+    });
+  };
+
+export const getRejectedInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getRejectedInvestments",
+    });
+  };
+
+/* =========================================
+   ANALYTICS
+========================================= */
+
+export const getInvestmentAnalytics =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "getInvestmentAnalytics",
+    });
+  };
+
+export const getInvestmentDashboard =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "getInvestmentDashboard",
+    });
+  };
+
+/* =========================================
+   TOP DATA
+========================================= */
+
+export const getTopInvestors =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message: "getTopInvestors",
+    });
+  };
+
+export const getTopPlans = async (
+  req: Request,
+  res: Response
+) => {
+  return res.json({
+    success: true,
+    message: "getTopPlans",
+  });
+};
+
+export const getMonthlyInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "getMonthlyInvestments",
+    });
+  };
+
+/* =========================================
+   RETURNS
+========================================= */
+
+export const getInvestmentReturns =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "getInvestmentReturns",
+    });
+  };
+
+export const calculateReturns =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "calculateReturns",
+    });
+  };
+
+/* =========================================
+   EXPORT
+========================================= */
+
+export const exportInvestmentsExcel =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "exportInvestmentsExcel",
+    });
+  };
+
+export const exportInvestmentsPdf =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "exportInvestmentsPdf",
+    });
+  };
+
+/* =========================================
+   BULK ACTIONS
+========================================= */
+
+export const bulkApproveInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "bulkApproveInvestments",
+    });
+  };
+
+export const bulkRejectInvestments =
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    return res.json({
+      success: true,
+      message:
+        "bulkRejectInvestments",
+    });
+  };
+

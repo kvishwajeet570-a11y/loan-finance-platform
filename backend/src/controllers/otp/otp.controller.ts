@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import prisma from "../../config/prisma";
+import prisma from "../../config/database/prisma";
 
 const OTP_EXPIRY_MINUTES = 10;
 const MAX_ATTEMPTS = 5;
@@ -23,7 +23,7 @@ export const sendOTP = async (
       Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
 
-    await prisma.oTP.create({
+    await prisma.otp.create({
       data: {
         phoneNo,
         email,
@@ -65,7 +65,7 @@ export const verifyOTP = async (
       req.body;
 
     const record =
-      await prisma.oTP.findFirst({
+      await prisma.otp.findFirst({
         where: {
           OR: [
             { phoneNo },
@@ -107,9 +107,9 @@ export const verifyOTP = async (
     }
 
     if (record.otp !== otp) {
-      await prisma.oTP.update({
+      await prisma.otp.update({
         where: {
-          id: record.id,
+          id: record.id as string,
         },
         data: {
           attempts: {
@@ -125,9 +125,9 @@ export const verifyOTP = async (
       return;
     }
 
-    await prisma.oTP.update({
+    await prisma.otp.update({
       where: {
-        id: record.id,
+        id: record.id as string,
       },
       data: {
         isVerified: true,
@@ -168,7 +168,7 @@ export const resendOTP = async (
       Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000
     );
 
-    await prisma.oTP.create({
+    await prisma.otp.create({
       data: {
         phoneNo,
         email,
@@ -205,13 +205,13 @@ export const otpAnalytics = async (
       verified,
       pending,
     ] = await Promise.all([
-      prisma.oTP.count(),
-      prisma.oTP.count({
+      prisma.otp.count(),
+      prisma.otp.count({
         where: {
           isVerified: true,
         },
       }),
-      prisma.oTP.count({
+      prisma.otp.count({
         where: {
           isVerified: false,
         },

@@ -1,0 +1,766 @@
+﻿"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  ChevronDown,
+  Filter,
+  IndianRupee,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
+
+type Loan = {
+  id: string;
+  company: string;
+  initials: string;
+  category: string;
+  name: string;
+  amount: string;
+  minAmount: number;
+  maxAmount: number;
+  rate: number;
+  maxRate: number;
+  tenure: string;
+  tenureMonths: number;
+  processing: string;
+  badge: string;
+};
+
+const loans: Loan[] = [
+  // POONAWALLA
+  {
+    id: "poonawalla-personal",
+    company: "Poonawalla Fincorp",
+    initials: "PF",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹50K - ₹20L",
+    minAmount: 50000,
+    maxAmount: 2000000,
+    rate: 11.99,
+    maxRate: 36,
+    tenure: "12-84 Months",
+    tenureMonths: 84,
+    processing: "Up to 6.5%",
+    badge: "Popular",
+  },
+  {
+    id: "poonawalla-business",
+    company: "Poonawalla Fincorp",
+    initials: "PF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹30L",
+    minAmount: 100000,
+    maxAmount: 3000000,
+    rate: 12,
+    maxRate: 30,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 5%",
+    badge: "Business",
+  },
+
+  // BAJAJ
+  {
+    id: "bajaj-personal",
+    company: "Bajaj Finance",
+    initials: "BF",
+    category: "Personal Loan",
+    name: "Instant Personal Loan",
+    amount: "₹40K - ₹40L",
+    minAmount: 40000,
+    maxAmount: 4000000,
+    rate: 11,
+    maxRate: 35,
+    tenure: "12-96 Months",
+    tenureMonths: 96,
+    processing: "Up to 4.5%",
+    badge: "Featured",
+  },
+  {
+    id: "bajaj-business",
+    company: "Bajaj Finance",
+    initials: "BF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹80L",
+    minAmount: 100000,
+    maxAmount: 8000000,
+    rate: 14,
+    maxRate: 30,
+    tenure: "12-96 Months",
+    tenureMonths: 96,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+  {
+    id: "bajaj-professional",
+    company: "Bajaj Finance",
+    initials: "BF",
+    category: "Professional Loan",
+    name: "Professional Loan",
+    amount: "₹1L - ₹40L",
+    minAmount: 100000,
+    maxAmount: 4000000,
+    rate: 13,
+    maxRate: 30,
+    tenure: "12-84 Months",
+    tenureMonths: 84,
+    processing: "Up to 3%",
+    badge: "Professional",
+  },
+
+  // TATA
+  {
+    id: "tata-personal",
+    company: "Tata Capital",
+    initials: "TC",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹75K - ₹35L",
+    minAmount: 75000,
+    maxAmount: 3500000,
+    rate: 10.99,
+    maxRate: 29,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "tata-business",
+    company: "Tata Capital",
+    initials: "TC",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹75L",
+    minAmount: 100000,
+    maxAmount: 7500000,
+    rate: 12,
+    maxRate: 28,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 3%",
+    badge: "Business",
+  },
+  {
+    id: "tata-home",
+    company: "Tata Capital",
+    initials: "TC",
+    category: "Home Loan",
+    name: "Home Loan",
+    amount: "₹5L - ₹5Cr",
+    minAmount: 500000,
+    maxAmount: 50000000,
+    rate: 8.7,
+    maxRate: 15,
+    tenure: "60-360 Months",
+    tenureMonths: 360,
+    processing: "As applicable",
+    badge: "Home",
+  },
+
+  // ADITYA BIRLA
+  {
+    id: "abc-personal",
+    company: "Aditya Birla Capital",
+    initials: "AB",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹1L - ₹30L",
+    minAmount: 100000,
+    maxAmount: 3000000,
+    rate: 10.99,
+    maxRate: 30,
+    tenure: "12-84 Months",
+    tenureMonths: 84,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "abc-business",
+    company: "Aditya Birla Capital",
+    initials: "AB",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹50L",
+    minAmount: 100000,
+    maxAmount: 5000000,
+    rate: 12,
+    maxRate: 30,
+    tenure: "12-84 Months",
+    tenureMonths: 84,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // L&T
+  {
+    id: "lt-personal",
+    company: "L&T Finance",
+    initials: "LT",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹50K - ₹25L",
+    minAmount: 50000,
+    maxAmount: 2500000,
+    rate: 11.5,
+    maxRate: 30,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "lt-business",
+    company: "L&T Finance",
+    initials: "LT",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹50L",
+    minAmount: 100000,
+    maxAmount: 5000000,
+    rate: 13,
+    maxRate: 28,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // CHOLA
+  {
+    id: "chola-personal",
+    company: "Cholamandalam Finance",
+    initials: "CF",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹1L - ₹20L",
+    minAmount: 100000,
+    maxAmount: 2000000,
+    rate: 12,
+    maxRate: 30,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "chola-business",
+    company: "Cholamandalam Finance",
+    initials: "CF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹50L",
+    minAmount: 100000,
+    maxAmount: 5000000,
+    rate: 13,
+    maxRate: 30,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // HERO
+  {
+    id: "hero-personal",
+    company: "Hero FinCorp",
+    initials: "HF",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹50K - ₹20L",
+    minAmount: 50000,
+    maxAmount: 2000000,
+    rate: 12,
+    maxRate: 30,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "hero-business",
+    company: "Hero FinCorp",
+    initials: "HF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹40L",
+    minAmount: 100000,
+    maxAmount: 4000000,
+    rate: 13,
+    maxRate: 30,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // MUTHOOT
+  {
+    id: "muthoot-personal",
+    company: "Muthoot Finance",
+    initials: "MF",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹50K - ₹15L",
+    minAmount: 50000,
+    maxAmount: 1500000,
+    rate: 12,
+    maxRate: 30,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "muthoot-business",
+    company: "Muthoot Finance",
+    initials: "MF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹25L",
+    minAmount: 100000,
+    maxAmount: 2500000,
+    rate: 13,
+    maxRate: 30,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // MAHINDRA
+  {
+    id: "mahindra-personal",
+    company: "Mahindra Finance",
+    initials: "MH",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹1L - ₹20L",
+    minAmount: 100000,
+    maxAmount: 2000000,
+    rate: 12,
+    maxRate: 28,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "mahindra-business",
+    company: "Mahindra Finance",
+    initials: "MH",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹30L",
+    minAmount: 100000,
+    maxAmount: 3000000,
+    rate: 13,
+    maxRate: 28,
+    tenure: "12-60 Months",
+    tenureMonths: 60,
+    tenureMonths: 60,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+
+  // SHRIRAM
+  {
+    id: "shriram-personal",
+    company: "Shriram Finance",
+    initials: "SF",
+    category: "Personal Loan",
+    name: "Personal Loan",
+    amount: "₹50K - ₹25L",
+    minAmount: 50000,
+    maxAmount: 2500000,
+    rate: 11,
+    maxRate: 30,
+    tenure: "12-84 Months",
+    tenureMonths: 84,
+    processing: "Up to 5%",
+    badge: "Popular",
+  },
+  {
+    id: "shriram-business",
+    company: "Shriram Finance",
+    initials: "SF",
+    category: "Business Loan",
+    name: "Business Loan",
+    amount: "₹1L - ₹50L",
+    minAmount: 100000,
+    maxAmount: 5000000,
+    rate: 13,
+    maxRate: 30,
+    tenure: "12-72 Months",
+    tenureMonths: 72,
+    processing: "Up to 4%",
+    badge: "Business",
+  },
+];
+
+const companies = ["All Companies", ...Array.from(new Set(loans.map((x) => x.company)))];
+const categories = ["All Loans", ...Array.from(new Set(loans.map((x) => x.category)))];
+
+export default function ProductsPage() {
+  const [company, setCompany] = useState("All Companies");
+  const [category, setCategory] = useState("All Loans");
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("featured");
+  const [selected, setSelected] = useState<Loan | null>(null);
+
+  const filteredLoans = useMemo(() => {
+    let result = loans.filter((loan) => {
+      const companyMatch =
+        company === "All Companies" || loan.company === company;
+
+      const categoryMatch =
+        category === "All Loans" || loan.category === category;
+
+      const searchMatch =
+        !search ||
+        `${loan.company} ${loan.name} ${loan.category}`
+          .toLowerCase()
+          .includes(search.toLowerCase());
+
+      return companyMatch && categoryMatch && searchMatch;
+    });
+
+    if (sort === "rate") {
+      result = [...result].sort((a, b) => a.rate - b.rate);
+    }
+
+    if (sort === "amount") {
+      result = [...result].sort((a, b) => b.maxAmount - a.maxAmount);
+    }
+
+    if (sort === "tenure") {
+      result = [...result].sort((a, b) => b.tenureMonths - a.tenureMonths);
+    }
+
+    return result;
+  }, [company, category, search, sort]);
+
+  return (
+    <main className="min-h-screen bg-[#f5f8ff]">
+
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-[#07132f]">
+        <div className="absolute -left-32 -top-32 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="absolute -right-20 bottom-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl" />
+
+        <div className="relative mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-bold text-cyan-200">
+              <CheckCircle2 size={15} />
+              MULTI-LENDER LOAN MARKETPLACE
+            </div>
+
+            <h1 className="text-3xl font-black tracking-tight text-white sm:text-5xl">
+              Find the right loan from
+              <span className="text-cyan-300"> multiple lenders</span>
+            </h1>
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+              Compare personal, business, professional and home loan products
+              across multiple lending partners.
+            </p>
+
+            <div className="mt-7 flex flex-wrap gap-3 text-xs font-bold text-slate-300">
+              <span className="rounded-xl bg-white/10 px-4 py-2">
+                {companies.length - 1}+ Companies
+              </span>
+              <span className="rounded-xl bg-white/10 px-4 py-2">
+                {loans.length}+ Loan Products
+              </span>
+              <span className="rounded-xl bg-white/10 px-4 py-2">
+                Multiple Categories
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FILTER BAR */}
+      <section className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xl">
+        <div className="mx-auto max-w-7xl px-5 py-4 lg:px-8">
+          <div className="flex flex-col gap-3 lg:flex-row">
+
+            <div className="relative flex-1">
+              <Search
+                size={18}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search company, loan or product..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-medium outline-none focus:border-blue-500 focus:bg-white"
+              />
+            </div>
+
+            <select
+              value={company}
+              onChange={(e) => setCompany(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
+            >
+              {companies.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
+            >
+              {categories.map((item) => (
+                <option key={item}>{item}</option>
+              ))}
+            </select>
+
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 outline-none"
+            >
+              <option value="featured">Featured</option>
+              <option value="rate">Lowest Rate</option>
+              <option value="amount">Highest Amount</option>
+              <option value="tenure">Longest Tenure</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      {/* CONTENT */}
+      <section className="mx-auto max-w-7xl px-5 py-8 lg:px-8">
+
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
+              Available Products
+            </p>
+            <h2 className="mt-1 text-2xl font-black text-slate-950">
+              {filteredLoans.length} loan products
+            </h2>
+          </div>
+
+          <div className="hidden items-center gap-2 text-xs font-bold text-slate-500 sm:flex">
+            <SlidersHorizontal size={15} />
+            Smart Filters
+          </div>
+        </div>
+
+        {filteredLoans.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-16 text-center">
+            <Filter className="mx-auto text-slate-400" size={32} />
+            <h3 className="mt-4 text-lg font-black text-slate-900">
+              No matching loans
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              Try another company, category or search term.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {filteredLoans.map((loan) => (
+              <article
+                key={loan.id}
+                className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div className="border-b border-slate-100 p-5">
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-700 to-cyan-500 text-sm font-black text-white shadow-lg">
+                        {loan.initials}
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-bold text-slate-400">
+                          {loan.company}
+                        </p>
+                        <h3 className="font-black text-slate-900">
+                          {loan.name}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-[10px] font-black text-blue-700">
+                      {loan.badge}
+                    </span>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Loan Amount
+                      </p>
+                      <p className="mt-1 text-sm font-black text-slate-900">
+                        {loan.amount}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Interest
+                      </p>
+                      <p className="mt-1 text-sm font-black text-slate-900">
+                        {loan.rate}% onwards
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Tenure
+                      </p>
+                      <p className="mt-1 text-sm font-black text-slate-900">
+                        {loan.tenure}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        Processing
+                      </p>
+                      <p className="mt-1 text-sm font-black text-slate-900">
+                        {loan.processing}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 p-5">
+                  <button
+                    onClick={() => setSelected(loan)}
+                    className="flex-1 rounded-xl border border-slate-200 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                  >
+                    View Details
+                  </button>
+
+                  <Link
+                    href={`/dsa/apply-loan?company=${encodeURIComponent(
+                      loan.company
+                    )}&loan=${encodeURIComponent(loan.name)}`}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-500 px-4 py-3 text-sm font-black text-white shadow-lg shadow-blue-500/20 transition hover:scale-[1.02]"
+                  >
+                    Apply Now
+                    <ArrowRight size={16} />
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* DETAILS MODAL */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl">
+
+            <div className="bg-gradient-to-br from-blue-700 to-cyan-500 p-6 text-white">
+              <div className="flex items-start justify-between">
+                <div>
+                  <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 font-black">
+                    {selected.initials}
+                  </div>
+
+                  <p className="text-xs font-bold text-blue-100">
+                    {selected.company}
+                  </p>
+
+                  <h2 className="mt-1 text-2xl font-black">
+                    {selected.name}
+                  </h2>
+                </div>
+
+                <button
+                  onClick={() => setSelected(null)}
+                  className="rounded-xl bg-white/10 p-2 hover:bg-white/20"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4 p-6">
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold text-slate-400">
+                    Loan Amount
+                  </p>
+                  <p className="mt-1 font-black text-slate-900">
+                    {selected.amount}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold text-slate-400">
+                    Interest Rate
+                  </p>
+                  <p className="mt-1 font-black text-slate-900">
+                    {selected.rate}% - {selected.maxRate}%
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold text-slate-400">
+                    Tenure
+                  </p>
+                  <p className="mt-1 font-black text-slate-900">
+                    {selected.tenure}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-bold text-slate-400">
+                    Processing Fee
+                  </p>
+                  <p className="mt-1 font-black text-slate-900">
+                    {selected.processing}
+                  </p>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-xs leading-6 text-amber-800">
+                Rates, eligibility, sanctioned amount, tenure, charges and
+                final approval are subject to the applicable lender policy
+                and customer profile.
+              </div>
+
+              <Link
+                href={`/dsa/apply-loan?company=${encodeURIComponent(
+                  selected.company
+                )}&loan=${encodeURIComponent(selected.name)}`}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-700 to-cyan-500 px-5 py-3.5 text-sm font-black text-white"
+              >
+                Apply for {selected.name}
+                <ArrowRight size={17} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
+
+
+

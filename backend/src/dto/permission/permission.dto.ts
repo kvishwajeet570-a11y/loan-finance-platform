@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /* =========================================
-   PERMISSION MODULE
+   MODULE ENUM
 ========================================= */
 
 export const permissionModuleEnum = z.enum([
@@ -34,25 +34,7 @@ export const permissionModuleEnum = z.enum([
 ]);
 
 /* =========================================
-   PERMISSION ACTION
-========================================= */
-
-export const permissionActionEnum = z.enum([
-  "CREATE",
-  "READ",
-  "UPDATE",
-  "DELETE",
-  "APPROVE",
-  "REJECT",
-  "EXPORT",
-  "IMPORT",
-  "ASSIGN",
-  "VIEW_ALL",
-  "MANAGE",
-]);
-
-/* =========================================
-   PERMISSION STATUS
+   STATUS ENUM
 ========================================= */
 
 export const permissionStatusEnum = z.enum([
@@ -64,150 +46,106 @@ export const permissionStatusEnum = z.enum([
    CREATE PERMISSION
 ========================================= */
 
-export const createPermissionSchema =
-  z.object({
-    name: z.string()
-      .min(3)
-      .max(100),
+export const createPermissionSchema = z.object({
+  name: z.string().min(3).max(100),
 
-    code: z.string()
-      .min(3)
-      .max(100)
-      .toUpperCase(),
+  code: z.string().min(3).max(100),
 
-    module:
-      permissionModuleEnum,
+  module: permissionModuleEnum,
 
-    action:
-      permissionActionEnum,
+  description: z.string().max(500).optional(),
 
-    description:
-      z.string()
-      .max(500)
-      .optional(),
+  slug: z.string().optional(),
 
-    status:
-      permissionStatusEnum
-      .default("ACTIVE"),
-  });
+  status: permissionStatusEnum.optional(),
+});
 
 /* =========================================
    UPDATE PERMISSION
 ========================================= */
 
-export const updatePermissionSchema =
-  z.object({
-    name:
-      z.string().optional(),
+export const updatePermissionSchema = z.object({
+  name: z.string().min(3).max(100).optional(),
 
-    module:
-      permissionModuleEnum.optional(),
+  code: z.string().min(3).max(100).optional(),
 
-    action:
-      permissionActionEnum.optional(),
+  module: permissionModuleEnum.optional(),
 
-    description:
-      z.string().optional(),
+  description: z.string().max(500).optional(),
 
-    status:
-      permissionStatusEnum.optional(),
-  });
+  slug: z.string().optional(),
+
+  status: permissionStatusEnum.optional(),
+});
 
 /* =========================================
-   ASSIGN PERMISSION TO ROLE
+   ASSIGN ROLE PERMISSION
 ========================================= */
 
-export const assignPermissionSchema =
+export const assignPermissionToRoleSchema =
   z.object({
-    roleId:
-      z.string().cuid(),
+    role: z.string().min(1),
 
-    permissionIds:
-      z.array(
-        z.string().cuid()
-      ).min(1),
+    permissionId: z.string().cuid(),
   });
 
 /* =========================================
-   REMOVE PERMISSION
+   ASSIGN USER PERMISSION
 ========================================= */
 
-export const removePermissionSchema =
+export const assignPermissionToUserSchema =
   z.object({
-    roleId:
-      z.string().cuid(),
+    userId: z.string().cuid(),
 
-    permissionId:
-      z.string().cuid(),
+    permissionId: z.string().cuid(),
   });
 
 /* =========================================
-   BULK PERMISSION ASSIGN
+   BULK ASSIGN
 ========================================= */
 
 export const bulkAssignPermissionSchema =
   z.object({
-    roleIds:
-      z.array(
-        z.string().cuid()
-      ).min(1),
+    role: z.string().min(1),
 
-    permissionIds:
-      z.array(
-        z.string().cuid()
-      ).min(1),
+    permissionIds: z.array(
+      z.string().cuid()
+    ).min(1),
   });
 
 /* =========================================
-   PERMISSION FILTER
+   FILTER
 ========================================= */
 
 export const permissionFilterSchema =
   z.object({
-    search:
-      z.string().optional(),
+    search: z.string().optional(),
 
     module:
       permissionModuleEnum.optional(),
-
-    action:
-      permissionActionEnum.optional(),
 
     status:
       permissionStatusEnum.optional(),
 
     page:
-      z.coerce.number()
-      .default(1),
+      z.coerce.number().default(1),
 
     limit:
       z.coerce.number()
-      .min(1)
-      .max(100)
-      .default(20),
+        .min(1)
+        .max(100)
+        .default(20),
   });
 
 /* =========================================
-   ROLE PERMISSION MATRIX
-========================================= */
-
-export const rolePermissionMatrixSchema =
-  z.object({
-    roleId:
-      z.string().cuid(),
-  });
-
-/* =========================================
-   PERMISSION ANALYTICS
+   ANALYTICS
 ========================================= */
 
 export const permissionAnalyticsSchema =
   z.object({
-    startDate:
-      z.string().optional(),
+    startDate: z.string().optional(),
 
-    endDate:
-      z.string().optional(),
+    endDate: z.string().optional(),
   });
 
 /* =========================================
@@ -220,28 +158,17 @@ export type CreatePermissionDto =
 export type UpdatePermissionDto =
   z.infer<typeof updatePermissionSchema>;
 
-export type AssignPermissionDto =
-  z.infer<typeof assignPermissionSchema>;
+export type AssignPermissionToRoleDto =
+  z.infer<typeof assignPermissionToRoleSchema>;
 
-export type RemovePermissionDto =
-  z.infer<typeof removePermissionSchema>;
+export type AssignPermissionToUserDto =
+  z.infer<typeof assignPermissionToUserSchema>;
 
 export type BulkAssignPermissionDto =
-  z.infer<
-    typeof bulkAssignPermissionSchema
-  >;
+  z.infer<typeof bulkAssignPermissionSchema>;
 
 export type PermissionFilterDto =
-  z.infer<
-    typeof permissionFilterSchema
-  >;
-
-export type RolePermissionMatrixDto =
-  z.infer<
-    typeof rolePermissionMatrixSchema
-  >;
+  z.infer<typeof permissionFilterSchema>;
 
 export type PermissionAnalyticsDto =
-  z.infer<
-    typeof permissionAnalyticsSchema
-  >;
+  z.infer<typeof permissionAnalyticsSchema>;
