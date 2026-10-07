@@ -1,0 +1,44 @@
+﻿import api from "@/lib/api";
+
+export interface PublicLeadPayload {
+  fullName: string;
+  mobileNumber: string;
+  email?: string;
+  productType:
+    | "PERSONAL_LOAN"
+    | "BUSINESS_LOAN"
+    | "HOME_LOAN"
+    | "LAP"
+    | "CAR_LOAN"
+    | "CREDIT_CARD"
+    | "INSURANCE"
+    | "FASTAG"
+    | "INVESTMENT"
+    | "DEMAT_ACCOUNT";
+  remarks?: string;
+  source: "WEBSITE";
+  priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+}
+
+export interface PublicLeadResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    id?: string;
+    fullName?: string;
+    mobileNumber?: string;
+    email?: string;
+    productType?: string;
+    remarks?: string;
+    source?: string;
+    status?: string;
+    priority?: string;
+  };
+}
+
+export async function submitPublicLead(
+  payload: PublicLeadPayload
+): Promise<PublicLeadResponse> {
+  const response = await api.post("/lead", payload);
+  return response.data;
+}

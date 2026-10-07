@@ -1,544 +1,750 @@
 ﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Wallet,
-  Clock3,
-  CheckCircle2,
-  XCircle,
-  RefreshCw,
-  Search,
-  IndianRupee,
-  TrendingUp,
-  CalendarDays,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001/api";
 
 type Commission = {
   id: string;
   amount?: number;
   commissionAmount?: number;
-  loanAmount?: number;
-  source?: string | null;
-  status?: string | null;
+  status?: string;
+  source?: string;
   createdAt?: string;
-  approvedAt?: string | null;
-  rejectionReason?: string | null;
-  loan?: {
-    id?: string;
-    applicationNo?: string;
-    loanType?: string;
-    loanAmount?: number;
-  } | null;
-};
-
-type User = {
-  id?: string;
-  userId?: string;
-  name?: string;
-  fullName?: string;
-  email?: string;
-};
-
-function money(value: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
-}
-
-function getStatus(status?: string | null) {
-  const value = String(status || "PENDING").toUpperCase();
-
-  if (value === "APPROVED") {
-    return {
-      label: "Approved",
-      className: "bg-emerald-50 text-emerald-700 border-emerald-200",
-      icon: CheckCircle2,
-    };
-  }
-
-  if (value === "PAID") {
-    return {
-      label: "Paid",
-      className: "bg-blue-50 text-blue-700 border-blue-200",
-      icon: Wallet,
-    };
-  }
-
-  if (value === "REJECTED") {
-    return {
-      label: "Rejected",
-      className: "bg-red-50 text-red-700 border-red-200",
-      icon: XCircle,
-    };
-  }
-
-  return {
-    label: "Pending",
-    className: "bg-amber-50 text-amber-700 border-amber-200",
-    icon: Clock3,
+  loanId?: string;
+  partnerId?: string;
+  customerName?: string;
+  customer?: {
+    name?: string;
+    fullName?: string;
   };
-}
+  loanType?: string;
+  loanAmount?: number;
+  disbursementAmount?: number;
+  commissionRate?: number;
+  payoutDate?: string;
+};
 
-export default function DsaCommissionPage() {
+export default function CommissionPage() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
-
-  const loadCommissions = useCallback(async () => {
-    try {
-      setError("");
-
-      const rawUser = localStorage.getItem("loan_finance_user");
-      const token = localStorage.getItem("loan_finance_token");
-
-      if (!rawUser) {
-        throw new Error("Logged-in user information not found.");
-      }
-
-      const user: User = JSON.parse(rawUser);
-      const userId = user.id || user.userId;
-
-      if (!userId) {
-        throw new Error("User ID not found.");
-      }
-
-      const response = await fetch(
-        `${API}/commission/user/${encodeURIComponent(userId)}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token
-              ? {
-                  Authorization: `Bearer ${token}`,
-                }
-              : {}),
-          },
-          credentials: "include",
-        }
-      );
-
-      const result = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(
-          result?.message ||
-            result?.error ||
-            `Unable to load commission (${response.status})`
-        );
-      }
-
-      const data = result?.data ?? result;
-
-      const list = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.commissions)
-        ? data.commissions
-        : [];
-
-      setCommissions(list);
-    } catch (err) {
-      setCommissions([]);
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load commission data."
-      );
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const [loanFilter, setLoanFilter] = useState("ALL");
 
   useEffect(() => {
-    loadCommissions();
-  }, [loadCommissions]);
+    const loadCommissions = async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-  const stats = useMemo(() => {
-    return commissions.reduce(
-      (acc, item) => {
-        const amount = Number(item.commissionAmount ?? item.amount ?? 0);
-        const status = String(item.status || "PENDING").toUpperCase();
+        const token =
+          localStorage.getItem("token") ||
+          localStorage.getItem("accessToken");
 
-        acc.total += amount;
+        const headers: HeadersInit = {
+          "Content-Type": "application/json",
+        };
 
-        if (status === "PENDING") acc.pending += amount;
-        if (status === "APPROVED") acc.approved += amount;
-        if (status === "PAID") acc.paid += amount;
-        if (status === "REJECTED") acc.rejected += amount;
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
 
-        return acc;
-      },
-      {
-        total: 0,
-        pending: 0,
-        approved: 0,
-        paid: 0,
-        rejected: 0,
+        const userId =
+          localStorage.getItem("userId") ||
+          localStorage.getItem("user_id");
+
+        const endpoint = userId
+          ? `${API_URL}/commission/user/${userId}`
+          : `${API_URL}/commission`;
+
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers,
+        });
+
+        if (!response.ok) {
+          throw new Error(`Commission API returned ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        const data =
+          Array.isArray(result)
+            ? result
+            : Array.isArray(result?.commissions)
+            ? result.commissions
+            : Array.isArray(result?.data)
+            ? result.data
+            : Array.isArray(result?.data?.commissions)
+            ? result.data.commissions
+            : [];
+
+        setCommissions(data);
+      } catch (err) {
+        console.error("Commission API error:", err);
+        setError("Unable to load real commission data.");
+        setCommissions([]);
+      } finally {
+        setLoading(false);
       }
-    );
+    };
+
+    loadCommissions();
+  }, []);
+
+  const getAmount = (item: Commission) =>
+    Number(item.commissionAmount ?? item.amount ?? 0);
+
+  const totalCommission = useMemo(
+    () => commissions.reduce((sum, item) => sum + getAmount(item), 0),
+    [commissions]
+  );
+
+  const approvedCommission = useMemo(
+    () =>
+      commissions
+        .filter(
+          (item) => String(item.status).toUpperCase() === "APPROVED"
+        )
+        .reduce((sum, item) => sum + getAmount(item), 0),
+    [commissions]
+  );
+
+  const pendingCommission = useMemo(
+    () =>
+      commissions
+        .filter(
+          (item) => String(item.status).toUpperCase() === "PENDING"
+        )
+        .reduce((sum, item) => sum + getAmount(item), 0),
+    [commissions]
+  );
+
+  const paidCommission = useMemo(
+    () =>
+      commissions
+        .filter((item) => String(item.status).toUpperCase() === "PAID")
+        .reduce((sum, item) => sum + getAmount(item), 0),
+    [commissions]
+  );
+
+  const loanTypes = useMemo(() => {
+    const map: Record<string, number> = {};
+
+    commissions.forEach((item) => {
+      const type = item.loanType || item.source || "Other";
+      map[type] = (map[type] || 0) + getAmount(item);
+    });
+
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
   }, [commissions]);
 
   const filteredCommissions = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
 
     return commissions.filter((item) => {
       const status = String(item.status || "PENDING").toUpperCase();
+      const loanType = item.loanType || item.source || "Other";
 
-      if (statusFilter !== "ALL" && status !== statusFilter) {
-        return false;
-      }
+      const customer =
+        item.customerName ||
+        item.customer?.name ||
+        item.customer?.fullName ||
+        "";
 
-      if (!query) return true;
+      const matchesSearch =
+        !q ||
+        customer.toLowerCase().includes(q) ||
+        String(item.loanId || "").toLowerCase().includes(q) ||
+        loanType.toLowerCase().includes(q);
 
-      const searchable = [
-        item.id,
-        item.source,
-        item.loan?.id,
-        item.loan?.applicationNo,
-        item.loan?.loanType,
-        item.status,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+      const matchesStatus =
+        statusFilter === "ALL" || status === statusFilter;
 
-      return searchable.includes(query);
+      const matchesLoan =
+        loanFilter === "ALL" || loanType === loanFilter;
+
+      return matchesSearch && matchesStatus && matchesLoan;
     });
-  }, [commissions, search, statusFilter]);
+  }, [commissions, search, statusFilter, loanFilter]);
 
-  const cards = [
-    {
-      title: "Total Commission",
-      value: stats.total,
-      icon: IndianRupee,
-      iconClass: "bg-indigo-50 text-indigo-600",
-    },
-    {
-      title: "Pending Commission",
-      value: stats.pending,
-      icon: Clock3,
-      iconClass: "bg-amber-50 text-amber-600",
-    },
-    {
-      title: "Approved Commission",
-      value: stats.approved,
-      icon: CheckCircle2,
-      iconClass: "bg-emerald-50 text-emerald-600",
-    },
-    {
-      title: "Paid Commission",
-      value: stats.paid,
-      icon: Wallet,
-      iconClass: "bg-blue-50 text-blue-600",
-    },
-  ];
+  const money = (value: number) =>
+    `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+  const date = (value?: string) =>
+    value
+      ? new Date(value).toLocaleDateString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#f4f8ff] p-4 md:p-6">
+
+
+<div className="mx-auto max-w-[1500px] space-y-5 animate-pulse">
+          <div className="h-44 rounded-[28px] bg-white shadow-sm" />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {[1, 2, 3, 4].map((x) => (
+              <div key={x} className="h-36 rounded-[24px] bg-white" />
+            ))}
+          </div>
+          <div className="h-[420px] rounded-[28px] bg-white" />
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-4 md:p-6 lg:p-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <section className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-7 w-7 text-indigo-600" />
-              <h1 className="text-2xl font-bold text-slate-900 md:text-3xl">
-                Commission
-              </h1>
-            </div>
+    <main className="min-h-screen bg-[#f3f7ff] px-3 py-4 text-[#10194d] md:px-6 md:py-6">
 
-            <p className="mt-1 text-sm text-slate-500 md:text-base">
-              Your real commission earnings and commission history.
-            </p>
+
+<div className="mx-auto max-w-[1500px] space-y-5">
+
+        {/* HERO */}
+        <section className="w-full overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-sm">
+  <div className="relative w-full aspect-[3.5/1] overflow-hidden">
+
+    <img
+      src="/images/commission-banner.png"
+      alt="DSA Commission Earnings"
+      className="absolute inset-0 h-full w-full object-cover object-center"
+    />
+
+    <div className="absolute inset-0 flex flex-col justify-center px-[4%] py-[2%]">
+
+      {/* TOP BADGE */}
+      <div className="mb-[1%]">
+        <div className="inline-flex items-center rounded-full bg-[#063b82]/95 px-[1.2vw] py-[0.45vw] text-[clamp(7px,0.7vw,15px)] font-extrabold text-white shadow-lg">
+          <span>&#9819; DSA COMMISSION</span>
+          <span className="mx-2 text-emerald-400">&#8226;</span>
+          <span>LIVE EARNINGS</span>
+        </div>
+      </div>
+
+      {/* MAIN TEXT */}
+      <div className="max-w-[58%]">
+        <h1 className="text-[clamp(22px,3vw,60px)] font-black leading-[0.9] tracking-tight text-[#06265f]">
+          Your Commission &amp;
+          <span className="block bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
+            Earnings
+          </span>
+        </h1>
+
+        <p className="mt-[1%] max-w-[90%] text-[clamp(7px,0.75vw,16px)] font-semibold leading-snug text-[#123d70]">
+          Track your earnings, payouts, loan-wise performance and grow faster with DSA FinCorp.
+        </p>
+
+        {/* FEATURE BOXES */}
+        <div className="mt-[1.8%] grid max-w-[92%] grid-cols-4 gap-[1%]">
+
+          <div className="flex items-center gap-[5px] rounded-lg bg-white/90 px-[1.2%] py-[1%] shadow-md backdrop-blur-sm">
+            <div className="flex h-[clamp(22px,2vw,42px)] w-[clamp(22px,2vw,42px)] shrink-0 items-center justify-center rounded-lg bg-blue-600 text-[clamp(11px,1vw,22px)] font-bold text-white">
+              &#9632;
+            </div>
+            <span className="text-[clamp(6px,0.62vw,13px)] font-extrabold leading-tight text-[#12345f]">
+              Real-time<br />Tracking
+            </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              setRefreshing(true);
-              loadCommissions();
-            }}
-            disabled={refreshing}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw
-              className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
-            />
-            Refresh
-          </button>
-        </section>
+          <div className="flex items-center gap-[5px] rounded-lg bg-white/90 px-[1.2%] py-[1%] shadow-md backdrop-blur-sm">
+            <div className="flex h-[clamp(22px,2vw,42px)] w-[clamp(22px,2vw,42px)] shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-[clamp(11px,1vw,22px)] font-bold text-white">
+              &#10003;
+            </div>
+            <span className="text-[clamp(6px,0.62vw,13px)] font-extrabold leading-tight text-[#12345f]">
+              Transparent<br />Payouts
+            </span>
+          </div>
 
+          <div className="flex items-center gap-[5px] rounded-lg bg-white/90 px-[1.2%] py-[1%] shadow-md backdrop-blur-sm">
+            <div className="flex h-[clamp(22px,2vw,42px)] w-[clamp(22px,2vw,42px)] shrink-0 items-center justify-center rounded-lg bg-orange-500 text-[clamp(11px,1vw,22px)] font-bold text-white">
+              &#8377;
+            </div>
+            <span className="text-[clamp(6px,0.62vw,13px)] font-extrabold leading-tight text-[#12345f]">
+              Multiple<br />Lenders
+            </span>
+          </div>
+
+          <div className="flex items-center gap-[5px] rounded-lg bg-white/90 px-[1.2%] py-[1%] shadow-md backdrop-blur-sm">
+            <div className="flex h-[clamp(22px,2vw,42px)] w-[clamp(22px,2vw,42px)] shrink-0 items-center justify-center rounded-lg bg-purple-600 text-[clamp(11px,1vw,22px)] font-bold text-white">
+              &#9813;
+            </div>
+            <span className="text-[clamp(6px,0.62vw,13px)] font-extrabold leading-tight text-[#12345f]">
+              Higher<br />Incentives
+            </span>
+          </div>
+
+        </div>
+      </div>
+
+      {/* HIGH EARNINGS */}
+      <div className="absolute right-[26%] top-[24%] rounded-lg bg-[#0874a8]/90 px-[1vw] py-[0.5vw] text-[clamp(7px,0.7vw,15px)] font-extrabold text-emerald-300 shadow-lg">
+        &#9632; + High Earnings
+      </div>
+
+    </div>
+  </div>
+</section>
+
+        {/* ERROR */}
         {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <div className="font-semibold">Commission data could not be loaded.</div>
-            <div className="mt-1">{error}</div>
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+            ? {error}
           </div>
         )}
 
+        {/* KPI CARDS */}
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => {
-            const Icon = card.icon;
 
-            return (
-              <div
-                key={card.title}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-slate-500">
-                      {card.title}
-                    </p>
-
-                    <p className="mt-2 text-2xl font-bold text-slate-900">
-                      {loading ? "—" : money(card.value)}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`rounded-xl p-3 ${card.iconClass}`}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 p-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="group rounded-[24px] border border-blue-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  Commission History
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Showing commission records linked to your account.
+                <p className="text-sm font-semibold text-slate-500">
+                  Total Commission
                 </p>
+                <h2 className="mt-2 text-3xl font-black">
+                  {money(totalCommission)}
+                </h2>
+                <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
+                  ✓ Live Total
+                </span>
               </div>
+              <div className="rounded-2xl bg-blue-50 p-4 text-2xl">◈</div>
+            </div>
+          </div>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search commission..."
-                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none focus:border-indigo-400 focus:bg-white sm:w-64"
-                  />
-                </div>
-
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 outline-none focus:border-indigo-400"
-                >
-                  <option value="ALL">All Status</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="APPROVED">Approved</option>
-                  <option value="PAID">Paid</option>
-                  <option value="REJECTED">Rejected</option>
-                </select>
+          <div className="group rounded-[24px] border border-emerald-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">
+                  Approved Commission
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-emerald-600">
+                  {money(approvedCommission)}
+                </h2>
+                <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
+                  ✓ Approved
+                </span>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 p-4 text-2xl text-emerald-600">
+                ✓
               </div>
             </div>
           </div>
 
-          {loading ? (
-            <div className="p-10 text-center text-sm text-slate-500">
-              Loading commission data...
+          <div className="group rounded-[24px] border border-orange-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">
+                  Pending Commission
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-orange-500">
+                  {money(pendingCommission)}
+                </h2>
+                <span className="mt-3 inline-flex rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-600">
+                  ◷ Pending
+                </span>
+              </div>
+              <div className="rounded-2xl bg-orange-50 p-4 text-2xl text-orange-500">
+                ◷
+              </div>
             </div>
-          ) : filteredCommissions.length === 0 ? (
-            <div className="p-12 text-center">
-              <Wallet className="mx-auto h-10 w-10 text-slate-300" />
-              <h3 className="mt-3 text-base font-semibold text-slate-700">
-                No commission records found
-              </h3>
+          </div>
+
+          <div className="group rounded-[24px] border border-purple-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-500">
+                  Available for Payout
+                </p>
+                <h2 className="mt-2 text-3xl font-black text-purple-600">
+                  {money(paidCommission)}
+                </h2>
+                <button className="mt-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-lg">
+                  ⇄ Transfer to Wallet
+                </button>
+              </div>
+              <div className="rounded-2xl bg-purple-50 p-4 text-2xl">
+                ⇄
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        {/* ANALYTICS */}
+        <section className="grid grid-cols-1 gap-5 xl:grid-cols-[1.55fr_1fr]">
+
+          <div className="rounded-[28px] border border-blue-100 bg-white p-5 shadow-sm md:p-6">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-xl font-black">
+                  Monthly Commission Earnings
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Live commission distribution from backend records
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">
+                Last 6 Months ▾
+              </div>
+            </div>
+
+            <div className="mt-8 flex h-[270px] items-end gap-2 overflow-hidden px-2">
+              {Array.from({ length: 12 }).map((_, index) => {
+                const values =
+                  commissions.length > 0
+                    ? commissions.slice(
+                        Math.max(0, commissions.length - 12)
+                      )
+                    : [];
+
+                const value = values[index]
+                  ? getAmount(values[index])
+                  : 0;
+
+                const max = Math.max(
+                  ...values.map(getAmount),
+                  totalCommission / 3,
+                  1
+                );
+
+                const height =
+                  value > 0
+                    ? Math.max(10, (value / max) * 190)
+                    : 8;
+
+                return (
+                  <div
+                    key={index}
+                    className="flex h-full flex-1 flex-col justify-end"
+                  >
+                    <div className="mb-2 text-center text-[9px] font-bold text-slate-400">
+                      {value ? money(value) : ""}
+                    </div>
+                    <div
+                      className="rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 shadow-lg transition hover:from-purple-600 hover:to-blue-400"
+                      style={{ height: `${height}px` }}
+                    />
+                    <div className="mt-2 text-center text-[10px] font-semibold text-slate-400">
+                      {[
+                        "Jan",
+                        "Feb",
+                        "Mar",
+                        "Apr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Aug",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dec",
+                      ][index]}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-purple-100 bg-white p-5 shadow-sm md:p-6">
+            <h2 className="text-xl font-black">
+              Commission by Loan Type
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Distribution based on available commission records
+            </p>
+
+            <div className="mt-7 flex flex-col items-center gap-6 sm:flex-row">
+              <div className="relative flex h-48 w-48 shrink-0 items-center justify-center rounded-full bg-[conic-gradient(#1677ff_0_35%,#00c48c_35%_57%,#ffb21d_57%_72%,#ff5b7f_72%_84%,#8b5cf6_84%_94%,#94a3b8_94%_100%)] shadow-inner">
+                <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-sm">
+                  <span className="text-lg font-black">
+                    {money(totalCommission)}
+                  </span>
+                  <span className="text-xs text-slate-500">Total</span>
+                </div>
+              </div>
+
+              <div className="w-full space-y-3">
+                {loanTypes.length === 0 ? (
+                  <div className="text-sm text-slate-400">
+                    No loan-type data available.
+                  </div>
+                ) : (
+                  loanTypes.map(([type, amount], index) => (
+                    <div
+                      key={type}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`h-3 w-3 rounded-full ${
+                            [
+                              "bg-blue-500",
+                              "bg-emerald-500",
+                              "bg-yellow-400",
+                              "bg-pink-500",
+                              "bg-purple-500",
+                              "bg-slate-400",
+                            ][index]
+                          }`}
+                        />
+                        <span className="font-semibold">{type}</span>
+                      </div>
+                      <span className="font-black">
+                        {money(amount)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        {/* PAYOUT STRIP */}
+        <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+
+          <div className="rounded-[22px] border border-blue-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-blue-50 p-4 text-2xl">
+                ◫
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">
+                  Total Transactions
+                </p>
+                <p className="text-2xl font-black">
+                  {commissions.length}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-emerald-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-emerald-50 p-4 text-2xl">
+                ₹
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">
+                  Paid Commission
+                </p>
+                <p className="text-2xl font-black">
+                  {money(paidCommission)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-orange-100 bg-white p-5 shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-orange-50 p-4 text-2xl">
+                ◷
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">
+                  Pending Payout
+                </p>
+                <p className="text-2xl font-black">
+                  {money(pendingCommission)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        {/* TRANSACTIONS */}
+        <section className="rounded-[28px] border border-blue-100 bg-white p-4 shadow-sm md:p-6">
+
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <h2 className="text-2xl font-black">
+                Commission Transactions
+              </h2>
               <p className="mt-1 text-sm text-slate-500">
-                Commission records will appear here when available.
+                View your real commission details, payout status and transaction history.
               </p>
             </div>
-          ) : (
-            <>
-              <div className="hidden overflow-x-auto md:block">
-                <table className="w-full min-w-[850px]">
-                  <thead className="bg-slate-50">
-                    <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      <th className="px-5 py-3">Commission ID</th>
-                      <th className="px-5 py-3">Loan</th>
-                      <th className="px-5 py-3">Loan Amount</th>
-                      <th className="px-5 py-3">Commission</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3">Date</th>
-                    </tr>
-                  </thead>
 
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredCommissions.map((item) => {
-                      const badge = getStatus(item.status);
-                      const StatusIcon = badge.icon;
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search customer, loan..."
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
 
-                      return (
-                        <tr
-                          key={item.id}
-                          className="hover:bg-slate-50"
-                        >
-                          <td className="px-5 py-4">
-                            <div className="max-w-[180px] truncate text-sm font-semibold text-slate-800">
-                              {item.id}
-                            </div>
-                          </td>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold outline-none"
+              >
+                <option value="ALL">All Status</option>
+                <option value="APPROVED">Approved</option>
+                <option value="PENDING">Pending</option>
+                <option value="PAID">Paid</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
 
-                          <td className="px-5 py-4">
-                            <div className="text-sm font-medium text-slate-800">
-                              {item.loan?.applicationNo ||
-                                item.loan?.id ||
-                                item.source ||
-                                "Loan"}
-                            </div>
+              <select
+                value={loanFilter}
+                onChange={(e) => setLoanFilter(e.target.value)}
+                className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold outline-none"
+              >
+                <option value="ALL">All Loan Types</option>
+                {loanTypes.map(([type]) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-                            {item.loan?.loanType && (
-                              <div className="mt-1 text-xs text-slate-500">
-                                {item.loan.loanType}
-                              </div>
-                            )}
-                          </td>
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-100">
+            <table className="w-full min-w-[1000px] text-left text-sm">
+              <thead>
+                <tr className="bg-[#f5f8ff] text-xs uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-4">#</th>
+                  <th className="px-4 py-4">Customer</th>
+                  <th className="px-4 py-4">Loan Type</th>
+                  <th className="px-4 py-4">Loan ID</th>
+                  <th className="px-4 py-4">Commission</th>
+                  <th className="px-4 py-4">Status</th>
+                  <th className="px-4 py-4">Date</th>
+                  <th className="px-4 py-4 text-right">Action</th>
+                </tr>
+              </thead>
 
-                          <td className="px-5 py-4 text-sm text-slate-700">
-                            {money(
-                              Number(
-                                item.loanAmount ??
-                                  item.loan?.loanAmount ??
-                                  0
-                              )
-                            )}
-                          </td>
+              <tbody>
+                {filteredCommissions.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="px-4 py-16 text-center text-sm text-slate-400"
+                    >
+                      No real commission records found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredCommissions.map((item, index) => {
+                    const status = String(
+                      item.status || "PENDING"
+                    ).toUpperCase();
 
-                          <td className="px-5 py-4 text-sm font-bold text-slate-900">
-                            {money(
-                              Number(
-                                item.commissionAmount ??
-                                  item.amount ??
-                                  0
-                              )
-                            )}
-                          </td>
+                    const customer =
+                      item.customerName ||
+                      item.customer?.name ||
+                      item.customer?.fullName ||
+                      "-";
 
-                          <td className="px-5 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${badge.className}`}
-                            >
-                              <StatusIcon className="h-3.5 w-3.5" />
-                              {badge.label}
-                            </span>
-                          </td>
+                    const loanType =
+                      item.loanType || item.source || "Other";
 
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-1.5 text-sm text-slate-600">
-                              <CalendarDays className="h-4 w-4 text-slate-400" />
-                              {item.createdAt
-                                ? new Date(
-                                    item.createdAt
-                                  ).toLocaleDateString("en-IN", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : "—"}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    const statusClass =
+                      status === "PAID"
+                        ? "bg-blue-50 text-blue-700"
+                        : status === "APPROVED"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : status === "REJECTED"
+                        ? "bg-red-50 text-red-700"
+                        : "bg-orange-50 text-orange-700";
 
-              <div className="divide-y divide-slate-100 md:hidden">
-                {filteredCommissions.map((item) => {
-                  const badge = getStatus(item.status);
-                  const StatusIcon = badge.icon;
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-t border-slate-100 transition hover:bg-blue-50/40"
+                      >
+                        <td className="px-4 py-4 font-bold text-slate-400">
+                          {index + 1}
+                        </td>
 
-                  return (
-                    <div key={item.id} className="p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900">
-                            {item.loan?.applicationNo ||
-                              item.loan?.id ||
-                              item.source ||
-                              "Loan"}
-                          </p>
+                        <td className="px-4 py-4">
+                          <div className="font-bold text-[#10194d]">
+                            {customer}
+                          </div>
+                        </td>
 
-                          <p className="mt-1 truncate text-xs text-slate-500">
-                            {item.id}
-                          </p>
-                        </div>
+                        <td className="px-4 py-4 font-semibold">
+                          {loanType}
+                        </td>
 
-                        <span
-                          className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-semibold ${badge.className}`}
-                        >
-                          <StatusIcon className="h-3 w-3" />
-                          {badge.label}
-                        </span>
-                      </div>
+                        <td className="px-4 py-4 font-mono text-xs text-slate-500">
+                          {item.loanId || "-"}
+                        </td>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-xl bg-slate-50 p-3">
-                          <p className="text-[11px] text-slate-500">
-                            Loan Amount
-                          </p>
-                          <p className="mt-1 text-sm font-semibold text-slate-800">
-                            {money(
-                              Number(
-                                item.loanAmount ??
-                                  item.loan?.loanAmount ??
-                                  0
-                              )
-                            )}
-                          </p>
-                        </div>
+                        <td className="px-4 py-4 font-black">
+                          {money(getAmount(item))}
+                        </td>
 
-                        <div className="rounded-xl bg-slate-50 p-3">
-                          <p className="text-[11px] text-slate-500">
-                            Commission
-                          </p>
-                          <p className="mt-1 text-sm font-bold text-slate-900">
-                            {money(
-                              Number(
-                                item.commissionAmount ??
-                                  item.amount ??
-                                  0
-                              )
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                        <td className="px-4 py-4">
+                          <span
+                            className={`rounded-full px-3 py-1.5 text-xs font-black ${statusClass}`}
+                          >
+                            {status}
+                          </span>
+                        </td>
 
-                      <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
-                        <CalendarDays className="h-3.5 w-3.5" />
-                        {item.createdAt
-                          ? new Date(
-                              item.createdAt
-                            ).toLocaleDateString("en-IN")
-                          : "—"}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+                        <td className="px-4 py-4 text-slate-500">
+                          {date(item.createdAt)}
+                        </td>
+
+                        <td className="px-4 py-4 text-right">
+                          <button className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-600 hover:text-white">
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-4 flex flex-col justify-between gap-2 text-xs text-slate-500 sm:flex-row">
+            <span>
+              Showing {filteredCommissions.length} of {commissions.length} real records
+            </span>
+            <span>
+              API: Connected • Database data only
+            </span>
+          </div>
+
         </section>
+
       </div>
     </main>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

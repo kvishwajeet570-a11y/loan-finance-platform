@@ -1,0 +1,47 @@
+﻿"use client";
+
+import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import DsaSidebar from "./DsaSidebar";
+
+export default function DsaShell({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const pathname = usePathname();
+
+  const isKycPage =
+    pathname === "/dsa/kyc" ||
+    pathname.startsWith("/dsa/kyc/");
+
+  /*
+   * IMPORTANT
+   *
+   * KYC:
+   * Keep existing layout exactly unchanged.
+   *
+   * NON-KYC:
+   * Sidebar width is approximately 238px.
+   * Main content starts immediately after sidebar
+   * with only a small visual gap.
+   *
+   * No page-level files are changed.
+   */
+
+  const mainClass = isKycPage
+    ? "min-h-screen pl-0 lg:pl-[278px] transition-all duration-300"
+    : "min-h-screen pl-0 lg:pl-[238px] pr-0 transition-all duration-300";
+
+  return (
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-50">
+      <DsaSidebar />
+
+      <main className={mainClass}>
+        <div className="w-full max-w-none">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}

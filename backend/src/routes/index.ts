@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 /* =========================================
    ROUTES
@@ -32,6 +32,7 @@ import loginHistoryRoutes from "./loginHistory/loginHistory.route";
 import notificationRoutes from "./notification/notification.route";
 import partnerRoutes from "./partner/partner.route";
 import paymentRoutes from "./payment/payment.route";
+import payoutRoutes from "./payout/payout.route";
 import permissionRoutes from "./permission/permission.route";
 import profileRoutes from "./profile/profile.route";
 import rechargeRoutes from "./recharge/recharge.route";
@@ -83,6 +84,7 @@ router.use("/upload", uploadRoutes);
 
 router.use("/bank", bankRoutes);
 router.use("/payment", paymentRoutes);
+router.use("/payout", payoutRoutes);
 router.use("/transaction", transactionRoutes);
 router.use("/wallet", walletRoutes);
 router.use("/recharge", rechargeRoutes);
@@ -161,4 +163,5 @@ router.use("/customer", customerRoutes);
 router.use("/achievements", achievementRoutes);
 
 export default router;
+
 

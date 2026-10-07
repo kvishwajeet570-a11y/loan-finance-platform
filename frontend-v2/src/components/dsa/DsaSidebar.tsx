@@ -108,22 +108,15 @@ const groups = [
         label: "Commission",
         href: "/dsa/commission",
         icon: BadgeIndianRupee,
-        children: [
-          { label: "Overview", href: "/dsa/commission" },
-          { label: "Pending", href: "/dsa/commission?status=PENDING" },
-          { label: "Approved", href: "/dsa/commission?status=APPROVED" },
-          { label: "History", href: "/dsa/commission?tab=history" },
-        ],
       },
       {
         label: "Wallet",
-        href: "/dsa/wallet",
+        href: "/dsa/wallet/balance",
         icon: Wallet,
         children: [
-          { label: "Overview", href: "/dsa/wallet" },
-          { label: "Earnings", href: "/dsa/wallet?tab=earnings" },
-          { label: "Cashback", href: "/dsa/wallet?tab=cashback" },
-          { label: "Withdrawal", href: "/dsa/wallet?tab=withdrawal" },
+          { label: "Balance", href: "/dsa/wallet/balance" },
+          { label: "Transaction", href: "/dsa/wallet/transactions" },
+          { label: "Statement", href: "/dsa/wallet/statement" },
         ],
       },
       {
@@ -132,7 +125,7 @@ const groups = [
         icon: Wallet,
         children: [
           { label: "Payout Overview", href: "/dsa/payout" },
-          { label: "Payout Chart", href: "/dsa/payout/chart" },
+
         ],
       },      {
         label: "Transactions",
@@ -140,8 +133,8 @@ const groups = [
         icon: ReceiptText,
         children: [
           { label: "All Transactions", href: "/dsa/transactions" },
-          { label: "Credit", href: "/dsa/transactions?type=CREDIT" },
-          { label: "Debit", href: "/dsa/transactions?type=DEBIT" },
+          { label: "Credit", href: "/dsa/transactions/credit" },
+          { label: "Debit", href: "/dsa/transactions/debit" },
         ],
       },
       {
@@ -435,7 +428,7 @@ export default function DsaSidebar() {
                 Wallet
               </div>
               <div className="mt-1 text-[15px] font-black text-slate-900">
-                ₹{wallet.toLocaleString("en-IN")}
+                â‚¹{wallet.toLocaleString("en-IN")}
               </div>
             </div>
 
@@ -483,7 +476,7 @@ export default function DsaSidebar() {
                 onClick={() => setSidebarSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400 hover:text-slate-700"
               >
-                ×
+                Ã—
               </button>
             )}
           </div>
@@ -608,6 +601,12 @@ export default function DsaSidebar() {
     </aside>
   );
 }
+
+
+
+
+
+
 
 
 

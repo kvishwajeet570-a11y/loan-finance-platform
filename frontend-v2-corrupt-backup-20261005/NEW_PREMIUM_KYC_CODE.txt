@@ -1,0 +1,921 @@
+﻿"use client";
+
+import { ChangeEvent, FormEvent, useState } from "react";
+import DsaSidebar from "@/components/dsa/DsaSidebar";
+
+type DocumentKey = "aadhaar" | "pan" | "passbook" | "agreement";
+
+type Documents = Record<DocumentKey, File | null>;
+
+type CustomerForm = {
+  fullName: string;
+  mobile: string;
+  email: string;
+  dob: string;
+  pan: string;
+  aadhaar: string;
+  gender: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  accountHolder: string;
+};
+
+const initialForm: CustomerForm = {
+  fullName: "",
+  mobile: "",
+  email: "",
+  dob: "",
+  pan: "",
+  aadhaar: "",
+  gender: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+  bankName: "",
+  accountNumber: "",
+  ifsc: "",
+  accountHolder: "",
+};
+
+const initialDocuments: Documents = {
+  aadhaar: null,
+  pan: null,
+  passbook: null,
+  agreement: null,
+};
+
+export default function KycPage() {
+  const [form, setForm] = useState<CustomerForm>(initialForm);
+  const [documents, setDocuments] = useState<Documents>(initialDocuments);
+  const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const updateField = (key: keyof CustomerForm, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const handleFile = (
+    event: ChangeEvent<HTMLInputElement>,
+    key: DocumentKey
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+
+    if (!file) return;
+
+    const allowed = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+    ];
+
+    if (!allowed.includes(file.type)) {
+      alert("Please upload PDF, JPG or PNG files only.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Maximum file size is 5MB.");
+      event.target.value = "";
+      return;
+    }
+
+    setDocuments((prev) => ({
+      ...prev,
+      [key]: file,
+    }));
+  };
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (
+      !form.fullName ||
+      !form.mobile ||
+      !form.dob ||
+      !form.pan ||
+      !form.aadhaar
+    ) {
+      alert("Please fill all required customer details.");
+      return;
+    }
+
+    if (
+      !documents.aadhaar ||
+      !documents.pan ||
+      !documents.passbook ||
+      !documents.agreement
+    ) {
+      alert(
+        "Please upload Aadhaar, PAN Card, Bank Passbook and Agreement."
+      );
+      return;
+    }
+
+    setSubmitted(true);
+  };
+
+  const saveDraft = () => {
+    setSaving(true);
+
+    setTimeout(() => {
+      setSaving(false);
+      alert("KYC draft saved successfully.");
+    }, 700);
+  };
+
+  const documentData: {
+    key: DocumentKey;
+    title: string;
+    subtitle: string;
+    icon: string;
+    accent: string;
+  }[] = [
+    {
+      key: "aadhaar",
+      title: "Aadhaar Card",
+      subtitle: "Front / Back",
+      icon: "ðŸªª",
+      accent: "from-orange-50 to-red-50 border-orange-200",
+    },
+    {
+      key: "pan",
+      title: "PAN Card",
+      subtitle: "Clear PAN Card",
+      icon: "â–£",
+      accent: "from-blue-50 to-cyan-50 border-blue-200",
+    },
+    {
+      key: "passbook",
+      title: "Bank Passbook",
+      subtitle: "First page / cancelled cheque",
+      icon: "ðŸ¦",
+      accent: "from-emerald-50 to-green-50 border-emerald-200",
+    },
+    {
+      key: "agreement",
+      title: "Agreement",
+      subtitle: "Signed customer agreement",
+      icon: "ðŸ“„",
+      accent: "from-violet-50 to-purple-50 border-violet-200",
+    },
+  ];
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-[#f3f7ff] text-slate-900">
+        <DsaSidebar />
+
+        <main className="min-h-screen lg:ml-[238px]">
+          <div className="mx-auto flex min-h-screen max-w-5xl items-center justify-center px-5 py-10">
+            <div className="relative w-full overflow-hidden rounded-[34px] border border-white bg-white p-12 text-center shadow-[0_25px_80px_rgba(30,64,175,0.16)]">
+              <div className="absolute inset-x-0 top-0 h-2 bg-gradient-to-r from-blue-600 via-violet-600 to-cyan-400" />
+
+              <div className="mx-auto mb-7 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-green-600 text-5xl text-white shadow-xl">
+                âœ“
+              </div>
+
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.25em] text-blue-600">
+                KYC Verification
+              </p>
+
+              <h1 className="text-4xl font-black tracking-tight text-slate-900">
+                KYC Submitted Successfully
+              </h1>
+
+              <p className="mx-auto mt-4 max-w-xl text-slate-500">
+                Customer KYC documents have been submitted for verification.
+                The verification team can now review the application.
+              </p>
+
+              <button
+                onClick={() => {
+                  setSubmitted(false);
+                }}
+                className="mt-8 rounded-2xl bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 px-8 py-4 font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5"
+              >
+                Submit Another KYC â†’
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f7fc] text-slate-900">
+      <DsaSidebar />
+
+      <main className="min-h-screen lg:ml-[238px]">
+        <div className="mx-auto max-w-[1480px] px-4 py-5 sm:px-6 lg:px-8">
+
+          {/* TOP BAR */}
+          <div className="mb-4 flex items-center justify-between rounded-2xl border border-white bg-white/80 px-5 py-3 shadow-sm backdrop-blur-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-xl text-white shadow-lg">
+                âœ¦
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-900">
+                  DSA FinCorp
+                </p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  Secure Partner Portal
+                </p>
+              </div>
+            </div>
+
+            <div className="hidden items-center gap-3 md:flex">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-500">
+                ðŸ”” Notifications
+              </div>
+
+              <div className="rounded-xl bg-slate-950 px-4 py-2 text-xs font-black text-white">
+                KYC CENTER
+              </div>
+            </div>
+          </div>
+          {/* PREMIUM BANNER â€” NEW IMAGE */}
+          <section className="relative mb-5 overflow-hidden rounded-[28px] border border-blue-100 bg-white shadow-[0_20px_60px_rgba(15,52,130,0.28)]">
+            {/* RIGHT SIDE BANNER TEXT */}
+            <div className="pointer-events-none absolute right-5 top-1/2 z-30 hidden -translate-y-1/2 text-right sm:block md:right-7 lg:right-10">
+
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-yellow-300/60 bg-slate-950/75 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.18em] text-yellow-300 shadow-lg backdrop-blur-md sm:text-[10px]">
+                <span>ðŸš€</span>
+                <span>Fast &amp; Secure</span>
+              </div>
+
+              <h2 className="text-2xl font-black leading-none tracking-tight text-white drop-shadow-[0_3px_10px_rgba(0,0,0,0.6)] sm:text-3xl lg:text-4xl">
+                Verify Today
+              </h2>
+
+              <p className="mt-2 text-sm font-black text-yellow-300 drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)] sm:text-base lg:text-xl">
+                Get Faster Loan Approvals
+              </p>
+
+              <div className="mt-3 space-y-1 text-[10px] font-bold text-white drop-shadow-md sm:text-xs lg:text-sm">
+                <div>âœ“ Higher Loan Approval Chances</div>
+                <div>âœ“ Faster Disbursal</div>
+                <div>âœ“ Access to Multiple Lenders</div>
+                <div>âœ“ Dedicated DSA Support</div>
+              </div>
+
+            </div>
+            {/* BANNER TEXT OVERLAY */}
+            <div className="absolute inset-0 z-20 flex items-center">
+              <div className="w-full max-w-[58%] px-6 py-6 sm:px-8 lg:px-10">
+
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-yellow-300/70 bg-slate-950/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-yellow-300 shadow-lg backdrop-blur-md sm:text-xs">
+                  <span>ðŸ›¡</span>
+                  KYC VERIFICATION
+                </div>
+
+                <h1 className="text-3xl font-black leading-[0.95] tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.45)] sm:text-4xl lg:text-5xl xl:text-6xl">
+                  Complete KYC
+                </h1>
+
+                <p className="mt-2 text-xl font-black leading-tight text-yellow-300 drop-shadow-[0_3px_8px_rgba(0,0,0,0.5)] sm:text-2xl lg:text-3xl">
+                  Unlock All Loan Products
+                </p>
+
+                <p className="mt-3 max-w-lg text-xs font-semibold leading-5 text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] sm:text-sm">
+                  Verify customer identity and complete secure KYC verification
+                  for faster processing and access to financial products.
+                </p>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-emerald-300/50 bg-emerald-400/20 px-3 py-1.5 text-[10px] font-black text-white backdrop-blur-md">
+                    âœ“ 100% Secure
+                  </span>
+
+                  <span className="rounded-full border border-cyan-300/50 bg-cyan-400/20 px-3 py-1.5 text-[10px] font-black text-white backdrop-blur-md">
+                    âœ“ Quick Verification
+                  </span>
+
+                  <span className="rounded-full border border-yellow-300/50 bg-yellow-400/15 px-3 py-1.5 text-[10px] font-black text-white backdrop-blur-md">
+                    âœ“ All Financial Products
+                  </span>
+                </div>
+
+              </div>
+            </div>
+            <img
+              src="/DSA_FinCorp_KYC_Banner.png"
+              alt="DSA FinCorp KYC Verification"
+              className="block w-[95%] h-[455px] mx-auto object-cover object-center"
+            />
+          </section>
+{/* STEPPER */}
+          <div className="mb-5 rounded-2xl border border-blue-100 bg-white p-3 shadow-sm">
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+
+              {[
+                ["1", "Personal Details", "Customer information"],
+                ["2", "Bank Details", "Account information"],
+                ["3", "Document Upload", "Required documents"],
+                ["4", "Review & Submit", "Verify and complete KYC"],
+              ].map(([number, title, subtitle], index) => (
+                <div
+                  key={number}
+                  className={`relative flex items-center gap-3 rounded-xl px-4 py-3 ${
+                    index === 0
+                      ? "bg-gradient-to-r from-blue-50 to-indigo-50"
+                      : "bg-slate-50"
+                  }`}
+                >
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-black ${
+                      index === 0
+                        ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-200"
+                        : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {number}
+                  </div>
+
+                  <div>
+                    <p
+                      className={`text-xs font-black ${
+                        index === 0 ? "text-blue-700" : "text-slate-500"
+                      }`}
+                    >
+                      {title}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {subtitle}
+                    </p>
+                  </div>
+
+                  {index < 3 && (
+                    <span className="absolute -right-2 hidden text-lg text-blue-300 lg:block">
+                      â†’
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit}>
+
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+
+              <div className="space-y-5">
+
+                {/* PERSONAL DETAILS */}
+                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-gradient-to-r from-white to-blue-50/50 px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 text-2xl text-white shadow-lg">
+                        ðŸ‘¤
+                      </div>
+
+                      <div>
+                        <h2 className="text-lg font-black">
+                          Customer Information
+                        </h2>
+                        <p className="text-xs text-slate-500">
+                          Enter customer basic details for KYC verification
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert("Quick Fill is ready for integration.")
+                      }
+                      className="rounded-xl border border-violet-200 bg-violet-50 px-4 py-2 text-xs font-black text-violet-700 transition hover:bg-violet-100"
+                    >
+                      âœ¨ Quick Fill
+                    </button>
+                  </div>
+
+                  <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-4">
+
+                    <Field
+                      label="Full Name"
+                      required
+                      placeholder="Enter full name"
+                      value={form.fullName}
+                      onChange={(v) => updateField("fullName", v)}
+                    />
+
+                    <Field
+                      label="Date of Birth"
+                      required
+                      type="date"
+                      value={form.dob}
+                      onChange={(v) => updateField("dob", v)}
+                    />
+
+                    <SelectField
+                      label="Gender"
+                      required
+                      value={form.gender}
+                      options={["Male", "Female", "Other"]}
+                      onChange={(v) => updateField("gender", v)}
+                    />
+
+                    <Field
+                      label="Mobile Number"
+                      required
+                      placeholder="Enter 10 digit mobile number"
+                      value={form.mobile}
+                      onChange={(v) => updateField("mobile", v)}
+                    />
+
+                    <Field
+                      label="Email ID"
+                      placeholder="customer@example.com"
+                      value={form.email}
+                      onChange={(v) => updateField("email", v)}
+                    />
+
+                    <Field
+                      label="PAN Number"
+                      required
+                      placeholder="ABCDE1234F"
+                      value={form.pan}
+                      onChange={(v) =>
+                        updateField("pan", v.toUpperCase())
+                      }
+                    />
+
+                    <Field
+                      label="Aadhaar Number"
+                      required
+                      placeholder="Enter 12 digit Aadhaar number"
+                      value={form.aadhaar}
+                      onChange={(v) => updateField("aadhaar", v)}
+                    />
+
+                    <Field
+                      label="Pincode"
+                      placeholder="Enter pincode"
+                      value={form.pincode}
+                      onChange={(v) => updateField("pincode", v)}
+                    />
+
+                    <div className="md:col-span-2 lg:col-span-4">
+                      <label className="mb-2 block text-xs font-black text-slate-700">
+                        Address
+                      </label>
+
+                      <textarea
+                        value={form.address}
+                        onChange={(e) =>
+                          updateField("address", e.target.value)
+                        }
+                        placeholder="Enter complete residential address"
+                        rows={3}
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+
+                    <Field
+                      label="City"
+                      placeholder="City"
+                      value={form.city}
+                      onChange={(v) => updateField("city", v)}
+                    />
+
+                    <SelectField
+                      label="State"
+                      value={form.state}
+                      options={[
+                        "Jharkhand",
+                        "Bihar",
+                        "West Bengal",
+                        "Delhi",
+                        "Maharashtra",
+                        "Uttar Pradesh",
+                        "Other",
+                      ]}
+                      onChange={(v) => updateField("state", v)}
+                    />
+
+                  </div>
+                </section>
+
+                {/* BANK */}
+                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+
+                  <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-white to-emerald-50/50 px-6 py-5">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 text-2xl text-white shadow-lg">
+                      ðŸ¦
+                    </div>
+
+                    <div>
+                      <h2 className="text-lg font-black">
+                        Bank Account Details
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Enter customer's bank information
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 p-6 md:grid-cols-2 lg:grid-cols-4">
+
+                    <Field
+                      label="Bank Name"
+                      placeholder="Enter bank name"
+                      value={form.bankName}
+                      onChange={(v) => updateField("bankName", v)}
+                    />
+
+                    <Field
+                      label="Account Number"
+                      placeholder="Enter account number"
+                      value={form.accountNumber}
+                      onChange={(v) =>
+                        updateField("accountNumber", v)
+                      }
+                    />
+
+                    <Field
+                      label="IFSC Code"
+                      placeholder="SBIN0001234"
+                      value={form.ifsc}
+                      onChange={(v) =>
+                        updateField("ifsc", v.toUpperCase())
+                      }
+                    />
+
+                    <Field
+                      label="Account Holder Name"
+                      placeholder="Enter account holder name"
+                      value={form.accountHolder}
+                      onChange={(v) =>
+                        updateField("accountHolder", v)
+                      }
+                    />
+
+                  </div>
+                </section>
+
+                {/* DOCUMENTS */}
+                <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.06)]">
+
+                  <div className="border-b border-slate-100 bg-gradient-to-r from-white to-violet-50/50 px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-purple-700 text-2xl text-white shadow-lg">
+                        ðŸ“„
+                      </div>
+
+                      <div>
+                        <h2 className="text-lg font-black">
+                          KYC Document Upload
+                        </h2>
+
+                        <p className="text-xs text-slate-500">
+                          Upload clear PDF, JPG or PNG documents. Maximum
+                          file size: 5MB each.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-4">
+
+                    {documentData.map((doc) => (
+                      <DocumentUpload
+                        key={doc.key}
+                        title={doc.title}
+                        subtitle={doc.subtitle}
+                        icon={doc.icon}
+                        accent={doc.accent}
+                        file={documents[doc.key]}
+                        onChange={(e) => handleFile(e, doc.key)}
+                      />
+                    ))}
+
+                  </div>
+
+                  <div className="mx-5 mb-5 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl">â„¹ï¸</span>
+                      <div>
+                        <p className="text-xs font-black text-blue-900">
+                          Important Note
+                        </p>
+                        <p className="mt-1 text-[11px] leading-5 text-blue-700">
+                          Please verify all customer information and upload
+                          clear documents before submission. Incorrect
+                          information may delay the verification process.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* ACTIONS */}
+                <section className="flex flex-col gap-4 rounded-[24px] border border-blue-100 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.06)] sm:flex-row sm:items-center sm:justify-between">
+
+                  <div>
+                    <p className="text-sm font-black">
+                      Ready to submit KYC?
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Verify all information and documents before submission.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+
+                    <button
+                      type="button"
+                      onClick={saveDraft}
+                      disabled={saving}
+                      className="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {saving ? "Saving..." : "ðŸ’¾ Save as Draft"}
+                    </button>
+
+                    <button
+                      type="submit"
+                      className="rounded-xl bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 px-7 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5"
+                    >
+                      ðŸš€ Submit Customer KYC â†’
+                    </button>
+
+                  </div>
+                </section>
+
+              </div>
+
+              {/* RIGHT SIDEBAR */}
+              <aside className="space-y-5">
+
+                <div className="overflow-hidden rounded-[24px] border border-yellow-200 bg-white shadow-sm">
+
+                  <div className="bg-gradient-to-r from-yellow-50 to-orange-50 px-5 py-4">
+                    <h3 className="font-black text-slate-900">
+                      ðŸ‘‘ KYC Benefits
+                    </h3>
+                  </div>
+
+                  <div className="space-y-3 p-5">
+
+                    {[
+                      "Higher Loan Approval Chances",
+                      "Faster Disbursal",
+                      "Access to Multiple Lenders",
+                      "All Financial Products",
+                      "Dedicated DSA Support",
+                    ].map((item) => (
+                      <div
+                        key={item}
+                        className="flex items-center gap-2 text-xs font-bold text-slate-600"
+                      >
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+                          âœ“
+                        </span>
+                        {item}
+                      </div>
+                    ))}
+
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5 shadow-sm">
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-xl text-white shadow-lg">
+                      ðŸ“
+                    </div>
+
+                    <div>
+                      <h3 className="font-black text-slate-900">
+                        Supported Formats
+                      </h3>
+                      <p className="text-[10px] text-slate-500">
+                        Maximum 5MB each
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-3 gap-2">
+
+                    {[
+                      ["PDF", "ðŸ“•"],
+                      ["JPG", "ðŸ–¼ï¸"],
+                      ["PNG", "ðŸ–¼ï¸"],
+                    ].map(([name, icon]) => (
+                      <div
+                        key={name}
+                        className="rounded-xl border border-white bg-white p-3 text-center shadow-sm"
+                      >
+                        <div className="text-2xl">{icon}</div>
+                        <p className="mt-1 text-[10px] font-black text-slate-600">
+                          {name}
+                        </p>
+                      </div>
+                    ))}
+
+                  </div>
+                </div>
+
+                <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-indigo-700 via-blue-700 to-cyan-600 p-5 text-white shadow-xl">
+
+                  <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
+
+                  <div className="relative">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-cyan-200">
+                          Secure Workflow
+                        </p>
+
+                        <h3 className="mt-2 text-xl font-black">
+                          Need Help?
+                        </h3>
+                      </div>
+
+                      <div className="text-4xl">ðŸŽ§</div>
+                    </div>
+
+                    <p className="mt-3 text-xs leading-5 text-blue-100">
+                      Contact the DSA support team if you need assistance
+                      with customer KYC or document verification.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        alert("Support module can be connected here.")
+                      }
+                      className="mt-5 w-full rounded-xl bg-white px-4 py-3 text-xs font-black text-blue-700 shadow-lg transition hover:bg-blue-50"
+                    >
+                      Contact Support â†’
+                    </button>
+                  </div>
+
+                </div>
+
+              </aside>
+
+            </div>
+          </form>
+
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  required,
+  placeholder,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  required?: boolean;
+  placeholder?: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-black text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </label>
+
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+      />
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  required,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="mb-2 block text-xs font-black text-slate-700">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </label>
+
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-600 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+      >
+        <option value="">Select {label.toLowerCase()}</option>
+
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function DocumentUpload({
+  title,
+  subtitle,
+  icon,
+  accent,
+  file,
+  onChange,
+}: {
+  title: string;
+  subtitle: string;
+  icon: string;
+  accent: string;
+  file: File | null;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label
+      className={`group cursor-pointer rounded-2xl border-2 border-dashed ${accent} p-4 transition duration-200 hover:-translate-y-1 hover:shadow-lg`}
+    >
+      <input
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        onChange={onChange}
+        className="hidden"
+      />
+
+      <div className="flex items-center gap-3">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">
+          {icon}
+        </div>
+
+        <div className="min-w-0">
+          <h3 className="truncate text-sm font-black text-slate-900">
+            {title}
+            <span className="ml-1 text-red-500">*</span>
+          </h3>
+
+          <p className="truncate text-[10px] text-slate-500">
+            {subtitle}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-xl border border-violet-200 bg-white/70 px-3 py-5 text-center transition group-hover:border-violet-400 group-hover:bg-white">
+
+        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-violet-100 text-xl text-violet-600">
+          â˜
+        </div>
+
+        <p className="mt-2 text-xs font-black text-violet-700">
+          {file ? "Change Document" : "Click to upload or drag & drop"}
+        </p>
+
+        <p className="mt-1 text-[9px] font-bold text-slate-400">
+          {file
+            ? file.name
+            : "PDF, JPG, PNG (Max 5MB)"}
+        </p>
+
+      </div>
+    </label>
+  );
+}
+
+
+
+
+
+
+
+

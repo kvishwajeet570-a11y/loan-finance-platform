@@ -1,0 +1,183 @@
+﻿.dashboard-premium {
+  position: relative;
+}
+
+.dashboard-premium .premium-card,
+.dashboard-premium .recent-card,
+.dashboard-premium .chart-card,
+.dashboard-premium .product-card {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,.96);
+  border: 1px solid #dbeafe;
+  box-shadow: 0 8px 25px rgba(30,64,175,.08);
+  transition: all .25s ease;
+}
+
+.dashboard-premium .premium-card::before,
+.dashboard-premium .recent-card::before,
+.dashboard-premium .chart-card::before,
+.dashboard-premium .product-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg,#2563eb,#06b6d4,#8b5cf6);
+}
+
+.dashboard-premium .premium-card:hover,
+.dashboard-premium .recent-card:hover,
+.dashboard-premium .chart-card:hover,
+.dashboard-premium .product-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(30,64,175,.12);
+}
+
+.dashboard-premium .kpi-card {
+  min-height: 155px;
+}
+
+.dashboard-premium .kpi-card .text-2xl {
+  color: #071a3d !important;
+}
+
+.dashboard-premium .rank-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 85% 20%,rgba(251,191,36,.22),transparent 35%),
+    linear-gradient(145deg,#fff,#fff8df);
+  border: 1px solid #f4d27a;
+  box-shadow: 0 10px 30px rgba(245,158,11,.13);
+}
+
+.dashboard-premium .rank-card::after {
+  content: "";
+  position: absolute;
+  width: 110px;
+  height: 110px;
+  right: -45px;
+  top: -45px;
+  border-radius: 999px;
+  background: rgba(251,191,36,.15);
+}
+
+.dashboard-premium .wallet-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg,#ffffff,#ecfdf5);
+  border: 1px solid #a7f3d0;
+  box-shadow: 0 10px 30px rgba(16,185,129,.1);
+}
+
+.dashboard-premium .quick-panel {
+  background: linear-gradient(135deg,#f8fbff,#eef6ff);
+  border: 1px solid #c7d9ff;
+  box-shadow: 0 10px 30px rgba(37,99,235,.08);
+}
+
+.dashboard-premium .quick-action {
+  display: flex;
+  min-height: 88px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 1px solid #dbeafe;
+  background: white;
+  border-radius: 16px;
+  transition: all .25s ease;
+}
+
+.dashboard-premium .quick-action:hover {
+  transform: translateY(-3px);
+  border-color: #60a5fa;
+  box-shadow: 0 10px 25px rgba(37,99,235,.13);
+}
+
+.dashboard-premium .partner-strip {
+  border: 1px solid #dbeafe;
+  background: white;
+  box-shadow: 0 8px 25px rgba(30,64,175,.07);
+}
+
+.dashboard-premium .partner-logo {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 3px 10px rgba(15,23,42,.05);
+}
+
+.dashboard-premium .referral-premium {
+  background: linear-gradient(135deg,#1d4ed8,#2563eb,#06b6d4);
+  color: white;
+  border: 1px solid #60a5fa;
+  box-shadow: 0 12px 30px rgba(37,99,235,.2);
+}
+
+.dashboard-premium .support-premium {
+  background: linear-gradient(135deg,#059669,#10b981,#06b6d4);
+  color: white;
+  border: 1px solid #6ee7b7;
+  box-shadow: 0 12px 30px rgba(16,185,129,.18);
+}
+
+.dashboard-premium .donut-chart {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: conic-gradient(
+    #2563eb 0 80%,
+    #a855f7 80% 100%
+  );
+  position: relative;
+  box-shadow: 0 8px 25px rgba(37,99,235,.15);
+}
+
+.dashboard-premium .donut-chart::after {
+  content: "";
+  position: absolute;
+  inset: 32px;
+  border-radius: 50%;
+  background: white;
+}
+
+.dashboard-premium .donut-center {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.dashboard-premium .mini-spark {
+  height: 48px;
+  width: 115px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.dashboard-premium .mini-spark span {
+  flex: 1;
+  border-radius: 6px 6px 2px 2px;
+  background: linear-gradient(to top,#2563eb,#38bdf8);
+}
+
+.dashboard-premium .mini-spark span:nth-child(1){height:25%}
+.dashboard-premium .mini-spark span:nth-child(2){height:38%}
+.dashboard-premium .mini-spark span:nth-child(3){height:32%}
+.dashboard-premium .mini-spark span:nth-child(4){height:55%}
+.dashboard-premium .mini-spark span:nth-child(5){height:48%}
+.dashboard-premium .mini-spark span:nth-child(6){height:72%}
+.dashboard-premium .mini-spark span:nth-child(7){height:90%}
+
+@media(max-width:768px){
+  .dashboard-premium .kpi-card{min-height:135px}
+  .dashboard-premium .donut-chart{
+    width:120px;
+    height:120px;
+  }
+}

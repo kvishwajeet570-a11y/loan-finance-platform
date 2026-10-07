@@ -1,0 +1,40 @@
+﻿"use client";
+
+import { ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import DsaSidebar from "./DsaSidebar";
+
+export default function DsaShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
+  // KYC must remain exactly unchanged.
+  const isKycPage =
+    pathname === "/dsa/kyc" ||
+    pathname.startsWith("/dsa/kyc/");
+
+  /*
+   * Sidebar width is approximately 238px.
+   *
+   * KYC:
+   *   keeps original 278px spacing.
+   *
+   * All other DSA pages:
+   *   use 238px spacing so the content comes closer to
+   *   the sidebar and gets more horizontal space.
+   */
+  const mainPaddingClass = isKycPage
+    ? "lg:pl-[278px]"
+    : "lg:pl-[238px]";
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <DsaSidebar />
+
+      <main
+        className={`min-h-screen ${mainPaddingClass} transition-all duration-300`}
+      >
+        {children}
+      </main>
+    </div>
+  );
+}

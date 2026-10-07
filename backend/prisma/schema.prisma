@@ -27,7 +27,6 @@ model User {
   address               String?
   city                  String?
   createdBy             String?
-  parentDsaId           String?
   deletedAt             DateTime?
   dob                   String?
   failedLoginAttempts   Int                    @default(0)
@@ -48,6 +47,7 @@ model User {
   state                 String?
   twoFactorEnabled      Boolean                @default(false)
   updatedBy             String?
+  parentDsaId           String?
   activityLogs          ActivityLog[]
   bankAccounts          BankAccount[]
   commissions           Commission[]
@@ -71,8 +71,8 @@ model User {
   supportReplies        SupportReply[]
   assignedTickets       SupportTicket[]        @relation("AssignedAdminTickets")
   supportTickets        SupportTicket[]
-  subAgents             User[]                 @relation("DsaSubAgents")
   parentDsa             User?                  @relation("DsaSubAgents", fields: [parentDsaId], references: [id])
+  subAgents             User[]                 @relation("DsaSubAgents")
   roleRef               Role?                  @relation(fields: [roleId], references: [id])
   activities            UserActivity[]
   userInvestments       UserInvestment[]
@@ -113,27 +113,27 @@ model LoanApplication {
   assignedTo      String?
   dob             String?
   employmentType  String?
-  companyName     String?
-  existingEmi     Float?
-  documents       Upload[]
   monthlyIncome   Float?
   partnerId       String?
   rejectionReason String?
   status          LoanStatus   @default(PENDING)
   referralCode    String?
-  publicToken     String?      @unique
   source          String?      @default("PUBLIC")
   utmCampaign     String?
   utmContent      String?
   utmMedium       String?
   utmSource       String?
   utmTerm         String?
+  companyName     String?
+  existingEmi     Float?
+  publicToken     String?      @unique
   commissions     Commission[]
   emiPayments     EMIPayment[]
   partner         Partner?     @relation(fields: [partnerId], references: [id])
   user            User?        @relation(fields: [userId], references: [id])
   payments        Payment[]
   revenues        Revenue[]
+  documents       Upload[]
 }
 
 model fAQ {
@@ -644,9 +644,9 @@ model Partner {
   isBlocked       Boolean           @default(false)
   name            String?
   referralCode    String?
-  publicToken     String?           @unique
   rejectionReason String?
   state           String?
+  publicToken     String?           @unique
   commissions     Commission[]
   leads           LoanApplication[]
   revenues        Revenue[]
@@ -792,9 +792,9 @@ model Upload {
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   deletedAt         DateTime?
-  user              User?            @relation(fields: [userId], references: [id])
-  LoanApplication   LoanApplication? @relation(fields: [loanApplicationId], references: [id])
   loanApplicationId String?
+  LoanApplication   LoanApplication? @relation(fields: [loanApplicationId], references: [id])
+  user              User?            @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([customerId])

@@ -1,0 +1,1332 @@
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  Link2,
+  Copy,
+  Check,
+  Share2,
+  MessageCircle,
+  Users,
+  UserCheck,
+  Clock3,
+  IndianRupee,
+  RefreshCw,
+  Gift,
+  TrendingUp,
+  Award,
+  QrCode,
+  ChevronRight,
+  Sparkles,
+  ShieldCheck,
+  Zap,
+  WalletCards,
+  Trophy,
+} from "lucide-react";
+
+import DsaSidebar from "@/components/dsa/DsaSidebar";
+
+const API =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+type Referral = {
+  id: string;
+  userId?: string;
+  referredUserId?: string;
+  referralCode?: string;
+  referralLink?: string;
+  status?: string;
+  source?: string;
+  campaign?: string;
+  rewardAmount?: number;
+  totalReferrals?: number;
+  successfulReferrals?: number;
+  rejectedReferrals?: number;
+  pendingReferrals?: number;
+  totalEarnings?: number;
+  name?: string;
+  dsaName?: string;
+  referredName?: string;
+  referredUserName?: string;
+  fullName?: string;
+  userName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+const money = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+
+const num = (value: unknown) => Number(value || 0);
+
+export default function ReferralPage() {
+  const [user, setUser] = useState<any>(null);
+  const [token, setToken] = useState("");
+  const [referral, setReferral] = useState<Referral | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [earnings, setEarnings] = useState(0);
+  const [rewardAmount, setRewardAmount] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedUser = localStorage.getItem("loan_finance_user");
+      const storedToken = localStorage.getItem("loan_finance_token");
+
+      if (storedUser) setUser(JSON.parse(storedUser));
+      if (storedToken) setToken(storedToken);
+    } catch {
+      setError("Unable to read login information.");
+    }
+  }, []);
+
+  const request = async (url: string, options: RequestInit = {}) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
+    const response = await fetch(`${API}${url}`, {
+      ...options,
+      headers,
+    });
+
+    const json = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        json?.message ||
+          json?.error ||
+          "Unable to process referral request."
+      );
+    }
+
+    return json;
+  };
+
+  const loadReferralData = async () => {
+    const userId = user?.id || user?.userId;
+
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setError("");
+
+      const [dsaResponse, earningsResponse, rewardsResponse] =
+        await Promise.all([
+          request(`/referral/dsa/${userId}`),
+          request(`/referral/earnings/${userId}`),
+          request(`/referral/rewards/${userId}`),
+        ]);
+
+      const dsaData =
+        dsaResponse?.data ??
+        dsaResponse?.referrals ??
+        dsaResponse?.data?.data ??
+        [];
+
+      const referralList: Referral[] = Array.isArray(dsaData)
+        ? dsaData
+        : dsaData?.referrals && Array.isArray(dsaData.referrals)
+        ? dsaData.referrals
+        : [];
+
+      setReferrals(referralList);
+
+      const mainReferral =
+        referralList.find(
+          (item) =>
+            item?.referralCode ||
+            item?.referralLink
+        ) ||
+        referralList[0] ||
+        null;
+
+      setReferral(mainReferral);
+
+      setEarnings(
+        num(
+          earningsResponse?.totalEarnings ??
+            earningsResponse?.data?.totalEarnings ??
+            earningsResponse?.data?.data?.totalEarnings ??
+            referralList.reduce(
+              (sum, item) => sum + num(item.totalEarnings),
+              0
+            )
+        )
+      );
+
+      setRewardAmount(
+        num(
+          rewardsResponse?.rewardAmount ??
+            rewardsResponse?.data?.rewardAmount ??
+            rewardsResponse?.data?.data?.rewardAmount
+        )
+      );
+    } catch (err: any) {
+      setError(
+        err?.message || "Unable to load referral information."
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id || user?.userId) {
+      loadReferralData();
+    }
+  }, [user?.id, user?.userId, token]);
+
+  const createReferral = async () => {
+    try {
+      setCreating(true);
+      setError("");
+
+      const userId = user?.id || user?.userId;
+
+      const response = await request("/referral/", {
+        method: "POST",
+        body: JSON.stringify({
+          userId,
+          campaign: "DSA_REFERRAL",
+        }),
+      });
+
+      const created =
+        response?.referral ||
+        response?.data?.referral ||
+        response?.data ||
+        null;
+
+      if (created) {
+        setReferral(created);
+      }
+
+      await loadReferralData();
+    } catch (err: any) {
+      setError(
+        err?.message || "Unable to create referral program."
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const referralCode = referral?.referralCode || "";
+
+  const referralLink =
+    referral?.referralLink ||
+    (referralCode
+      ? `https://dsafincorp.com/ref/${referralCode}`
+      : "");
+
+  const totalReferrals = useMemo(
+    () =>
+      referrals.reduce(
+        (sum, item) => sum + num(item.totalReferrals),
+        0
+      ),
+    [referrals]
+  );
+
+  const successfulReferrals = useMemo(
+    () =>
+      referrals.reduce(
+        (sum, item) => sum + num(item.successfulReferrals),
+        0
+      ),
+    [referrals]
+  );
+
+  const pendingReferrals = useMemo(
+    () =>
+      referrals.reduce(
+        (sum, item) => sum + num(item.pendingReferrals),
+        0
+      ),
+    [referrals]
+  );
+
+  const rejectedReferrals = useMemo(
+    () =>
+      referrals.reduce(
+        (sum, item) => sum + num(item.rejectedReferrals),
+        0
+      ),
+    [referrals]
+  );
+
+  const totalFromRecords = useMemo(
+    () =>
+      referrals.reduce(
+        (sum, item) => sum + num(item.totalEarnings),
+        0
+      ),
+    [referrals]
+  );
+
+  const displayTotalReferrals =
+    totalReferrals ||
+    num(referral?.totalReferrals);
+
+  const displaySuccessful =
+    successfulReferrals ||
+    num(referral?.successfulReferrals);
+
+  const displayPending =
+    pendingReferrals ||
+    num(referral?.pendingReferrals);
+
+  const displayEarnings =
+    earnings ||
+    totalFromRecords ||
+    num(referral?.totalEarnings);
+
+  const conversion =
+    displayTotalReferrals > 0
+      ? Math.round(
+          (displaySuccessful / displayTotalReferrals) * 100
+        )
+      : 0;
+
+  const copyReferralLink = async () => {
+    if (!referralLink) return;
+
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 1800);
+    } catch {
+      setError("Unable to copy referral link.");
+    }
+  };
+
+  const shareReferral = async () => {
+    if (!referralLink) return;
+
+    const text =
+      "Join DSA FinCorp using my referral link:\n\n" +
+      referralLink;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "DSA FinCorp Referral",
+          text: "Join using my referral link",
+          url: referralLink,
+        });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+
+        setTimeout(() => {
+          setCopied(false);
+        }, 1800);
+      }
+    } catch {
+      // User cancelled share.
+    }
+  };
+
+  const shareWhatsApp = () => {
+    if (!referralLink) return;
+
+    const text = encodeURIComponent(
+      `Join DSA FinCorp using my referral link:\n\n${referralLink}`
+    );
+
+    window.open(
+      `https://wa.me/?text=${text}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const recentReferrals = referrals.slice(0, 5);
+
+  const topReferrers = [...referrals]
+    .sort(
+      (a, b) =>
+        num(b.totalReferrals) -
+        num(a.totalReferrals)
+    )
+    .slice(0, 5);
+
+  const performance = [
+    Math.max(10, Math.round(displayTotalReferrals * 0.38)),
+    Math.max(14, Math.round(displayTotalReferrals * 0.48)),
+    Math.max(18, Math.round(displayTotalReferrals * 0.58)),
+    Math.max(24, Math.round(displayTotalReferrals * 0.69)),
+    Math.max(30, Math.round(displayTotalReferrals * 0.82)),
+    Math.max(35, displayTotalReferrals),
+  ];
+
+  const chartMax = Math.max(...performance, 50);
+
+  const referralName = (item: Referral, index: number) =>
+    item.name ||
+    item.dsaName ||
+    item.referredName ||
+    item.referredUserName ||
+    item.fullName ||
+    item.userName ||
+    `DSA Partner ${String(index + 1).padStart(2, "0")}`;
+
+  const statusFor = (item: Referral) => {
+    const value = String(item.status || "").toLowerCase();
+
+    if (
+      value.includes("success") ||
+      value.includes("approved") ||
+      value.includes("complete")
+    ) {
+      return {
+        label: "Approved",
+        cls: "bg-emerald-50 text-emerald-600 border-emerald-100",
+      };
+    }
+
+    if (
+      value.includes("reject") ||
+      value.includes("cancel")
+    ) {
+      return {
+        label: "Rejected",
+        cls: "bg-red-50 text-red-500 border-red-100",
+      };
+    }
+
+    return {
+      label: "Pending",
+      cls: "bg-amber-50 text-amber-600 border-amber-100",
+    };
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f4f8fe] text-[#102347]">
+      {/* EXISTING DSA SIDEBAR ONLY */}
+      <DsaSidebar />
+
+      {/* MAIN AREA */}
+      <div className="lg:pl-[278px]">
+        <main className="min-h-screen px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+          {/* ================= TOP BAR ================= */}
+          <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex h-11 flex-1 items-center rounded-2xl border border-slate-200 bg-white px-4 shadow-sm xl:max-w-[610px]">
+              <div className="mr-3 rounded-lg bg-blue-50 p-2 text-blue-600">
+                <Link2 size={16} />
+              </div>
+
+              <span className="truncate text-xs font-medium text-slate-400">
+                Search by customer name, mobile number, application no...
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="hidden h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 shadow-sm md:flex">
+                <span className="text-blue-600">▣</span>
+                01 Oct 2026 - 07 Oct 2026
+                <span className="text-slate-400">⌄</span>
+              </div>
+
+              <button
+                onClick={shareReferral}
+                className="flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-xs font-bold text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5"
+              >
+                <Gift size={15} />
+                Refer & Earn
+              </button>
+
+              <div className="hidden h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm md:flex">
+                <span className="relative text-slate-600">
+                  ♧
+                  <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white">
+                    3
+                  </span>
+                </span>
+              </div>
+
+              <div className="flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 shadow-sm">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-[11px] font-black text-white">
+                  DS
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-xs font-black text-slate-800">
+                    DSA Demo
+                  </p>
+                  <p className="text-[9px] font-medium text-slate-400">
+                    DSA Partner
+                  </p>
+                </div>
+                <span className="text-slate-500">⌄</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ================= HERO ================= */}
+          <section className="relative mb-4 overflow-hidden rounded-[24px] border border-blue-400/30 bg-gradient-to-br from-[#061a4d] via-[#09266e] to-[#101b57] px-6 py-7 shadow-[0_20px_60px_rgba(22,70,180,0.24)] sm:px-9 lg:min-h-[255px]">
+            <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-cyan-400/20 blur-3xl" />
+            <div className="pointer-events-none absolute right-[28%] top-0 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-32 right-20 h-80 w-80 rounded-full bg-purple-500/20 blur-3xl" />
+
+            <div className="absolute right-[26%] top-8 hidden h-44 w-72 rotate-[-8deg] rounded-[50%] border border-cyan-300/20 lg:block" />
+            <div className="absolute right-[30%] top-12 hidden h-40 w-64 rotate-[7deg] rounded-[50%] border border-blue-300/20 lg:block" />
+
+            <div className="relative z-10 grid gap-7 lg:grid-cols-[1.25fr_0.75fr]">
+              <div>
+                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-cyan-200">
+                  <Sparkles size={12} />
+                  DSA Referral Program
+                </div>
+
+                <h1 className="max-w-[650px] text-4xl font-black leading-[0.95] tracking-[-0.04em] text-white sm:text-5xl lg:text-[58px]">
+                  Refer.
+                  <span className="text-cyan-300"> Earn.</span>
+                  <span className="text-amber-300"> Grow.</span>
+                </h1>
+
+                <p className="mt-3 max-w-[620px] text-sm font-medium leading-6 text-blue-100/85 sm:text-base">
+                  Invite other DSA partners, grow your network and earn
+                  attractive referral rewards on successful business.
+                </p>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  {[
+                    ["Higher Commissions", "₹"],
+                    ["Real-time Tracking", "◉"],
+                    ["Instant Payouts", "↗"],
+                    ["No Limits", "★"],
+                  ].map(([label, icon]) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-bold text-white backdrop-blur"
+                    >
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-400/20 text-cyan-200">
+                        {icon}
+                      </span>
+                      {label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative hidden min-h-[180px] lg:block">
+                <div className="absolute right-0 top-0 w-full max-w-[350px] rounded-[22px] border border-cyan-300/30 bg-[#0a2762]/85 p-5 shadow-2xl backdrop-blur-xl">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 text-white shadow-lg">
+                      <TrendingUp size={20} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black text-white">
+                        Turn Your Network
+                      </p>
+                      <p className="text-lg font-black text-amber-300">
+                        Into Earnings
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {[
+                      ["Invite DSA Partners", Users],
+                      ["They Do Business", UserCheck],
+                      ["You Earn Commission", IndianRupee],
+                      ["Track Everything Live", TrendingUp],
+                    ].map(([label, Icon]: any) => (
+                      <div
+                        key={label}
+                        className="flex items-center gap-3 text-xs font-semibold text-blue-50"
+                      >
+                        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-400/20 text-cyan-300">
+                          <Icon size={14} />
+                        </span>
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= KPI CARDS ================= */}
+          <section className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                title: "Total Referrals",
+                value: displayTotalReferrals,
+                change: "↑ 32%",
+                icon: Users,
+                bg: "from-blue-500 to-indigo-600",
+                line: "from-blue-400 to-blue-600",
+              },
+              {
+                title: "Successful Referrals",
+                value: displaySuccessful,
+                change: "↑ 28%",
+                icon: UserCheck,
+                bg: "from-emerald-400 to-green-600",
+                line: "from-emerald-400 to-green-500",
+              },
+              {
+                title: "Pending Referrals",
+                value: displayPending,
+                change: "↓ 12%",
+                icon: Clock3,
+                bg: "from-orange-400 to-amber-500",
+                line: "from-orange-400 to-amber-500",
+                negative: true,
+              },
+              {
+                title: "Total Referral Earnings",
+                value: money(displayEarnings),
+                change: "↑ 40%",
+                icon: IndianRupee,
+                bg: "from-purple-500 to-indigo-600",
+                line: "from-purple-400 to-indigo-500",
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="group relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-4 shadow-[0_8px_25px_rgba(30,70,120,0.07)] transition duration-300 hover:-translate-y-1 hover:shadow-xl"
+                >
+                  <div className="flex items-start justify-between">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.bg} text-white shadow-lg`}
+                    >
+                      <Icon size={22} />
+                    </div>
+
+                    <span
+                      className={`text-xs font-black ${
+                        item.negative
+                          ? "text-red-500"
+                          : "text-emerald-500"
+                      }`}
+                    >
+                      {item.change}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-[11px] font-semibold text-slate-500">
+                    {item.title}
+                  </p>
+
+                  <p className="mt-1 text-2xl font-black tracking-tight text-[#11244b]">
+                    {item.value}
+                  </p>
+
+                  <p className="mt-1 text-[9px] font-medium text-slate-400">
+                    vs. previous month
+                  </p>
+
+                  <div className="mt-3 flex h-8 items-end gap-1 overflow-hidden">
+                    {[28, 18, 36, 24, 44, 35, 52, 43, 61, 55].map(
+                      (height, i) => (
+                        <div
+                          key={i}
+                          className={`flex-1 rounded-t-sm bg-gradient-to-t ${item.line} opacity-${
+                            i % 2 ? "60" : "90"
+                          }`}
+                          style={{ height: `${height}%` }}
+                        />
+                      )
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* ================= LINK + PERFORMANCE ================= */}
+          <section className="mb-4 grid gap-4 xl:grid-cols-[1fr_0.95fr]">
+            {/* LINK CARD */}
+            <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_8px_25px_rgba(30,70,120,0.06)]">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+                    <Link2 size={21} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-base font-black text-[#102347]">
+                      Your Referral Link & Code
+                    </h2>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      Share your unique link or code with other DSA partners
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden rounded-full bg-blue-50 px-3 py-1 text-[9px] font-black text-blue-600 sm:block">
+                  ACTIVE PROGRAM
+                </div>
+              </div>
+
+              {!referral ? (
+                <div className="rounded-2xl border border-dashed border-blue-200 bg-blue-50/50 p-7 text-center">
+                  <Gift className="mx-auto text-blue-500" size={34} />
+
+                  <h3 className="mt-3 text-base font-black text-slate-800">
+                    Activate your referral program
+                  </h3>
+
+                  <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-500">
+                    Create your referral profile and get your unique
+                    referral code and shareable link.
+                  </p>
+
+                  <button
+                    onClick={createReferral}
+                    disabled={creating}
+                    className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-xs font-black text-white shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                  >
+                    {creating ? "Creating..." : "Create Referral Profile"}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                        Your Referral Code
+                      </p>
+
+                      <div className="flex h-12 items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-4">
+                        <span className="text-xl font-black tracking-wide text-[#13285b]">
+                          {referralCode || "—"}
+                        </span>
+
+                        <button
+                          onClick={async () => {
+                            if (!referralCode) return;
+
+                            await navigator.clipboard.writeText(
+                              referralCode
+                            );
+
+                            setCopied(true);
+
+                            setTimeout(() => {
+                              setCopied(false);
+                            }, 1800);
+                          }}
+                          className="rounded-lg bg-white p-2 text-blue-600 shadow-sm"
+                        >
+                          {copied ? (
+                            <Check size={17} />
+                          ) : (
+                            <Copy size={17} />
+                          )}
+                        </button>
+                      </div>
+
+                      <p className="mt-1.5 text-[9px] text-slate-400">
+                        Use this code while registration
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-slate-500">
+                        Your Referral Link
+                      </p>
+
+                      <div className="flex h-12 items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-3">
+                        <span className="truncate pr-2 text-xs font-bold text-[#183269]">
+                          {referralLink || "—"}
+                        </span>
+
+                        <button
+                          onClick={copyReferralLink}
+                          className="shrink-0 rounded-lg bg-white p-2 text-blue-600 shadow-sm"
+                        >
+                          {copied ? (
+                            <Check size={17} />
+                          ) : (
+                            <Copy size={17} />
+                          )}
+                        </button>
+                      </div>
+
+                      <p className="mt-1.5 text-[9px] text-slate-400">
+                        Share via WhatsApp, Email or Social Media
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <button
+                      onClick={shareWhatsApp}
+                      className="flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-xs font-black text-white shadow-lg shadow-emerald-500/15 transition hover:-translate-y-0.5"
+                    >
+                      <MessageCircle size={17} />
+                      WhatsApp
+                    </button>
+
+                    <button
+                      onClick={copyReferralLink}
+                      className="flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-xs font-black text-white shadow-lg shadow-blue-500/15 transition hover:-translate-y-0.5"
+                    >
+                      {copied ? (
+                        <Check size={17} />
+                      ) : (
+                        <Copy size={17} />
+                      )}
+                      Copy Link
+                    </button>
+
+                    <button
+                      onClick={shareReferral}
+                      className="flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 text-xs font-black text-white shadow-lg shadow-purple-500/15 transition hover:-translate-y-0.5"
+                    >
+                      <Share2 size={17} />
+                      Share
+                    </button>
+
+                    <button
+                      onClick={copyReferralLink}
+                      className="flex h-12 items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white text-xs font-black text-blue-600 transition hover:bg-blue-50"
+                    >
+                      <QrCode size={17} />
+                      QR Code
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* PERFORMANCE CARD */}
+            <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_8px_25px_rgba(30,70,120,0.06)]">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+                    <TrendingUp size={21} />
+                  </div>
+
+                  <div>
+                    <h2 className="text-base font-black text-[#102347]">
+                      Referral Performance
+                    </h2>
+                    <p className="text-[10px] font-medium text-slate-400">
+                      Track your referral growth and earnings
+                    </p>
+                  </div>
+                </div>
+
+                <select className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-bold text-slate-600 outline-none">
+                  <option>Last 6 Months</option>
+                  <option>This Year</option>
+                </select>
+              </div>
+
+              <div className="mb-4 flex flex-wrap gap-3 text-[10px] font-bold">
+                <span className="flex items-center gap-1.5">
+                  <i className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+                  Referred
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  Approved
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <i className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  Pending
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <i className="h-2.5 w-2.5 rounded-full bg-purple-500" />
+                  Earnings
+                </span>
+              </div>
+
+              <div className="relative h-[220px] rounded-2xl bg-gradient-to-b from-slate-50 to-white p-3">
+                <div className="absolute inset-x-4 top-5 space-y-9">
+                  {[1, 2, 3, 4].map((line) => (
+                    <div
+                      key={line}
+                      className="border-t border-dashed border-slate-200"
+                    />
+                  ))}
+                </div>
+
+                <div className="absolute inset-x-7 bottom-8 top-7 flex items-end justify-between gap-2">
+                  {performance.map((value, index) => {
+                    const approved = Math.round(
+                      value *
+                        (displayTotalReferrals
+                          ? Math.min(
+                              0.8,
+                              displaySuccessful /
+                                Math.max(
+                                  displayTotalReferrals,
+                                  1
+                                )
+                            )
+                          : 0.65)
+                    );
+
+                    const pending = Math.max(
+                      3,
+                      Math.round(value * 0.18)
+                    );
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex h-full flex-1 items-end justify-center gap-1"
+                      >
+                        <div
+                          className="w-[22%] rounded-t-md bg-gradient-to-t from-blue-600 to-blue-400"
+                          style={{
+                            height: `${Math.min(
+                              90,
+                              (value / chartMax) * 90
+                            )}%`,
+                          }}
+                        />
+
+                        <div
+                          className="w-[22%] rounded-t-md bg-gradient-to-t from-emerald-500 to-emerald-300"
+                          style={{
+                            height: `${Math.min(
+                              70,
+                              (approved / chartMax) * 90
+                            )}%`,
+                          }}
+                        />
+
+                        <div
+                          className="w-[22%] rounded-t-md bg-gradient-to-t from-amber-500 to-yellow-300"
+                          style={{
+                            height: `${Math.min(
+                              50,
+                              (pending / chartMax) * 90
+                            )}%`,
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="absolute inset-x-6 bottom-1 flex justify-between text-[9px] font-semibold text-slate-400">
+                  {["Apr", "May", "Jun", "Jul", "Aug", "Sep"].map(
+                    (month) => (
+                      <span key={month}>{month}</span>
+                    )
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-gradient-to-r from-indigo-50 to-blue-50 px-4 py-3">
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400">
+                    Conversion Rate
+                  </p>
+                  <p className="text-lg font-black text-indigo-700">
+                    {conversion}%
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-right text-[9px] font-bold text-slate-400">
+                    Referral Earnings
+                  </p>
+                  <p className="text-lg font-black text-indigo-700">
+                    {money(displayEarnings)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ================= LOWER GRID ================= */}
+          <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.8fr]">
+            {/* RECENT REFERRALS */}
+            <div className="rounded-[20px] border border-slate-200 bg-white shadow-[0_8px_25px_rgba(30,70,120,0.06)]">
+              <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-black text-[#102347]">
+                    <Users size={17} className="text-blue-600" />
+                    Recent Referrals
+                  </h2>
+                  <p className="mt-0.5 text-[9px] text-slate-400">
+                    Your latest referral activity
+                  </p>
+                </div>
+
+                <button className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[9px] font-black text-blue-600">
+                  View All →
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[620px]">
+                  <thead>
+                    <tr className="bg-slate-50 text-left text-[9px] font-black uppercase tracking-wide text-slate-500">
+                      <th className="px-4 py-3">#</th>
+                      <th className="px-4 py-3">Date & Time</th>
+                      <th className="px-4 py-3">DSA Name</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Earnings</th>
+                      <th className="px-4 py-3">Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-10 text-center text-xs text-slate-400"
+                        >
+                          Loading referrals...
+                        </td>
+                      </tr>
+                    ) : recentReferrals.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={6}
+                          className="px-4 py-10 text-center"
+                        >
+                          <Users
+                            className="mx-auto text-slate-300"
+                            size={28}
+                          />
+                          <p className="mt-2 text-xs font-bold text-slate-500">
+                            No referrals yet
+                          </p>
+                        </td>
+                      </tr>
+                    ) : (
+                      recentReferrals.map((item, index) => {
+                        const status = statusFor(item);
+
+                        return (
+                          <tr
+                            key={item.id || index}
+                            className="border-t border-slate-100 text-[10px] transition hover:bg-blue-50/30"
+                          >
+                            <td className="px-4 py-3 font-bold text-slate-400">
+                              {index + 1}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-600">
+                              {item.createdAt
+                                ? new Date(
+                                    item.createdAt
+                                  ).toLocaleDateString("en-IN", {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                : "—"}
+                            </td>
+
+                            <td className="px-4 py-3 font-black text-slate-800">
+                              {referralName(item, index)}
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[9px] font-black ${status.cls}`}
+                              >
+                                {status.label}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3 font-black text-emerald-600">
+                              {num(item.totalEarnings) > 0
+                                ? money(item.totalEarnings)
+                                : num(item.rewardAmount) > 0
+                                ? money(item.rewardAmount)
+                                : "—"}
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <button className="rounded-lg border border-blue-200 px-3 py-1.5 text-[9px] font-black text-blue-600 hover:bg-blue-50">
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* EARNINGS BREAKDOWN */}
+            <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_8px_25px_rgba(30,70,120,0.06)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-black text-[#102347]">
+                    <Award size={18} className="text-blue-600" />
+                    Earnings Breakdown
+                  </h2>
+                  <p className="mt-0.5 text-[9px] text-slate-400">
+                    Your referral earning distribution
+                  </p>
+                </div>
+
+                <select className="rounded-xl border border-slate-200 bg-white px-2 py-2 text-[9px] font-bold text-slate-600">
+                  <option>This Year</option>
+                  <option>This Month</option>
+                </select>
+              </div>
+
+              <div className="mt-6 flex items-center justify-center">
+                <div className="relative flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#2563eb_0deg_210deg,#10b981_210deg_300deg,#f59e0b_300deg_360deg)] shadow-inner">
+                  <div className="flex h-28 w-28 flex-col items-center justify-center rounded-full bg-white shadow-sm">
+                    <p className="text-[9px] font-bold text-slate-400">
+                      Total Earnings
+                    </p>
+                    <p className="mt-1 text-xl font-black text-[#122754]">
+                      {money(displayEarnings)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {[
+                  [
+                    "Direct Referrals",
+                    displayEarnings * 0.59,
+                    "59%",
+                    "bg-blue-500",
+                  ],
+                  [
+                    "Tier 2 Referrals",
+                    displayEarnings * 0.28,
+                    "28%",
+                    "bg-emerald-500",
+                  ],
+                  [
+                    "Bonus Rewards",
+                    displayEarnings * 0.13,
+                    "13%",
+                    "bg-amber-400",
+                  ],
+                ].map(([label, amount, percent, color]) => (
+                  <div
+                    key={String(label)}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${color}`}
+                      />
+                      <span className="text-[10px] font-semibold text-slate-600">
+                        {label}
+                      </span>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] font-black text-slate-800">
+                        {money(Number(amount))}
+                      </span>
+                      <span className="ml-2 text-[9px] font-bold text-slate-400">
+                        {percent}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-amber-100 bg-gradient-to-r from-amber-50 to-orange-50 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-amber-500 shadow-sm">
+                    <Gift size={20} />
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black text-slate-800">
+                      Next Milestone
+                    </p>
+                    <p className="mt-0.5 text-[9px] text-slate-500">
+                      Keep growing your referral network
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
+                  <div className="h-full w-[78%] rounded-full bg-gradient-to-r from-amber-400 to-orange-500" />
+                </div>
+
+                <p className="mt-2 text-right text-[9px] font-black text-orange-600">
+                  78% complete
+                </p>
+              </div>
+            </div>
+
+            {/* TOP REFERRERS */}
+            <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_8px_25px_rgba(30,70,120,0.06)]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-base font-black text-[#102347]">
+                    <Trophy size={18} className="text-amber-500" />
+                    Top Referrers
+                  </h2>
+                  <p className="mt-0.5 text-[9px] text-slate-400">
+                    Best performing referral partners
+                  </p>
+                </div>
+
+                <button className="rounded-xl border border-blue-100 bg-blue-50 px-3 py-2 text-[9px] font-black text-blue-600">
+                  View All →
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                {topReferrers.length === 0 ? (
+                  <div className="rounded-2xl bg-slate-50 p-6 text-center">
+                    <Trophy
+                      className="mx-auto text-slate-300"
+                      size={28}
+                    />
+                    <p className="mt-2 text-xs font-bold text-slate-500">
+                      Top referrers will appear here
+                    </p>
+                  </div>
+                ) : (
+                  topReferrers.map((item, index) => (
+                    <div
+                      key={item.id || index}
+                      className="flex items-center gap-3 rounded-2xl border border-slate-100 p-3 transition hover:border-blue-100 hover:bg-blue-50/30"
+                    >
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[10px] font-black text-white">
+                        {index + 1}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[10px] font-black text-slate-800">
+                          {referralName(item, index)}
+                        </p>
+
+                        <p className="text-[9px] text-slate-400">
+                          {num(item.totalReferrals)} referrals
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-emerald-600">
+                          {money(
+                            num(item.totalEarnings) ||
+                              num(item.rewardAmount)
+                          )}
+                        </p>
+                        <p className="text-[8px] font-semibold text-slate-400">
+                          earnings
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ================= MILESTONE / INFO ================= */}
+          <section className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-[18px] border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm">
+                  <ShieldCheck size={20} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-[#122754]">
+                    Secure Referral Tracking
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-slate-500">
+                    Every referral is tracked securely.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                  <Zap size={20} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-[#122754]">
+                    Faster Rewards
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-slate-500">
+                    Track eligible rewards in real time.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-purple-100 bg-gradient-to-br from-purple-50 to-indigo-50 p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-purple-600 shadow-sm">
+                  <WalletCards size={20} />
+                </div>
+
+                <div>
+                  <p className="text-xs font-black text-[#122754]">
+                    Grow Your Earnings
+                  </p>
+                  <p className="mt-0.5 text-[9px] text-slate-500">
+                    Build a stronger DSA partner network.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ERROR */}
+          {error && (
+            <div className="mt-4 flex items-center justify-between rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
+              <span>{error}</span>
+
+              <button
+                onClick={() => setError("")}
+                className="font-black"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* FOOTER */}
+          <footer className="mt-7 border-t border-slate-200 pt-5 text-center text-[10px] font-medium text-slate-400">
+            DSA FinCorp • Refer & Earn • Secure • Transparent • Professional
+            DSA Partner Management
+          </footer>
+        </main>
+      </div>
+    </div>
+  );
+}

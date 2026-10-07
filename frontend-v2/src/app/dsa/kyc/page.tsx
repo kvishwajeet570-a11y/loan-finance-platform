@@ -1,1146 +1,1053 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import DsaShell from "@/components/dsa/DsaShell";
+import { useMemo, useState } from "react";
 import {
-  ShieldCheck,
-  Clock3,
-  CheckCircle2,
-  XCircle,
-  Search,
-  RefreshCw,
-  Eye,
-  Check,
-  X,
-  FileCheck2,
-  CreditCard,
+  Bell,
   Building2,
-  UserRound,
   CalendarDays,
-  Mail,
-  Phone,
-  MapPin,
+  Check,
+  ChevronDown,
   ChevronRight,
-  SlidersHorizontal,
-  Sparkles,
-  AlertCircle,
-  LockKeyhole,
-  Fingerprint,
-  BadgeCheck,
+  FileCheck2,
+  FileImage,
   FileText,
+  HelpCircle,
+  Info,
+  Landmark,
+  LockKeyhole,
+  Mail,
+  MapPin,
+  Menu,
+  Phone,
+  Search,
+  Send,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Trophy,
+  UploadCloud,
+  User,
+  UserRound,
+  WalletCards,
+  X,
 } from "lucide-react";
 
-const API =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
-type KycRecord = {
-  id: string;
-  userId?: string;
-  fullName?: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  panNo?: string;
-  panNumber?: string;
-  aadhaarNo?: string;
-  aadhaarNumber?: string;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  city?: string;
-  state?: string;
-  address?: string;
-  panVerified?: boolean;
-  aadhaarVerified?: boolean;
-  bankVerified?: boolean;
-  bankAccountVerified?: boolean;
-  documentVerified?: boolean;
-  [key: string]: any;
+type FileMap = {
+  pan: File | null;
+  aadhaar: File | null;
+  bank: File | null;
+  agreement: File | null;
 };
 
-type DashboardStats = {
-  total?: number;
-  totalKyc?: number;
-  pending?: number;
-  approved?: number;
-  rejected?: number;
-  underReview?: number;
-  [key: string]: any;
+type FormData = {
+  fullName: string;
+  dob: string;
+  gender: string;
+  mobile: string;
+  email: string;
+  pan: string;
+  city: string;
+  state: string;
+  pincode: string;
+  bankName: string;
+  accountNumber: string;
+  ifsc: string;
+  accountHolder: string;
 };
 
-function getAuth() {
-  if (typeof window === "undefined") {
-    return { user: null, headers: {} as Record<string, string> };
-  }
+const initialForm: FormData = {
+  fullName: "",
+  dob: "",
+  gender: "",
+  mobile: "",
+  email: "",
+  pan: "",
+  city: "",
+  state: "",
+  pincode: "",
+  bankName: "",
+  accountNumber: "",
+  ifsc: "",
+  accountHolder: "",
+};
 
-  const raw = localStorage.getItem("loan_finance_user");
-  const token = localStorage.getItem("loan_finance_token");
-
-  let user: any = null;
-
-  try {
-    user = raw ? JSON.parse(raw) : null;
-  } catch {
-    user = null;
-  }
-
-  const headers: Record<string, string> = {};
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
-  return { user, headers };
-}
-
-function normaliseStatus(status?: string) {
-  return String(status || "PENDING")
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, "_");
-}
-
-function formatDate(value?: string) {
-  if (!value) return "—";
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) return "—";
-
-  return date.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function mask(value?: string) {
-  if (!value) return "Not available";
-
-  if (value.length <= 4) return value;
-
-  return `${"•".repeat(Math.max(0, value.length - 4))}${value.slice(-4)}`;
-}
-
-function statusLabel(status?: string) {
-  const value = normaliseStatus(status);
-
-  if (value === "UNDER_REVIEW" || value === "IN_REVIEW") {
-    return "Under Review";
-  }
-
-  if (value === "APPROVED" || value === "VERIFIED") {
-    return "Approved";
-  }
-
-  if (value === "REJECTED") {
-    return "Rejected";
-  }
-
-  return "Pending";
-}
-
-function statusStyle(status?: string) {
-  const value = normaliseStatus(status);
-
-  if (value === "APPROVED" || value === "VERIFIED") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  }
-
-  if (value === "REJECTED") {
-    return "border-rose-200 bg-rose-50 text-rose-700";
-  }
-
-  if (value === "UNDER_REVIEW" || value === "IN_REVIEW") {
-    return "border-violet-200 bg-violet-50 text-violet-700";
-  }
-
-  return "border-amber-200 bg-amber-50 text-amber-700";
-}
-
-function extractList(json: any): KycRecord[] {
-  const candidates = [
-    json?.data,
-    json?.data?.data,
-    json?.data?.kyc,
-    json?.data?.kycs,
-    json?.kyc,
-    json?.kycs,
-    json?.records,
-    json?.results,
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate)) return candidate;
-  }
-
-  return [];
-}
-
-function extractStats(json: any): DashboardStats {
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+  badge,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  badge?: React.ReactNode;
+}) {
   return (
-    json?.data?.stats ||
-    json?.stats ||
-    json?.data ||
-    {}
+    <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 text-white shadow-md shadow-blue-100">
+          {icon}
+        </div>
+
+        <div>
+          <h2 className="text-[17px] font-black leading-tight text-slate-900">
+            {title}
+          </h2>
+          <p className="mt-0.5 text-[11px] text-slate-500">{subtitle}</p>
+        </div>
+      </div>
+
+      {badge}
+    </div>
   );
 }
 
-export default function DsaKycPage() {
-  const router = useRouter();
+function Field({
+  label,
+  required,
+  icon,
+  value,
+  placeholder,
+  type = "text",
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  icon: React.ReactNode;
+  value: string;
+  placeholder: string;
+  type?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-black text-slate-800">
+        {label} {required && <span className="text-red-500">*</span>}
+      </span>
 
-  const [records, setRecords] = useState<KycRecord[]>([]);
-  const [stats, setStats] = useState<DashboardStats>({});
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("ALL");
-  const [selected, setSelected] = useState<KycRecord | null>(null);
-  const [actionLoading, setActionLoading] = useState("");
-  const [rejectReason, setRejectReason] = useState("");
-  const [showReject, setShowReject] = useState(false);
-  const [error, setError] = useState("");
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">
+          {icon}
+        </span>
 
-  const loadKyc = async (showRefresh = false) => {
-    if (showRefresh) setRefreshing(true);
-    else setLoading(true);
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="h-9.5 w-full rounded-lg border border-slate-200 bg-slate-50/70 pl-10 pr-3 text-[12px] font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+    </label>
+  );
+}
 
-    setError("");
+function SelectField({
+  label,
+  required,
+  icon,
+  value,
+  placeholder,
+  options,
+  onChange,
+}: {
+  label: string;
+  required?: boolean;
+  icon: React.ReactNode;
+  value: string;
+  placeholder: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[12px] font-black text-slate-800">
+        {label} {required && <span className="text-red-500">*</span>}
+      </span>
 
-    try {
-      const { headers } = getAuth();
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-500">
+          {icon}
+        </span>
 
-      const [kycResponse, dashboardResponse] = await Promise.all([
-        fetch(`${API}/kyc`, {
-          headers,
-          cache: "no-store",
-        }),
-        fetch(`${API}/kyc/dashboard`, {
-          headers,
-          cache: "no-store",
-        }),
-      ]);
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9.5 w-full appearance-none rounded-lg border border-slate-200 bg-slate-50/70 pl-10 pr-9 text-[12px] font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
 
-      if (!kycResponse.ok) {
-        throw new Error(`KYC API returned ${kycResponse.status}`);
-      }
+        <ChevronDown
+          size={15}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
+        />
+      </div>
+    </label>
+  );
+}
 
-      const kycJson = await kycResponse.json();
+function UploadBox({
+  title,
+  subtitle,
+  accent,
+  file,
+  required,
+  onFile,
+}: {
+  title: string;
+  subtitle: string;
+  accent: "blue" | "red" | "green" | "purple";
+  file: File | null;
+  required?: boolean;
+  onFile: (file: File | null) => void;
+}) {
+  const inputId = `upload-${title.replace(/\s+/g, "-").toLowerCase()}`;
 
-      let dashboardJson: any = {};
-
-      if (dashboardResponse.ok) {
-        dashboardJson = await dashboardResponse.json();
-      }
-
-      setRecords(extractList(kycJson));
-      setStats(extractStats(dashboardJson));
-    } catch (err: any) {
-      setError(err?.message || "Unable to load KYC records.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    loadKyc();
-  }, []);
-
-  const counts = useMemo(() => {
-    const result = {
-      ALL: records.length,
-      PENDING: 0,
-      UNDER_REVIEW: 0,
-      APPROVED: 0,
-      REJECTED: 0,
-    };
-
-    records.forEach((record) => {
-      const status = normaliseStatus(record.status);
-
-      if (status === "APPROVED" || status === "VERIFIED") {
-        result.APPROVED += 1;
-      } else if (status === "REJECTED") {
-        result.REJECTED += 1;
-      } else if (
-        status === "UNDER_REVIEW" ||
-        status === "IN_REVIEW"
-      ) {
-        result.UNDER_REVIEW += 1;
-      } else {
-        result.PENDING += 1;
-      }
-    });
-
-    return result;
-  }, [records]);
-
-  const filteredRecords = useMemo(() => {
-    const q = query.trim().toLowerCase();
-
-    return records.filter((record) => {
-      const status = normaliseStatus(record.status);
-
-      const matchesTab =
-        activeTab === "ALL" ||
-        (activeTab === "APPROVED" &&
-          (status === "APPROVED" || status === "VERIFIED")) ||
-        (activeTab === "REJECTED" && status === "REJECTED") ||
-        (activeTab === "UNDER_REVIEW" &&
-          (status === "UNDER_REVIEW" || status === "IN_REVIEW")) ||
-        (activeTab === "PENDING" &&
-          !["APPROVED", "VERIFIED", "REJECTED", "UNDER_REVIEW", "IN_REVIEW"].includes(status));
-
-      if (!matchesTab) return false;
-
-      if (!q) return true;
-
-      const haystack = [
-        record.fullName,
-        record.name,
-        record.email,
-        record.phone,
-        record.panNo,
-        record.panNumber,
-        record.id,
-        record.userId,
-        record.city,
-        record.state,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(q);
-    });
-  }, [records, query, activeTab]);
-
-  const totalKyc =
-    Number(stats.totalKyc ?? stats.total ?? counts.ALL) || 0;
-
-  const pending =
-    Number(stats.pending ?? counts.PENDING) || 0;
-
-  const approved =
-    Number(stats.approved ?? counts.APPROVED) || 0;
-
-  const rejected =
-    Number(stats.rejected ?? counts.REJECTED) || 0;
-
-  const underReview =
-    Number(stats.underReview ?? counts.UNDER_REVIEW) || 0;
-
-  const approvalRate =
-    totalKyc > 0 ? Math.round((approved / totalKyc) * 100) : 0;
-
-  const approveKyc = async (record: KycRecord) => {
-    setActionLoading(`approve-${record.id}`);
-
-    try {
-      const { user, headers } = getAuth();
-
-      const response = await fetch(`${API}/kyc/${record.id}/approve`, {
-        method: "PATCH",
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          adminId: user?.id,
-        }),
-      });
-
-      const json = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          json?.message || "Unable to approve KYC."
-        );
-      }
-
-      setSelected(null);
-      await loadKyc(true);
-    } catch (err: any) {
-      setError(err?.message || "Unable to approve KYC.");
-    } finally {
-      setActionLoading("");
-    }
-  };
-
-  const rejectKyc = async () => {
-    if (!selected) return;
-
-    setActionLoading(`reject-${selected.id}`);
-
-    try {
-      const { headers } = getAuth();
-
-      const response = await fetch(`${API}/kyc/${selected.id}/reject`, {
-        method: "PATCH",
-        headers: {
-          ...headers,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reason: rejectReason.trim() || "KYC verification rejected.",
-        }),
-      });
-
-      const json = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(
-          json?.message || "Unable to reject KYC."
-        );
-      }
-
-      setShowReject(false);
-      setRejectReason("");
-      setSelected(null);
-      await loadKyc(true);
-    } catch (err: any) {
-      setError(err?.message || "Unable to reject KYC.");
-    } finally {
-      setActionLoading("");
-    }
-  };
-
-  const statCards = [
-    {
-      title: "Total KYC",
-      value: totalKyc,
-      subtitle: "Verification records",
-      icon: ShieldCheck,
-      iconBox: "bg-blue-50 text-blue-600",
-      accent: "from-blue-600 to-cyan-500",
+  const accentClasses = {
+    blue: {
+      border: "border-blue-200",
+      bg: "bg-blue-50/30",
+      text: "text-blue-700",
+      icon: "bg-blue-100 text-blue-700",
     },
-    {
-      title: "Pending",
-      value: pending,
-      subtitle: "Waiting for review",
-      icon: Clock3,
-      iconBox: "bg-amber-50 text-amber-600",
-      accent: "from-amber-500 to-orange-500",
+    red: {
+      border: "border-red-200",
+      bg: "bg-red-50/30",
+      text: "text-red-700",
+      icon: "bg-red-100 text-red-600",
     },
-    {
-      title: "Approved",
-      value: approved,
-      subtitle: `${approvalRate}% approval rate`,
-      icon: CheckCircle2,
-      iconBox: "bg-emerald-50 text-emerald-600",
-      accent: "from-emerald-500 to-teal-500",
+    green: {
+      border: "border-emerald-200",
+      bg: "bg-emerald-50/30",
+      text: "text-emerald-700",
+      icon: "bg-emerald-100 text-emerald-700",
     },
-    {
-      title: "Rejected",
-      value: rejected,
-      subtitle: "Verification rejected",
-      icon: XCircle,
-      iconBox: "bg-rose-50 text-rose-600",
-      accent: "from-rose-500 to-red-500",
+    purple: {
+      border: "border-purple-200",
+      bg: "bg-purple-50/30",
+      text: "text-purple-700",
+      icon: "bg-purple-100 text-purple-700",
     },
-  ];
-
-  const tabs = [
-    ["ALL", "All KYC", counts.ALL],
-    ["PENDING", "Pending", counts.PENDING],
-    ["UNDER_REVIEW", "Under Review", counts.UNDER_REVIEW],
-    ["APPROVED", "Approved", counts.APPROVED],
-    ["REJECTED", "Rejected", counts.REJECTED],
-  ] as const;
+  }[accent];
 
   return (
-    <DsaShell>
-      <div className="min-h-screen bg-[#f5f8fc] text-slate-900">
-        <div className="mx-auto max-w-[1500px] px-4 pb-12 pt-5 sm:px-6 lg:px-8">
+    <div
+      className={`rounded-xl border ${accentClasses.border} ${accentClasses.bg} p-2.5`}
+    >
+      <div className="mb-2 flex items-center gap-2">
+        <div className={`rounded-lg p-1.5 ${accentClasses.icon}`}>
+          <FileText size={17} />
+        </div>
 
-          {/* HERO */}
-          <section className="relative mb-6 overflow-hidden rounded-[28px] border border-white bg-gradient-to-br from-[#0b1f4d] via-[#123d88] to-[#087f9b] px-6 py-7 text-white shadow-[0_24px_70px_rgba(15,55,110,0.20)] sm:px-8">
-            <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-            <div className="absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl" />
+        <div className="min-w-0">
+          <div className="truncate text-[13px] font-black text-slate-900">
+            {title} {required && <span className="text-red-500">*</span>}
+          </div>
+          <div className={`text-[10px] font-semibold ${accentClasses.text}`}>
+            {subtitle}
+          </div>
+        </div>
+      </div>
 
-            <div className="relative flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
-              <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-cyan-100 backdrop-blur">
-                  <Sparkles size={13} />
-                  Secure Verification Center
-                </div>
+      <input
+        id={inputId}
+        type="file"
+        accept=".pdf,.jpg,.jpeg,.png"
+        className="hidden"
+        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+      />
 
-                <h1 className="text-3xl font-black tracking-tight sm:text-4xl">
-                  KYC Verification
-                </h1>
+      <label
+        htmlFor={inputId}
+        className={`flex min-h-[66px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed ${accentClasses.border} bg-white/80 px-2 text-center transition hover:bg-white`}
+      >
+        {file ? (
+          <>
+            <Check size={21} className="mb-1 text-emerald-500" />
+            <span className="max-w-full truncate text-[10px] font-black text-emerald-700">
+              {file.name}
+            </span>
+            <span className="mt-0.5 text-[9px] text-slate-400">
+              Click to replace
+            </span>
+          </>
+        ) : (
+          <>
+            <UploadCloud size={21} className="mb-1 text-blue-600" />
+            <span className="text-[10px] font-black text-blue-700">
+              Click to upload or drag & drop
+            </span>
+            <span className="mt-0.5 text-[9px] text-slate-500">
+              PDF, JPG, PNG (Max 5MB)
+            </span>
+          </>
+        )}
+      </label>
+    </div>
+  );
+}
 
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-blue-100">
-                  Review customer identity documents, verify submitted
-                  information and manage KYC decisions from one secure workspace.
-                </p>
-              </div>
+export default function KycPage() {
+  const [form, setForm] = useState<FormData>(initialForm);
 
-              <div className="flex items-center gap-3">
-                <div className="hidden rounded-2xl border border-white/15 bg-white/10 px-5 py-4 backdrop-blur md:block">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-xl bg-white/15 p-2.5">
-                      <LockKeyhole size={21} />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-blue-200">
-                        Verification
-                      </p>
-                      <p className="text-sm font-bold">Secure & Active</p>
-                    </div>
-                  </div>
-                </div>
+  const [files, setFiles] = useState<FileMap>({
+    pan: null,
+    aadhaar: null,
+    bank: null,
+    agreement: null,
+  });
 
-                <button
-                  onClick={() => loadKyc(true)}
-                  disabled={refreshing}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-bold text-blue-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
-                >
-                  <RefreshCw
-                    size={17}
-                    className={refreshing ? "animate-spin" : ""}
-                  />
-                  Refresh
-                </button>
-              </div>
-            </div>
-          </section>
+  const [saved, setSaved] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [mobileMenu, setMobileMenu] = useState(false);
 
-          {/* SEARCH + QUICK INFO */}
-          <section className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_10px_35px_rgba(15,23,42,0.05)] lg:flex-row">
-            <div className="relative flex-1">
-              <Search
-                size={18}
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search customer, PAN, phone, email or KYC ID..."
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50/70 pl-11 pr-4 text-sm font-medium outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
+  const updateField = (key: keyof FormData, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
-            <button className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700">
-              <SlidersHorizontal size={17} />
-              Filters
+  const completion = useMemo(() => {
+    const values = Object.values(form);
+    const filledFields = values.filter((value) => value.trim() !== "").length;
+
+    const uploaded = Object.values(files).filter(Boolean).length;
+
+    const total = values.length + 4;
+
+    return Math.round(((filledFields + uploaded) / total) * 100);
+  }, [form, files]);
+
+  const submitKyc = () => {
+    setSubmitted(true);
+
+    setTimeout(() => {
+      setSubmitted(false);
+    }, 3000);
+  };
+
+  const saveDraft = () => {
+    setSaved(true);
+
+    setTimeout(() => {
+      setSaved(false);
+    }, 2500);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#f7faff] text-slate-900">
+      {/* =========================================================
+          TOP NAVIGATION
+      ========================================================= */}
+      <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/95 backdrop-blur">
+        <div className="flex h-[62px] items-center gap-4 px-4 lg:px-6">
+          <button
+            type="button"
+            onClick={() => setMobileMenu((value) => !value)}
+            className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 lg:hidden"
+          >
+            {mobileMenu ? <X size={23} /> : <Menu size={23} />}
+          </button>
+
+          <button
+            type="button"
+            className="hidden rounded-lg p-2 text-slate-700 hover:bg-slate-100 lg:block"
+          >
+            <Menu size={23} />
+          </button>
+
+          <div className="relative hidden max-w-[650px] flex-1 md:block">
+            <Search
+              size={19}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+            />
+            <input
+              placeholder="Search customers, applications, documents..."
+              className="h-10 w-full rounded-full bg-[#eef3fb] pl-11 pr-4 text-[13px] font-medium text-slate-700 outline-none focus:ring-2 focus:ring-blue-100"
+            />
+          </div>
+
+          <div className="ml-auto flex items-center gap-2 sm:gap-4">
+            <button
+              type="button"
+              className="relative rounded-full p-2 text-slate-700 hover:bg-slate-100"
+            >
+              <Bell size={22} />
+              <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-black text-white">
+                3
+              </span>
             </button>
 
-            <div className="flex h-12 items-center gap-2 rounded-xl bg-slate-50 px-4 text-xs font-semibold text-slate-500">
-              <Fingerprint size={17} className="text-blue-600" />
-              {filteredRecords.length} records
+            <button
+              type="button"
+              className="hidden rounded-full p-2 text-slate-700 hover:bg-slate-100 sm:block"
+            >
+              <Sparkles size={21} />
+            </button>
+
+            <div className="flex items-center gap-2">
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                <UserRound size={25} className="text-slate-500" />
+              </div>
+
+              <div className="hidden leading-tight md:block">
+                <div className="text-[13px] font-black text-slate-900">
+                  Prakash Kumar
+                </div>
+                <div className="text-[11px] font-medium text-slate-500">
+                  DSA Partner
+                </div>
+              </div>
+
+              <ChevronDown size={17} className="hidden text-slate-600 md:block" />
             </div>
-          </section>
+          </div>
+        </div>
 
-          {error && (
-            <div className="mb-5 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-              <AlertCircle size={19} className="mt-0.5 shrink-0" />
-              <div className="flex-1">
-                <p className="font-bold">Unable to load or update KYC</p>
-                <p className="mt-1 text-xs">{error}</p>
-              </div>
-              <button
-                onClick={() => setError("")}
-                className="rounded-lg p-1 hover:bg-rose-100"
-              >
-                <X size={16} />
-              </button>
+        {mobileMenu && (
+          <div className="border-t border-slate-100 bg-white px-4 py-3 md:hidden">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+              />
+              <input
+                placeholder="Search customers, applications, documents..."
+                className="h-10 w-full rounded-xl bg-slate-100 pl-10 pr-3 text-sm outline-none"
+              />
             </div>
-          )}
+          </div>
+        )}
+      </header>
 
-          {/* KPI CARDS */}
-          <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((card) => {
-              const Icon = card.icon;
+      <main className="mx-auto max-w-[1700px] px-3 py-3 sm:px-4 lg:px-6">
+        {/* =========================================================
+            HERO + APPROVAL CARD
+        ========================================================= */}
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <section
+            className="relative min-h-[230px] overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm"
+            style={{
+              backgroundImage:
+                'url("/images/kyc/kyc-banner-final.png")',
+              backgroundPosition: "center",
+              backgroundSize: "cover",
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-white/95 via-white/65 to-transparent" />
 
-              return (
-                <div
-                  key={card.title}
-                  className="group relative overflow-hidden rounded-[22px] border border-slate-200/80 bg-white p-5 shadow-[0_12px_35px_rgba(15,23,42,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.10)]"
-                >
-                  <div
-                    className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${card.accent}`}
-                  />
-
-                  <div className="flex items-start justify-between">
-                    <div className={`rounded-2xl p-3 ${card.iconBox}`}>
-                      <Icon size={21} />
-                    </div>
-
-                    <span className="rounded-full bg-slate-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
-                      LIVE
-                    </span>
-                  </div>
-
-                  <div className="mt-5">
-                    <p className="text-3xl font-black tracking-tight text-slate-950">
-                      {loading ? "—" : card.value}
-                    </p>
-                    <p className="mt-1 text-sm font-bold text-slate-700">
-                      {card.title}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {card.subtitle}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </section>
-
-          {/* SECONDARY INSIGHT */}
-          <section className="mb-6 grid gap-4 lg:grid-cols-[1fr_300px]">
-            <div className="rounded-[22px] border border-slate-200/80 bg-white p-5 shadow-[0_10px_35px_rgba(15,23,42,0.05)]">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="rounded-xl bg-blue-50 p-2 text-blue-600">
-                      <BadgeCheck size={18} />
-                    </div>
-                    <h2 className="text-base font-black text-slate-900">
-                      Verification Overview
-                    </h2>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">
-                    Current KYC distribution from the verification system
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2 text-xs font-bold">
-                  <span className="rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
-                    Pending {pending}
-                  </span>
-                  <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700">
-                    Review {underReview}
-                  </span>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700">
-                    Approved {approved}
-                  </span>
-                </div>
+            <div className="relative z-10 flex h-full min-h-[230px] flex-col justify-center px-6 py-7 sm:px-8 lg:max-w-[58%]">
+              <div className="mb-3 inline-flex w-fit items-center gap-2 rounded-full border border-blue-300 bg-blue-50/90 px-3 py-1.5 text-[11px] font-black text-slate-800">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white">
+                  <ShieldCheck size={13} />
+                </span>
+                KYC VERIFICATION
               </div>
 
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400 transition-all duration-700"
-                  style={{
-                    width: `${Math.min(100, Math.max(0, approvalRate))}%`,
-                  }}
-                />
-              </div>
+              <h1 className="text-[32px] font-black leading-[0.98] tracking-tight text-[#101b55] sm:text-[40px]">
+                Complete <span className="text-blue-600">KYC</span>
+                <br />
+                Unlock All Loan Products
+              </h1>
 
-              <div className="mt-2 flex justify-between text-[10px] font-bold text-slate-400">
-                <span>Verification progress</span>
-                <span>{approvalRate}% approved</span>
-              </div>
-            </div>
+              <p className="mt-3 max-w-[590px] text-[13px] font-medium leading-relaxed text-slate-600">
+                Verify customer details securely and get faster loan approvals
+                across 50+ banks & NBFC partners.
+              </p>
 
-            <div className="rounded-[22px] border border-slate-200/80 bg-gradient-to-br from-slate-900 to-blue-950 p-5 text-white shadow-[0_15px_40px_rgba(15,23,42,0.14)]">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-white/10 p-2.5">
-                  <ShieldCheck size={20} />
-                </div>
-                <div>
-                  <p className="text-sm font-black">Secure KYC</p>
-                  <p className="text-[10px] text-blue-200">
-                    Protected verification workflow
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-[9px] uppercase tracking-wider text-blue-300">
-                    Total
-                  </p>
-                  <p className="mt-1 text-xl font-black">{totalKyc}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <p className="text-[9px] uppercase tracking-wider text-blue-300">
-                    Review
-                  </p>
-                  <p className="mt-1 text-xl font-black">{pending + underReview}</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* TABS */}
-          <section className="mb-4 overflow-x-auto rounded-[20px] border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="flex min-w-max items-center gap-1 p-2">
-              {tabs.map(([value, label, count]) => (
-                <button
-                  key={value}
-                  onClick={() => setActiveTab(value)}
-                  className={`relative rounded-xl px-4 py-3 text-xs font-black transition ${
-                    activeTab === value
-                      ? "bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-blue-200"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  {label}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {[
+                  "100% Secure",
+                  "Quick Verification",
+                  "PAN Based KYC",
+                  "All Financial Products",
+                  "Trusted by 10,000+ DSAs",
+                ].map((item, index) => (
                   <span
-                    className={`ml-2 rounded-full px-1.5 py-0.5 text-[9px] ${
-                      activeTab === value
-                        ? "bg-white/20 text-white"
-                        : "bg-slate-100 text-slate-500"
-                    }`}
-                  >
-                    {count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* QUEUE */}
-          <section className="overflow-hidden rounded-[24px] border border-slate-200/80 bg-white shadow-[0_12px_40px_rgba(15,23,42,0.06)]">
-            <div className="border-b border-slate-100 px-5 py-5 sm:px-6">
-              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <FileCheck2 size={19} className="text-blue-600" />
-                    <h2 className="text-base font-black text-slate-950">
-                      KYC Verification Queue
-                    </h2>
-                  </div>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {filteredRecords.length} verification record
-                    {filteredRecords.length === 1 ? "" : "s"} found
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                  Live database
-                </div>
-              </div>
-            </div>
-
-            {loading ? (
-              <div className="grid gap-3 p-5">
-                {[1, 2, 3].map((item) => (
-                  <div
                     key={item}
-                    className="h-28 animate-pulse rounded-2xl bg-slate-100"
-                  />
+                    className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white/90 px-2.5 py-1.5 text-[10px] font-black text-slate-700 shadow-sm"
+                  >
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+                      <Check size={10} strokeWidth={4} />
+                    </span>
+                    {item}
+                  </span>
                 ))}
               </div>
-            ) : filteredRecords.length === 0 ? (
-              <div className="px-6 py-16 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                  <FileText size={27} />
-                </div>
-                <h3 className="mt-4 text-base font-black text-slate-800">
-                  No KYC records found
-                </h3>
-                <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-400">
-                  No records match the current search or verification filter.
-                </p>
+            </div>
+          </section>
+
+          <section className="relative overflow-hidden rounded-2xl border border-purple-100 bg-gradient-to-br from-white via-[#f8f5ff] to-[#eef5ff] p-5 shadow-sm">
+            <div className="absolute -right-7 -top-7 h-28 w-28 rounded-full bg-purple-200/30 blur-2xl" />
+
+            <div className="relative">
+              <div className="flex items-center justify-between">
+                <h2 className="max-w-[230px] text-[24px] font-black leading-tight text-[#21145d]">
+                  Faster Approvals
+                  <br />
+                  <span className="text-[#101b55]">with Verified KYC</span>
+                </h2>
+
+                <div className="text-4xl">🚀</div>
               </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {filteredRecords.map((record) => {
-                  const name =
-                    record.fullName ||
-                    record.name ||
-                    "Customer";
 
-                  const status = normaliseStatus(record.status);
-
-                  const panVerified =
-                    Boolean(record.panVerified) ||
-                    Boolean(record.documentVerified);
-
-                  const bankVerified =
-                    Boolean(record.bankVerified) ||
-                    Boolean(record.bankAccountVerified);
-
-                  const busy =
-                    actionLoading === `approve-${record.id}`;
-
-                  return (
-                    <div
-                      key={record.id}
-                      className="group p-4 transition hover:bg-slate-50/80 sm:p-5"
-                    >
-                      <div className="flex flex-col gap-5 xl:flex-row xl:items-center">
-                        <div className="flex min-w-0 flex-1 items-start gap-4">
-                          <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-600 ring-1 ring-blue-100">
-                            <UserRound size={21} />
-                            <span className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" />
-                          </div>
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <h3 className="truncate text-sm font-black text-slate-900">
-                                {name}
-                              </h3>
-
-                              <span
-                                className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-wide ${statusStyle(
-                                  status
-                                )}`}
-                              >
-                                {statusLabel(status)}
-                              </span>
-                            </div>
-
-                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-medium text-slate-400">
-                              <span className="inline-flex items-center gap-1">
-                                <CreditCard size={13} />
-                                PAN {mask(record.panNo || record.panNumber)}
-                              </span>
-
-                              <span className="inline-flex items-center gap-1">
-                                <CalendarDays size={13} />
-                                {formatDate(record.createdAt)}
-                              </span>
-
-                              {record.email && (
-                                <span className="inline-flex items-center gap-1">
-                                  <Mail size={13} />
-                                  {record.email}
-                                </span>
-                              )}
-
-                              {record.phone && (
-                                <span className="inline-flex items-center gap-1">
-                                  <Phone size={13} />
-                                  {record.phone}
-                                </span>
-                              )}
-                            </div>
-
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[9px] font-bold ${
-                                  panVerified
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
-                              >
-                                {panVerified ? (
-                                  <CheckCircle2 size={12} />
-                                ) : (
-                                  <Clock3 size={12} />
-                                )}
-                                PAN {panVerified ? "Verified" : "Pending"}
-                              </span>
-
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[9px] font-bold ${
-                                  record.aadhaarVerified
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
-                              >
-                                {record.aadhaarVerified ? (
-                                  <CheckCircle2 size={12} />
-                                ) : (
-                                  <Clock3 size={12} />
-                                )}
-                                Aadhaar{" "}
-                                {record.aadhaarVerified
-                                  ? "Verified"
-                                  : "Pending"}
-                              </span>
-
-                              <span
-                                className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[9px] font-bold ${
-                                  bankVerified
-                                    ? "bg-emerald-50 text-emerald-700"
-                                    : "bg-slate-100 text-slate-500"
-                                }`}
-                              >
-                                {bankVerified ? (
-                                  <CheckCircle2 size={12} />
-                                ) : (
-                                  <Building2 size={12} />
-                                )}
-                                Bank {bankVerified ? "Verified" : "Pending"}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-                          <button
-                            onClick={() => setSelected(record)}
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-black text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-                          >
-                            <Eye size={15} />
-                            View
-                          </button>
-
-                          {!["APPROVED", "VERIFIED", "REJECTED"].includes(
-                            status
-                          ) && (
-                            <>
-                              <button
-                                onClick={() => approveKyc(record)}
-                                disabled={busy}
-                                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60"
-                              >
-                                <Check
-                                  size={15}
-                                  className={busy ? "animate-pulse" : ""}
-                                />
-                                {busy ? "Approving..." : "Approve"}
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  setSelected(record);
-                                  setShowReject(true);
-                                }}
-                                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-3.5 py-2.5 text-xs font-black text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                              >
-                                <X size={15} />
-                                Reject
-                              </button>
-                            </>
-                          )}
-
-                          <ChevronRight
-                            size={17}
-                            className="hidden text-slate-300 transition group-hover:translate-x-1 group-hover:text-blue-500 xl:block"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="mt-4 space-y-2.5">
+                {[
+                  "Higher Loan Approval Chances",
+                  "Faster Disbursal",
+                  "Access to Multiple Lenders",
+                  "All Financial Products",
+                  "Dedicated DSA Support",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 text-[12px] font-semibold text-slate-700"
+                  >
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md bg-emerald-400 text-[#064e3b]">
+                      <Check size={13} strokeWidth={4} />
+                    </span>
+                    {item}
+                  </div>
+                ))}
               </div>
-            )}
+
+              <div className="absolute bottom-0 right-0 text-3xl text-amber-400">
+                ✦
+              </div>
+            </div>
           </section>
         </div>
 
-        {/* DETAILS MODAL */}
-        {selected && !showReject && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/60 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.30)]">
-              <div className="relative overflow-hidden bg-gradient-to-br from-[#0b1f4d] via-[#123d88] to-[#087f9b] p-6 text-white">
-                <div className="absolute -right-16 -top-20 h-48 w-48 rounded-full bg-cyan-300/20 blur-3xl" />
+        {/* =========================================================
+            STEPPER
+        ========================================================= */}
+        <section className="mt-3 overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+          <div className="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+            {[
+              {
+                number: 1,
+                title: "Personal Details",
+                subtitle: "Enter customer information",
+                active: true,
+              },
+              {
+                number: 2,
+                title: "Bank Details",
+                subtitle: "Add bank account information",
+              },
+              {
+                number: 3,
+                title: "Document Upload",
+                subtitle: "Upload required documents",
+              },
+              {
+                number: 4,
+                title: "Review & Submit",
+                subtitle: "Verify and complete KYC",
+              },
+            ].map((step, index) => (
+              <div
+                key={step.number}
+                className="relative flex items-center gap-3 px-5 py-3"
+              >
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[18px] font-black ${
+                    step.active
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                      : "bg-slate-200 text-slate-500"
+                  }`}
+                >
+                  {step.number}
+                </div>
 
-                <div className="relative flex items-start justify-between">
-                  <div>
-                    <div className="mb-2 flex items-center gap-2 text-xs font-bold text-cyan-200">
-                      <ShieldCheck size={15} />
-                      KYC VERIFICATION
-                    </div>
-                    <h2 className="text-2xl font-black">
-                      {selected.fullName || selected.name || "Customer"}
-                    </h2>
-                    <p className="mt-1 text-xs text-blue-200">
-                      KYC ID: {selected.id}
-                    </p>
-                  </div>
-
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="rounded-xl bg-white/10 p-2.5 transition hover:bg-white/20"
+                <div className="min-w-0">
+                  <div
+                    className={`text-[14px] font-black ${
+                      step.active ? "text-blue-600" : "text-slate-600"
+                    }`}
                   >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="max-h-[62vh] overflow-y-auto p-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      PAN Number
-                    </p>
-                    <p className="mt-2 text-sm font-black text-slate-900">
-                      {mask(selected.panNo || selected.panNumber)}
-                    </p>
+                    {step.title}
                   </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Aadhaar Number
-                    </p>
-                    <p className="mt-2 text-sm font-black text-slate-900">
-                      {mask(
-                        selected.aadhaarNo || selected.aadhaarNumber
-                      )}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Email
-                    </p>
-                    <p className="mt-2 break-all text-sm font-bold text-slate-900">
-                      {selected.email || "Not available"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                      Phone
-                    </p>
-                    <p className="mt-2 text-sm font-bold text-slate-900">
-                      {selected.phone || "Not available"}
-                    </p>
+                  <div className="text-[11px] font-medium text-slate-400">
+                    {step.subtitle}
                   </div>
                 </div>
 
-                <div className="mt-5 rounded-2xl border border-slate-200 p-4">
-                  <div className="mb-4 flex items-center gap-2">
-                    <FileCheck2 size={17} className="text-blue-600" />
-                    <p className="text-sm font-black text-slate-900">
-                      Verification Documents
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    {[
-                      ["PAN", selected.panVerified],
-                      ["Aadhaar", selected.aadhaarVerified],
-                      [
-                        "Bank",
-                        selected.bankVerified ||
-                          selected.bankAccountVerified,
-                      ],
-                    ].map(([label, verified]) => (
-                      <div
-                        key={String(label)}
-                        className={`rounded-xl border p-3 ${
-                          verified
-                            ? "border-emerald-200 bg-emerald-50"
-                            : "border-amber-200 bg-amber-50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-black">
-                            {label}
-                          </span>
-                          {verified ? (
-                            <CheckCircle2
-                              size={16}
-                              className="text-emerald-600"
-                            />
-                          ) : (
-                            <Clock3
-                              size={16}
-                              className="text-amber-600"
-                            />
-                          )}
-                        </div>
-                        <p className="mt-1 text-[10px] font-bold opacity-70">
-                          {verified ? "Verified" : "Pending verification"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {(selected.city || selected.state || selected.address) && (
-                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                    <div className="flex items-start gap-3">
-                      <MapPin size={18} className="mt-0.5 text-blue-600" />
-                      <div>
-                        <p className="text-xs font-black text-slate-900">
-                          Address
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                          {[selected.address, selected.city, selected.state]
-                            .filter(Boolean)
-                            .join(", ") || "Not available"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                {index < 3 && (
+                  <ChevronRight
+                    size={24}
+                    className={`ml-auto hidden sm:block ${
+                      step.active ? "text-blue-600" : "text-slate-400"
+                    }`}
+                  />
                 )}
               </div>
-
-              {!["APPROVED", "VERIFIED", "REJECTED"].includes(
-                normaliseStatus(selected.status)
-              ) && (
-                <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50 p-4 sm:flex-row sm:justify-end">
-                  <button
-                    onClick={() => {
-                      setShowReject(true);
-                    }}
-                    className="rounded-xl border border-rose-200 bg-white px-5 py-3 text-xs font-black text-rose-600 hover:bg-rose-50"
-                  >
-                    Reject KYC
-                  </button>
-
-                  <button
-                    onClick={() => approveKyc(selected)}
-                    disabled={actionLoading === `approve-${selected.id}`}
-                    className="rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 px-5 py-3 text-xs font-black text-white shadow-md hover:shadow-lg disabled:opacity-60"
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <Check size={15} />
-                      Approve KYC
-                    </span>
-                  </button>
-                </div>
-              )}
-            </div>
+            ))}
           </div>
-        )}
+        </section>
 
-        {/* REJECT MODAL */}
-        {selected && showReject && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-            <div className="w-full max-w-md rounded-[26px] bg-white p-6 shadow-[0_30px_100px_rgba(15,23,42,0.35)]">
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="inline-flex rounded-xl bg-rose-50 p-3 text-rose-600">
-                    <XCircle size={22} />
-                  </div>
-                  <h2 className="mt-4 text-xl font-black text-slate-950">
-                    Reject KYC
-                  </h2>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Provide a reason for rejecting this verification request.
-                  </p>
-                </div>
-
-                <button
-                  onClick={() => setShowReject(false)}
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={4}
-                placeholder="Enter rejection reason..."
-                className="mt-5 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm outline-none focus:border-rose-300 focus:bg-white focus:ring-4 focus:ring-rose-100"
+        {/* =========================================================
+            MAIN GRID
+        ========================================================= */}
+        <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_285px]">
+          {/* LEFT CONTENT */}
+          <div className="space-y-3">
+            {/* CUSTOMER INFORMATION */}
+            <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <SectionHeader
+                icon={<User size={23} />}
+                title="Customer Information"
+                subtitle="Enter customer basic details for KYC verification."
+                badge={
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-[11px] font-black text-purple-700"
+                  >
+                    <Sparkles size={14} />
+                    Auto Fill from PAN
+                  </button>
+                }
               />
 
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => setShowReject(false)}
-                  className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 p-5 md:grid-cols-2 xl:grid-cols-4">
+                <Field
+                  label="Full Name"
+                  required
+                  icon={<UserRound size={16} />}
+                  value={form.fullName}
+                  placeholder="Enter full name"
+                  onChange={(value) => updateField("fullName", value)}
+                />
 
-                <button
-                  onClick={rejectKyc}
-                  disabled={actionLoading === `reject-${selected.id}`}
-                  className="flex-1 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 px-4 py-3 text-xs font-black text-white shadow-md disabled:opacity-60"
-                >
-                  {actionLoading === `reject-${selected.id}`
-                    ? "Rejecting..."
-                    : "Confirm Reject"}
-                </button>
+                <Field
+                  label="Date of Birth"
+                  required
+                  icon={<CalendarDays size={16} />}
+                  value={form.dob}
+                  placeholder="DD/MM/YYYY"
+                  type="date"
+                  onChange={(value) => updateField("dob", value)}
+                />
+
+                <SelectField
+                  label="Gender"
+                  required
+                  icon={<User size={16} />}
+                  value={form.gender}
+                  placeholder="Select gender"
+                  options={["Male", "Female", "Other"]}
+                  onChange={(value) => updateField("gender", value)}
+                />
+
+                <Field
+                  label="Mobile Number"
+                  required
+                  icon={<Phone size={16} />}
+                  value={form.mobile}
+                  placeholder="Enter mobile number"
+                  type="tel"
+                  onChange={(value) => updateField("mobile", value)}
+                />
+
+                <Field
+                  label="Email ID"
+                  icon={<Mail size={16} />}
+                  value={form.email}
+                  placeholder="Enter email address"
+                  type="email"
+                  onChange={(value) => updateField("email", value)}
+                />
+
+                <Field
+                  label="PAN Number"
+                  required
+                  icon={<WalletCards size={16} />}
+                  value={form.pan}
+                  placeholder="Enter PAN number (e.g. ABCDE1234F)"
+                  onChange={(value) => updateField("pan", value.toUpperCase())}
+                />
+
+                <Field
+                  label="City"
+                  icon={<MapPin size={16} />}
+                  value={form.city}
+                  placeholder="Enter city"
+                  onChange={(value) => updateField("city", value)}
+                />
+
+                <SelectField
+                  label="State"
+                  icon={<MapPin size={16} />}
+                  value={form.state}
+                  placeholder="Select state"
+                  options={[
+                    "Bihar",
+                    "Delhi",
+                    "Jharkhand",
+                    "Maharashtra",
+                    "Uttar Pradesh",
+                    "West Bengal",
+                  ]}
+                  onChange={(value) => updateField("state", value)}
+                />
+
+                <Field
+                  label="Pincode"
+                  icon={<MapPin size={16} />}
+                  value={form.pincode}
+                  placeholder="Enter pincode"
+                  onChange={(value) => updateField("pincode", value)}
+                />
               </div>
+            </section>
+
+            {/* BANK DETAILS */}
+            <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <SectionHeader
+                icon={<Landmark size={23} />}
+                title="Bank Account Details"
+                subtitle="Enter customer's bank information for loan disbursal."
+                badge={
+                  <div className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-black text-emerald-700">
+                    <LockKeyhole size={13} />
+                    Your bank details are 100% secure
+                  </div>
+                }
+              />
+
+              <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-4">
+                <SelectField
+                  label="Bank Name"
+                  required
+                  icon={<Landmark size={16} />}
+                  value={form.bankName}
+                  placeholder="Select bank"
+                  options={[
+                    "State Bank of India",
+                    "HDFC Bank",
+                    "ICICI Bank",
+                    "Axis Bank",
+                    "Punjab National Bank",
+                    "Bank of Baroda",
+                  ]}
+                  onChange={(value) => updateField("bankName", value)}
+                />
+
+                <Field
+                  label="Account Number"
+                  required
+                  icon={<WalletCards size={16} />}
+                  value={form.accountNumber}
+                  placeholder="Enter account number"
+                  onChange={(value) => updateField("accountNumber", value)}
+                />
+
+                <Field
+                  label="IFSC Code"
+                  required
+                  icon={<WalletCards size={16} />}
+                  value={form.ifsc}
+                  placeholder="Enter IFSC code (e.g. SBIN001234)"
+                  onChange={(value) => updateField("ifsc", value.toUpperCase())}
+                />
+
+                <Field
+                  label="Account Holder Name"
+                  required
+                  icon={<UserRound size={16} />}
+                  value={form.accountHolder}
+                  placeholder="Enter account holder name"
+                  onChange={(value) => updateField("accountHolder", value)}
+                />
+              </div>
+            </section>
+
+            {/* DOCUMENT UPLOAD */}
+            <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+              <SectionHeader
+                icon={<FileText size={23} />}
+                title="Upload Documents"
+                subtitle="Upload clear and valid documents. Supported formats: PDF, JPG, PNG (Max 5MB each)."
+                badge={
+                  <div className="hidden items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-[10px] font-black text-blue-700 md:flex">
+                    <ShieldCheck size={14} />
+                    All documents are encrypted and securely stored
+                  </div>
+                }
+              />
+
+              <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-4">
+                <UploadBox
+                  title="PAN Card"
+                  subtitle="Front Side"
+                  required
+                  accent="blue"
+                  file={files.pan}
+                  onFile={(file) =>
+                    setFiles((prev) => ({
+                      ...prev,
+                      pan: file,
+                    }))
+                  }
+                />
+
+                <UploadBox
+                  title="Aadhaar Card"
+                  subtitle="Front / Back Side"
+                  required
+                  accent="red"
+                  file={files.aadhaar}
+                  onFile={(file) =>
+                    setFiles((prev) => ({
+                      ...prev,
+                      aadhaar: file,
+                    }))
+                  }
+                />
+
+                <UploadBox
+                  title="Bank Passbook"
+                  subtitle="First Page / Cancelled Cheque"
+                  required
+                  accent="green"
+                  file={files.bank}
+                  onFile={(file) =>
+                    setFiles((prev) => ({
+                      ...prev,
+                      bank: file,
+                    }))
+                  }
+                />
+
+                <UploadBox
+                  title="Agreement"
+                  subtitle="Signed Document"
+                  required
+                  accent="purple"
+                  file={files.agreement}
+                  onFile={(file) =>
+                    setFiles((prev) => ({
+                      ...prev,
+                      agreement: file,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="mx-5 mb-4 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                <Info
+                  className="mt-0.5 shrink-0 text-blue-600"
+                  size={18}
+                />
+
+                <div>
+                  <div className="text-[11px] font-black text-slate-800">
+                    Important Note
+                  </div>
+                  <div className="text-[10px] leading-relaxed text-slate-500">
+                    Please ensure all information and upload clear documents
+                    before submission. Incorrect information may delay the loan
+                    approval process.
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex flex-col justify-end gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={saveDraft}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-black text-slate-800 shadow-sm transition hover:bg-slate-50"
+              >
+                <WalletCards size={18} />
+                {saved ? "Saved as Draft ✓" : "Save as Draft"}
+              </button>
+
+              <button
+                type="button"
+                onClick={submitKyc}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-7 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:scale-[1.01]"
+              >
+                <Send size={18} />
+                {submitted ? "KYC Submitted ✓" : "Review & Submit KYC"}
+                <ChevronRight size={17} />
+              </button>
             </div>
           </div>
-        )}
-      </div>
-    </DsaShell>
+
+          {/* =======================================================
+              RIGHT SIDEBAR
+          ======================================================= */}
+          <aside className="space-y-3">
+            {/* BENEFITS */}
+            <section className="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+              <div className="flex items-center gap-2 border-b border-amber-100 bg-gradient-to-r from-amber-50 to-white px-4 py-3">
+                <div className="rounded-lg bg-amber-100 p-2 text-amber-700">
+                  <Trophy size={19} />
+                </div>
+
+                <h3 className="font-black text-slate-900">
+                  KYC Benefits
+                </h3>
+              </div>
+
+              <div className="space-y-2.5 p-4">
+                {[
+                  "Higher Loan Approval Chances",
+                  "Faster Disbursal",
+                  "Access to Multiple Lenders",
+                  "All Financial Products",
+                  "Lower Interest Rates",
+                  "Dedicated DSA Support",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-2 text-[11px] font-semibold text-slate-700"
+                  >
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-400 text-emerald-950">
+                      <Check size={12} strokeWidth={4} />
+                    </span>
+                    {item}
+                  </div>
+                ))}
+
+                <div className="flex justify-end text-amber-500">
+                  <Trophy size={50} />
+                </div>
+              </div>
+            </section>
+
+            {/* KYC PROGRESS */}
+            <section className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white shadow-sm">
+              <div className="flex items-center gap-2 border-b border-blue-100 px-4 py-3">
+                <div className="rounded-lg bg-blue-100 p-2 text-blue-700">
+                  <FileCheck2 size={19} />
+                </div>
+
+                <h3 className="font-black text-slate-900">
+                  KYC Progress
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-4 p-4">
+                <div className="relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-[10px] border-slate-200">
+                  <div className="text-xl font-black text-slate-900">
+                    {completion}%
+                  </div>
+
+                  <div
+                    className="absolute inset-[-10px] rounded-full border-[10px] border-transparent border-t-blue-500 border-r-blue-500"
+                    style={{
+                      transform: `rotate(${completion * 3.6 - 45}deg)`,
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-2 text-[11px] font-medium text-slate-600">
+                  {[
+                    ["Personal Details", completion > 10],
+                    ["Bank Details", completion > 35],
+                    ["Document Upload", completion > 65],
+                    ["Review & Submit", completion >= 100],
+                  ].map(([label, active]) => (
+                    <div key={String(label)} className="flex items-center gap-2">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full border-2 ${
+                          active
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-slate-400 bg-white"
+                        }`}
+                      />
+                      <span>{String(label)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* SUPPORTED FILES */}
+            <section className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white shadow-sm">
+              <div className="flex items-center gap-2 px-4 py-3">
+                <div className="rounded-lg bg-blue-100 p-2 text-blue-700">
+                  <FileImage size={19} />
+                </div>
+
+                <div>
+                  <h3 className="font-black text-slate-900">
+                    Supported File Formats
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    PDF, JPG, PNG
+                  </p>
+                </div>
+              </div>
+
+              <div className="px-4 pb-4">
+                <div className="rounded-xl bg-white p-3 text-center text-[10px] font-semibold text-slate-500 shadow-sm">
+                  Maximum 5MB each
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {[
+                    { name: "PDF", icon: "📕" },
+                    { name: "JPG", icon: "🖼️" },
+                    { name: "PNG", icon: "🖼️" },
+                  ].map((item) => (
+                    <div
+                      key={item.name}
+                      className="rounded-xl border border-slate-100 bg-white py-3 text-center shadow-sm"
+                    >
+                      <div className="text-2xl">{item.icon}</div>
+                      <div className="mt-1 text-[10px] font-black text-slate-700">
+                        {item.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* NEED HELP */}
+            <section className="relative overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white shadow-sm">
+              <div className="p-4">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-purple-100 p-2 text-purple-700">
+                    <HelpCircle size={19} />
+                  </div>
+
+                  <h3 className="text-[16px] font-black text-[#21145d]">
+                    Need Help?
+                  </h3>
+                </div>
+
+                <p className="mt-3 text-[11px] leading-relaxed text-slate-600">
+                  Contact our support team for any assistance.
+                </p>
+
+                <button
+                  type="button"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-xs font-black text-white shadow-md transition hover:scale-[1.01]"
+                >
+                  Contact Support
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <div className="absolute bottom-0 right-3 text-5xl">
+                👩🏻‍💼
+              </div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    </div>
   );
 }
-

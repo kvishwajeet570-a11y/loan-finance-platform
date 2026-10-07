@@ -1,0 +1,338 @@
+﻿"use client";
+
+import {
+  ArrowRight,
+  CheckCircle2,
+  FileText,
+  Headphones,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
+import Link from "next/link";
+
+const features = [
+  { label: "Fast Processing", icon: Zap },
+  { label: "Minimal Documentation", icon: FileText },
+  { label: "100% Secure & Safe", icon: ShieldCheck },
+  { label: "Dedicated Support", icon: Headphones },
+];
+
+export default function Hero() {
+  return (
+    <section className="relative isolate overflow-hidden bg-white">
+
+      {/* FULL FAMILY IMAGE - NO CROPPING */}
+      <div className="absolute inset-0 -z-20">
+        <img
+          src="/images/hero-family.png"
+          alt="Family"
+          className="absolute inset-0 h-full w-full max-w-none"
+          style={{
+            objectFit: "fill",
+            objectPosition: "center center",
+          }}
+        />
+      </div>
+
+      {/* VERY LIGHT LEFT READABILITY */}
+      <div
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.55) 30%, rgba(255,255,255,0.10) 58%, rgba(255,255,255,0.00) 78%)",
+        }}
+      />
+
+      <div className="relative z-10 mx-auto max-w-[1600px] px-5 sm:px-8 lg:px-10">
+
+        <div className="grid min-h-[560px] items-center gap-6 py-7 lg:grid-cols-[minmax(0,1fr)_405px]">
+
+          {/* LEFT CONTENT */}
+          <div className="relative z-20 max-w-[680px]">
+
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/90 px-4 py-2 text-xs font-bold text-[#12346b] shadow-sm">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+              India Loan Finance
+            </div>
+
+            <h1 className="text-[48px] font-extrabold leading-[1] tracking-tight text-[#071b49] sm:text-[58px] lg:text-[62px]">
+              Turn Your Dreams
+              <br />
+              Into{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
+                Reality
+              </span>
+            </h1>
+
+            <h2 className="mt-4 text-xl font-extrabold text-[#071b49]">
+              Quick Loans. Simple Process. Better Tomorrow.
+            </h2>
+
+            <p className="mt-2 max-w-[600px] text-[15px] leading-6 text-slate-700">
+              Explore financing options, calculate your EMI, apply digitally
+              and manage your finance journey through one connected platform.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+
+              <Link
+                href="/apply"
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-7 py-3.5 text-sm font-bold text-white shadow-lg"
+              >Apply Now
+                <ArrowRight size={18} />
+              </Link>
+
+              <Link
+                href="/loans"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-7 py-3.5 text-sm font-bold text-[#10275a] shadow-md"
+              >
+                Check Eligibility
+                <ArrowRight size={18} />
+              </Link>
+
+            </div>
+
+            <div className="mt-6 grid max-w-[630px] grid-cols-2 gap-2.5 sm:grid-cols-4">
+
+              {features.map(({ label, icon: Icon }, index) => (
+  <div
+    key={label}
+    className="group relative flex min-h-[88px] flex-1 items-center gap-3 overflow-hidden rounded-2xl border border-slate-200/80 bg-white px-3.5 py-3 shadow-[0_6px_22px_rgba(15,64,130,0.10)] transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-[0_12px_28px_rgba(37,99,235,0.18)]"
+  >
+
+    {/* Soft background glow */}
+    <div
+      className={`pointer-events-none absolute -right-7 -top-7 h-20 w-20 rounded-full blur-2xl ${
+        index % 2 === 0 ? "bg-blue-100/70" : "bg-cyan-100/60"
+      }`}
+    />
+
+    {/* Premium circular symbol */}
+    <div className="relative flex h-[52px] w-[52px] shrink-0 items-center justify-center">
+
+      {/* Outer soft ring */}
+      <div
+        className={`absolute inset-0 rounded-full border-2 ${
+          index % 2 === 0
+            ? "border-blue-200 bg-blue-50/70"
+            : "border-cyan-200 bg-cyan-50/70"
+        }`}
+      />
+
+      {/* Inner white circle */}
+      <div className="absolute inset-[5px] rounded-full border border-slate-100 bg-white shadow-[0_3px_12px_rgba(37,99,235,0.10)]" />
+
+      {/* Icon circle */}
+      <div
+        className={`relative z-10 flex h-[34px] w-[34px] items-center justify-center rounded-full ${
+          index % 2 === 0
+            ? "bg-blue-50 text-blue-600"
+            : "bg-cyan-50 text-cyan-600"
+        }`}
+      >
+        <Icon
+          size={20}
+          strokeWidth={2.4}
+          className="transition-transform duration-300 group-hover:scale-110"
+        />
+      </div>
+
+      {/* Small shine */}
+      <span className="absolute left-[13px] top-[8px] z-20 h-1.5 w-3 rounded-full bg-white/90" />
+
+    </div>
+
+    {/* Text */}
+    <div className="relative z-10 min-w-0 flex-1">
+      <p className="text-[11px] font-extrabold leading-[15px] tracking-tight text-[#12346b]">
+        {label}
+      </p>
+
+      <div className="mt-2 flex items-center gap-1.5">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            index % 2 === 0 ? "bg-blue-500" : "bg-cyan-500"
+          }`}
+        />
+        <span className="h-[3px] w-8 overflow-hidden rounded-full bg-slate-100">
+          <span
+            className={`block h-full w-5 rounded-full transition-all duration-300 group-hover:w-8 ${
+              index % 2 === 0
+                ? "bg-blue-500"
+                : "bg-cyan-500"
+            }`}
+          />
+        </span>
+      </div>
+    </div>
+
+    {/* Circular check */}
+    <div
+      className={`relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border bg-white text-[11px] font-black ${
+        index % 2 === 0
+          ? "border-blue-200 text-blue-600"
+          : "border-cyan-200 text-cyan-600"
+      }`}
+    >
+      ✓
+    </div>
+
+  </div>
+))}
+
+            </div>
+
+          </div>
+
+          {/* RIGHT QUICK APPLICATION */}
+          <div className="relative z-30 flex justify-end translate-x-[35px]">
+
+            <div className="w-full max-w-[405px] rounded-[26px] border border-white/90 bg-white/95 p-5 shadow-2xl backdrop-blur-sm sm:p-6">
+
+              <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-blue-600">
+                Quick Start
+              </p>
+
+              <h2 className="mt-1.5 text-[28px] font-extrabold leading-[1.05] text-[#10275a]">
+                Quick Loan
+                <br />
+                Application
+              </h2>
+
+              <p className="mt-2 text-xs text-slate-500">
+                Get started with your finance application journey.
+              </p>
+
+              <form className="mt-5 space-y-3">
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">
+                    Loan Amount
+                  </label>
+
+                  <select className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none">
+                    <option>Select loan amount</option>
+                    <option>₹ 50,000</option>
+                    <option>₹ 1,00,000</option>
+                    <option>₹ 2,00,000</option>
+                    <option>₹ 5,00,000</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">
+                    Employment Type
+                  </label>
+
+                  <select className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none">
+                    <option>Select employment type</option>
+                    <option>Salaried</option>
+                    <option>Self Employed</option>
+                    <option>Business</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">
+                    Monthly Income
+                  </label>
+
+                  <select className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none">
+                    <option>Select monthly income</option>
+                    <option>₹20,000 - ₹30,000</option>
+                    <option>₹30,000 - ₹50,000</option>
+                    <option>₹50,000 - ₹1,00,000</option>
+                    <option>₹1,00,000+</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-700">
+                    Mobile Number
+                  </label>
+
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    placeholder="Enter 10-digit mobile number"
+                    className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs text-slate-600 outline-none"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-bold text-white shadow-lg"
+                >
+                  Check Eligibility
+                  <ArrowRight size={17} />
+                </button>
+
+              </form>
+
+              <div className="mt-4 grid grid-cols-3 border-t border-slate-100 pt-4">
+
+                <div className="text-center">
+                  <CheckCircle2 size={17} className="mx-auto mb-1 text-blue-600" />
+                  <p className="text-[9px] font-semibold text-slate-500">
+                    Secure
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <Zap size={17} className="mx-auto mb-1 text-blue-600" />
+                  <p className="text-[9px] font-semibold text-slate-500">
+                    Fast Process
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <ShieldCheck size={17} className="mx-auto mb-1 text-blue-600" />
+                  <p className="text-[9px] font-semibold text-slate-500">
+                    Safe
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </section>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
