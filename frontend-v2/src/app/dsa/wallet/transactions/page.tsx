@@ -391,7 +391,7 @@ export default function DsaWalletTransactionsPage() {
                     Refresh
                   </button>
 
-                  <button className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-[10px] font-black text-indigo-700">
+                  <button onClick={() => { const csv = ["Transaction ID,Type,Description,Amount,Status,Date", ...filtered.map((t) => [t.transactionId,t.type,t.description,t.amount,t.status,t.createdAt].map((v) => "\"" + String(v).replace(/"/g, "\"\"") + "\"").join(","))].join("\r\n"); const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "DSA-Wallet-Statement-DEMO.csv"; a.click(); URL.revokeObjectURL(url); }} className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 text-[10px] font-black text-indigo-700">
                     <Download size={14} />
                     Download Statement
                   </button>
@@ -585,12 +585,12 @@ export default function DsaWalletTransactionsPage() {
                             </p>
 
                             <div className="mt-5 flex gap-2">
-                              <button className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-xs font-black text-white shadow-lg shadow-blue-200">
+                              <button onClick={() => window.location.href = "/dsa/wallet/balance"} className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3.5 text-xs font-black text-white shadow-lg shadow-blue-200">
                                 <Plus size={14} />
                                 Add Money
                               </button>
 
-                              <button className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-6 py-3.5 text-xs font-black text-blue-600">
+                              <button onClick={() => window.location.href = "/dsa/wallet/balance"} className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-6 py-3.5 text-xs font-black text-blue-600">
                                 <Wallet size={14} />
                                 View Wallet Balance
                               </button>
@@ -666,7 +666,7 @@ export default function DsaWalletTransactionsPage() {
                   transactions
                 </span>
 
-                <button className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-black text-blue-600">
+                <button onClick={() => { const csv = ["Transaction ID,Type,Description,Amount,Status,Date", ...filtered.map((t) => [t.transactionId,t.type,t.description,t.amount,t.status,t.createdAt].map((v) => "\"" + String(v).replace(/"/g, "\"\"") + "\"").join(","))].join("\r\n"); const blob = new Blob([csv], {type:"text/csv;charset=utf-8;"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "DSA-Wallet-Statement-DEMO.csv"; a.click(); URL.revokeObjectURL(url); }} className="flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-2 text-xs font-black text-blue-600">
                   <Download size={13} />
                   Download Statement
                 </button>
@@ -1047,4 +1047,5 @@ function Quick({
     </button>
   );
 }
+
 

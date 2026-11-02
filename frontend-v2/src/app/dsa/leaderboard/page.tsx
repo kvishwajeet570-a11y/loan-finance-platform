@@ -1,163 +1,19 @@
 ﻿"use client";
 
-import React from "react";
-import DsaSidebar from "@/components/dsa/DsaSidebar";
+import React, { useEffect, useMemo, useState } from "react";
 
-const kpis = [
-  {
-    icon: "👥",
-    title: "Total Participants",
-    value: "248",
-    trend: "↑ 32%",
-    bars: [22, 31, 28, 42, 38, 51, 48, 62, 58, 76],
-    iconBg: "from-blue-500 to-indigo-600",
-    bar: "from-blue-500 to-cyan-400",
-  },
-  {
-    icon: "🏆",
-    title: "Your Current Rank",
-    value: "#24",
-    trend: "↑ 12",
-    bars: [18, 28, 25, 39, 34, 48, 45, 59, 54, 72],
-    iconBg: "from-amber-400 to-orange-500",
-    bar: "from-orange-400 to-yellow-400",
-  },
-  {
-    icon: "⭐",
-    title: "Your Total Points",
-    value: "980",
-    trend: "↑ 18%",
-    bars: [20, 28, 25, 40, 36, 48, 45, 61, 57, 75],
-    iconBg: "from-violet-500 to-purple-600",
-    bar: "from-violet-500 to-purple-400",
-  },
-  {
-    icon: "🎁",
-    title: "Rewards Earned",
-    value: "3",
-    trend: "↑ 50%",
-    bars: [18, 27, 23, 38, 34, 47, 42, 58, 54, 73],
-    iconBg: "from-emerald-400 to-teal-500",
-    bar: "from-emerald-400 to-teal-400",
-  },
-];
-
-const topThree = [
-  {
-    position: "2",
-    name: "Amit Verma",
-    points: "2,410 Points",
-    badge: "Star Performer",
-    box: "bg-gradient-to-b from-blue-50 to-[#e8f1ff]",
-    button: "bg-blue-600",
-    medal: "🥈",
-  },
-  {
-    position: "1",
-    name: "Rajesh Kumar",
-    points: "2,850 Points",
-    badge: "🏆 TOP PERFORMER",
-    box: "bg-gradient-to-b from-yellow-50 via-yellow-100 to-orange-50",
-    button: "bg-orange-500",
-    medal: "👑",
-  },
-  {
-    position: "3",
-    name: "Suresh Patel",
-    points: "1,980 Points",
-    badge: "Rising Star",
-    box: "bg-gradient-to-b from-orange-50 to-[#fff3e7]",
-    button: "bg-orange-400",
-    medal: "🥉",
-  },
-];
-
-const leaderboard = [
-  {
-    rank: "🥇",
-    name: "Rajesh Kumar",
-    state: "Maharashtra",
-    referrals: "42",
-    approved: "35",
-    earnings: "₹ 4,85,000",
-    achievements: "24",
-    points: "2,850",
-    trend: "↑ 12%",
-  },
-  {
-    rank: "🥈",
-    name: "Amit Verma",
-    state: "Delhi",
-    referrals: "38",
-    approved: "32",
-    earnings: "₹ 3,62,000",
-    achievements: "22",
-    points: "2,410",
-    trend: "↑ 8%",
-  },
-  {
-    rank: "🥉",
-    name: "Suresh Patel",
-    state: "Gujarat",
-    referrals: "28",
-    approved: "24",
-    earnings: "₹ 2,86,000",
-    achievements: "18",
-    points: "1,980",
-    trend: "↑ 15%",
-  },
-  {
-    rank: "4",
-    name: "Vikram Singh",
-    state: "Rajasthan",
-    referrals: "24",
-    approved: "20",
-    earnings: "₹ 2,24,000",
-    achievements: "15",
-    points: "1,650",
-    trend: "↑ 10%",
-  },
-  {
-    rank: "5",
-    name: "Manoj Yadav",
-    state: "Uttar Pradesh",
-    referrals: "18",
-    approved: "15",
-    earnings: "₹ 1,85,000",
-    achievements: "12",
-    points: "1,320",
-    trend: "↑ 6%",
-  },
-  {
-    rank: "#24",
-    name: "DSA Demo (You)",
-    state: "Madhya Pradesh",
-    referrals: "12",
-    approved: "8",
-    earnings: "₹ 98,500",
-    achievements: "12",
-    points: "980",
-    trend: "↑ 18%",
-    you: true,
-  },
-];
-
-const stateData = [
-  ["1", "Maharashtra", "48 DSAs"],
-  ["2", "Delhi", "42 DSAs"],
-  ["3", "Gujarat", "36 DSAs"],
-  ["4", "Uttar Pradesh", "28 DSAs"],
-  ["5", "Rajasthan", "24 DSAs"],
-];
-
-const achievementData = [
-  ["🏆", "Most Referrals", "Rajesh Kumar", "42"],
-  ["💰", "Highest Earnings", "Amit Verma", "₹ 4,85,000"],
-  ["🎯", "Most Approvals", "Rajesh Kumar", "35"],
-  ["🚀", "Fastest Growth", "Suresh Patel", "180%"],
-  ["🎁", "Most Rewards", "Amit Verma", "8"],
-];
-
+type LeaderboardApiRow = {
+  id: string;
+  name: string;
+  state: string | null;
+  totalReferrals: number;
+  successfulReferrals: number;
+  approvedLoans: number;
+  totalEarnings: number;
+  commissionCount: number;
+  referralEarnings: number;
+  rank?: number;
+};
 function MiniBars({
   bars,
   color,
@@ -179,11 +35,238 @@ function MiniBars({
 }
 
 export default function DsaLeaderboardPage() {
+  const [apiRows, setApiRows] = useState<LeaderboardApiRow[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadLeaderboard() {
+      try {
+        setLoading(true);
+        setApiError("");
+
+        const baseUrl = (
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+        ).replace(/\/$/, "");
+
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("loan_finance_token")
+            : null;
+
+        const response = await fetch(`${baseUrl}/leaderboard/dsa`, {
+          method: "GET",
+          credentials: "include",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            response.status === 401 || response.status === 403
+              ? "Please log in again to view the leaderboard."
+              : `Leaderboard API failed (${response.status}). Check that the backend is running.`
+          );
+        }
+
+        const payload = await response.json();
+
+        if (payload.success === false) {
+          throw new Error(payload.message || "Could not load leaderboard data.");
+        }
+
+        setApiRows(Array.isArray(payload.data) ? payload.data : []);
+        setCurrentUserId(payload.currentUserId ?? null);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setApiError(
+          error instanceof Error ? error.message : "Unable to load leaderboard."
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    loadLeaderboard();
+    return () => controller.abort();
+  }, []);
+
+  const rankedRows = useMemo(
+    () =>
+      [...apiRows].sort(
+        (a, b) =>
+          Number(b.totalEarnings || 0) - Number(a.totalEarnings || 0) ||
+          Number(b.approvedLoans || 0) - Number(a.approvedLoans || 0) ||
+          Number(b.successfulReferrals || 0) -
+            Number(a.successfulReferrals || 0)
+      ),
+    [apiRows]
+  );
+
+  const [periodFilter, setPeriodFilter] = useState("All Time");
+  const [stateFilter, setStateFilter] = useState("All States");
+  const [sortFilter, setSortFilter] = useState("Total Earnings");
+  const [appliedFilters, setAppliedFilters] = useState({
+    period: "All Time",
+    state: "All States",
+    sort: "Total Earnings",
+  });
+
+  const availableStates = Array.from(
+    new Set(apiRows.map((row) => row.state?.trim()).filter(Boolean))
+  ) as string[];
+
+  const filteredRows = useMemo(() => {
+    let rows = [...apiRows];
+
+    if (appliedFilters.state !== "All States") {
+      rows = rows.filter((row) => row.state === appliedFilters.state);
+    }
+
+    if (appliedFilters.sort === "Approved Loans") {
+      rows.sort((a, b) => Number(b.approvedLoans || 0) - Number(a.approvedLoans || 0));
+    } else if (appliedFilters.sort === "Successful Referrals") {
+      rows.sort((a, b) => Number(b.successfulReferrals || 0) - Number(a.successfulReferrals || 0));
+    } else {
+      rows.sort(
+        (a, b) =>
+          Number(b.totalEarnings || 0) - Number(a.totalEarnings || 0) ||
+          Number(b.approvedLoans || 0) - Number(a.approvedLoans || 0)
+      );
+    }
+
+    // The API currently provides totals without dated history.
+    // Do not pretend month/weekly filters are date-accurate.
+    return rows;
+  }, [apiRows, appliedFilters]);
+
+  const [searchFilter, setSearchFilter] = useState("");
+  const [minimumEarnings, setMinimumEarnings] = useState("");
+  const [maximumEarnings, setMaximumEarnings] = useState("");
+  const [minimumLoans, setMinimumLoans] = useState("");
+  const [minimumReferrals, setMinimumReferrals] = useState("");
+
+  const advancedRows = useMemo(() => {
+    const query = searchFilter.trim().toLowerCase();
+
+    return filteredRows.filter((row) => {
+      const name = String(row.name || "").toLowerCase();
+      const id = String(row.id || "").toLowerCase();
+      const earnings = Number(row.totalEarnings || 0);
+      const loans = Number(row.approvedLoans || 0);
+      const referrals = Number(row.successfulReferrals || 0);
+
+      if (query && !name.includes(query) && !id.includes(query)) return false;
+      if (minimumEarnings !== "" && earnings < Number(minimumEarnings)) return false;
+      if (maximumEarnings !== "" && earnings > Number(maximumEarnings)) return false;
+      if (minimumLoans !== "" && loans < Number(minimumLoans)) return false;
+      if (minimumReferrals !== "" && referrals < Number(minimumReferrals)) return false;
+
+      return true;
+    });
+  }, [
+    filteredRows,
+    searchFilter,
+    minimumEarnings,
+    maximumEarnings,
+    minimumLoans,
+    minimumReferrals,
+  ]);
+
+  const currentUser = advancedRows.find((row) => row.id === currentUserId);
+  const currentRank = currentUser
+    ? advancedRows.findIndex((row) => row.id === currentUserId) + 1
+    : null;
+
+  const money = (value: number) =>
+    `₹ ${Number(value || 0).toLocaleString("en-IN", {
+      maximumFractionDigits: 2,
+    })}`;
+
+  const leaderboard = advancedRows.map((row, index) => ({
+    id: row.id,
+    rank: index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : String(index + 1),
+    name: row.name || "DSA",
+    state: row.state || "—",
+    referrals: String(row.totalReferrals ?? 0),
+    approved: String(row.approvedLoans ?? 0),
+    earnings: money(row.totalEarnings),
+    achievements: "—",
+    points: "—",
+    trend: "—",
+    you: row.id === currentUserId,
+    position: String(index + 1),
+    badge: index === 0 ? "TOP PERFORMER" : index === 1 ? "STAR PERFORMER" : "TOP DSA",
+    box:
+      index === 0
+        ? "bg-gradient-to-b from-yellow-50 via-yellow-100 to-orange-50"
+        : index === 1
+          ? "bg-gradient-to-b from-blue-50 to-[#e8f1ff]"
+          : "bg-gradient-to-b from-orange-50 to-[#fff3e7]",
+    button: index === 0 ? "bg-orange-500" : index === 1 ? "bg-blue-600" : "bg-orange-400",
+    medal: index === 0 ? "👑" : index === 1 ? "🥈" : "🥉",
+  }));
+
+  const topThree =
+    leaderboard.length > 1
+      ? [leaderboard[1], leaderboard[0], ...leaderboard.slice(2, 3)]
+      : leaderboard;
+
+  const totalReferrals = rankedRows.reduce(
+    (sum, row) => sum + Number(row.totalReferrals || 0), 0
+  );
+  const totalApprovedLoans = rankedRows.reduce(
+    (sum, row) => sum + Number(row.approvedLoans || 0), 0
+  );
+
+  const kpis = [
+    {
+      icon: "👥", title: "Total Participants", value: String(advancedRows.length),
+      trend: "Live", bars: [], iconBg: "from-blue-500 to-indigo-600",
+      bar: "from-blue-500 to-cyan-400",
+    },
+    {
+      icon: "🏆", title: "Your Current Rank",
+      value: currentRank ? `#${currentRank}` : "—",
+      trend: "Live", bars: [], iconBg: "from-amber-400 to-orange-500",
+      bar: "from-orange-400 to-yellow-400",
+    },
+    {
+      icon: "⭐", title: "Your Total Points", value: "—",
+      trend: "Not tracked", bars: [], iconBg: "from-violet-500 to-purple-600",
+      bar: "from-violet-500 to-purple-400",
+    },
+    {
+      icon: "🎁", title: "Rewards Earned", value: "—",
+      trend: "Not tracked", bars: [], iconBg: "from-emerald-400 to-teal-500",
+      bar: "from-emerald-400 to-teal-400",
+    },
+  ];
+
+  const stateCounts = rankedRows.reduce<Record<string, number>>((acc, row) => {
+    const state = row.state?.trim() || "Unknown";
+    acc[state] = (acc[state] || 0) + 1;
+    return acc;
+  }, {});
+
+  const stateData = Object.entries(stateCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([state, count], index) => [
+      String(index + 1), state, `${count} DSAs`,
+    ]);
+
+  const achievementData = [
+    ["⭐", "Achievements", "Verified data unavailable", "—"],
+  ];
+
   return (
     <>
-      <DsaSidebar />
 
-      <div className="min-h-screen bg-[#f1f6fc] lg:pl-[278px]">
+      <div className="min-h-screen bg-[#f1f6fc] ">
         <main className="min-h-screen px-3 py-3 sm:px-5 lg:px-7">
 
           {/* =====================================================
@@ -319,7 +402,16 @@ export default function DsaLeaderboardPage() {
           {/* =====================================================
               KPI CARDS
           ===================================================== */}
-          <section className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {(loading || apiError) && (
+  <div className={`mb-3 rounded-xl border px-4 py-3 text-sm ${
+    apiError
+      ? "border-amber-200 bg-amber-50 text-amber-800"
+      : "border-blue-200 bg-blue-50 text-blue-800"
+  }`}>
+    {apiError || "Loading live DSA leaderboard…"}
+  </div>
+)}
+            <section className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {kpis.map((item) => (
               <div
                 key={item.title}
@@ -435,19 +527,84 @@ export default function DsaLeaderboardPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-3 gap-2">
-                {["This Month", "All States", "Total Points"].map((x) => (
-                  <button
-                    key={x}
-                    className="flex h-10 items-center justify-between rounded-lg border border-slate-200 bg-white px-3 text-[10px] font-semibold text-slate-600"
-                  >
-                    {x}
-                    <span>⌄</span>
-                  </button>
-                ))}
-              </div>
+                <select
+                  aria-label="Leaderboard period"
+                  value={periodFilter}
+                  onChange={(e) => setPeriodFilter(e.target.value)}
+                  className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600"
+                >
+                  <option value="All Time">All Time</option>
+                  <option value="This Month">This Month</option>
+                  <option value="This Week">This Week</option>
+                </select>
 
-              <button className="mt-2 h-10 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-[11px] font-black text-white shadow-lg">
+                <select
+                  aria-label="Filter by state"
+                  value={stateFilter}
+                  onChange={(e) => setStateFilter(e.target.value)}
+                  className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600"
+                >
+                  <option value="All States">All States</option>
+                  {[...new Set([
+                    ...availableStates,
+                    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar",
+                    "Chhattisgarh", "Goa", "Gujarat", "Haryana",
+                    "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
+                    "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya",
+                    "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
+                    "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
+                    "Uttar Pradesh", "Uttarakhand", "West Bengal",
+                    "Delhi", "Jammu and Kashmir", "Ladakh",
+                    "Chandigarh", "Puducherry"
+                  ])].sort().map((state) => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+
+                <select
+                  aria-label="Sort leaderboard"
+                  value={sortFilter}
+                  onChange={(e) => setSortFilter(e.target.value)}
+                  className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600"
+                >
+                  <option value="Total Earnings">Earnings</option>
+                  <option value="Approved Loans">Approvals</option>
+                  <option value="Successful Referrals">Referrals</option>
+                </select>
+              </div>
+<button
+                onClick={() => {
+                  setAppliedFilters({
+                    period: periodFilter,
+                    state: stateFilter,
+                    sort: sortFilter,
+                  });
+                }}
+                className="mt-2 h-10 w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-[11px] font-black text-white shadow-lg"
+              >
                 Apply Filters
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchFilter("");
+                  setMinimumEarnings("");
+                  setMaximumEarnings("");
+                  setMinimumLoans("");
+                  setMinimumReferrals("");
+                  setPeriodFilter("All Time");
+                  setStateFilter("All States");
+                  setSortFilter("Total Earnings");
+                  setAppliedFilters({
+                    period: "All Time",
+                    state: "All States",
+                    sort: "Total Earnings",
+                  });
+                }}
+                className="mt-2 h-9 w-full rounded-lg border border-slate-200 bg-white text-[11px] font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Reset All Filters
               </button>
 
               <div className="mt-3 rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-3">
@@ -476,9 +633,9 @@ export default function DsaLeaderboardPage() {
                       <p className="text-[8px] text-slate-400">
                         Total Points
                       </p>
-                      <p className="text-[13px] font-black">980</p>
+                      <p className="text-[13px] font-black">—</p>
                       <p className="text-[8px] font-bold text-emerald-500">
-                        ↑ 18%
+                        —
                       </p>
                     </div>
 
@@ -486,9 +643,9 @@ export default function DsaLeaderboardPage() {
                       <p className="text-[8px] text-slate-400">
                         Achievements
                       </p>
-                      <p className="text-[13px] font-black">12</p>
+                      <p className="text-[13px] font-black">—</p>
                       <p className="text-[8px] font-bold text-emerald-500">
-                        ↑ 33%
+                        —
                       </p>
                     </div>
 
@@ -496,9 +653,9 @@ export default function DsaLeaderboardPage() {
                       <p className="text-[8px] text-slate-400">
                         Rewards
                       </p>
-                      <p className="text-[13px] font-black">3</p>
+                      <p className="text-[13px] font-black">—</p>
                       <p className="text-[8px] font-bold text-emerald-500">
-                        ↑ 50%
+                        —
                       </p>
                     </div>
                   </div>
@@ -708,3 +865,10 @@ export default function DsaLeaderboardPage() {
     </>
   );
 }
+
+
+
+
+
+
+

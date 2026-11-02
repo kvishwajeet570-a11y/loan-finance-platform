@@ -1,4 +1,4 @@
-import prisma from "../../prisma/prisma";
+﻿import prisma from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
 
 interface UpdateProfileDTO {
@@ -328,7 +328,7 @@ class ProfileService {
       },
 
       data: {
-        isBlocked: true,
+        isActive: false,
       },
     });
   }

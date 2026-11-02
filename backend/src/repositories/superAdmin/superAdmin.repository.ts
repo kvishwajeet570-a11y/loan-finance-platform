@@ -303,17 +303,11 @@ static async createActionLog(data: {
       }),
     ]);
 
-    /*
-      Current LoanStatus enum contains:
-      PENDING
-      APPROVED
-      REJECTED
-
-      Therefore DISBURSED cannot be queried
-      until it is added to the Prisma enum.
-    */
-
-    const disbursedLoans = 0;
+    const disbursedLoans = await prisma.loanApplication.count({
+      where: {
+        status: "DISBURSED",
+      },
+    });
 
     return {
       userCount,

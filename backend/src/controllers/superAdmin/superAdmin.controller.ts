@@ -318,31 +318,20 @@ export const getLoanAnalytics = async (
       rejected,
       pending,
       totalAmount,
+      disbursedLoans,
+      disbursedAmount,
     ] = await Promise.all([
       prisma.loanApplication.count(),
-
-      prisma.loanApplication.count({
-        where: {
-          status: "APPROVED",
-        },
-      }),
-
-      prisma.loanApplication.count({
-        where: {
-          status: "REJECTED",
-        },
-      }),
-
-      prisma.loanApplication.count({
-        where: {
-          status: "PENDING",
-        },
-      }),
-
+      prisma.loanApplication.count({ where: { status: "APPROVED" } }),
+      prisma.loanApplication.count({ where: { status: "REJECTED" } }),
+      prisma.loanApplication.count({ where: { status: "PENDING" } }),
       prisma.loanApplication.aggregate({
-        _sum: {
-          amount: true,
-        },
+        _sum: { amount: true },
+      }),
+      prisma.loanApplication.count({ where: { status: "DISBURSED" } }),
+      prisma.loanApplication.aggregate({
+        where: { status: "DISBURSED" },
+        _sum: { amount: true },
       }),
     ]);
 
@@ -353,14 +342,13 @@ export const getLoanAnalytics = async (
         approved,
         rejected,
         pending,
-
-        totalLoanAmount:
-          totalAmount._sum.amount || 0,
+        disbursedLoans,
+        disbursedAmount: disbursedAmount._sum.amount || 0,
+        totalLoanAmount: totalAmount._sum.amount || 0,
       },
     });
   } catch (error) {
     console.error("Loan Analytics Error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch loan analytics",
@@ -394,7 +382,7 @@ export const getAllAdmins = async (
         role: true,
         isVerified: true,
         isBlocked: true,
-        createdAt: true,
+        city: true, state: true, createdAt: true,
         updatedAt: true,
       },
     });
@@ -906,90 +894,88 @@ export const getAllUsers = async (
   res: Response
 ) => {
   try {
-    const page = Math.max(
-      Number(req.query.page) || 1,
-      1
-    );
-
-    const limit = Math.min(
-      Math.max(Number(req.query.limit) || 20, 1),
-      100
-    );
-
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
+    const search = typeof req.query.search === "string"
+      ? req.query.search.trim()
+      : "";
+    const status = typeof req.query.status === "string"
+      ? req.query.status
+      : "All";
 
-    const search =
-      typeof req.query.search === "string"
-        ? req.query.search.trim()
-        : "";
+    const where: any = {};
 
-    const where = search
-      ? {
-          OR: [
-            {
-              name: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              email: {
-                contains: search,
-                mode: "insensitive" as const,
-              },
-            },
-            {
-              phoneNo: {
-                contains: search,
-              },
-            },
-          ],
-        }
-      : {};
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { phoneNo: { contains: search } },
+      ];
+    }
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        skip,
-        take: limit,
+    if (status === "Blocked") {
+      where.isBlocked = true;
+    } else if (status === "Pending") {
+      where.isBlocked = false;
+      where.isVerified = false;
+    } else if (status === "Active") {
+      where.isBlocked = false;
+      where.isVerified = true;
+    }
 
-        orderBy: {
-          createdAt: "desc",
-        },
-
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phoneNo: true,
-          role: true,
-          isVerified: true,
-          isBlocked: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-
-      prisma.user.count({
-        where,
-      }),
-    ]);
+    const [users, total, totalCustomers, activeCustomers, pendingCustomers, blockedCustomers] =
+      await Promise.all([
+        prisma.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNo: true,
+            role: true,
+            isVerified: true,
+            isBlocked: true,
+            city: true,
+            state: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+        prisma.user.count({ where }),
+        prisma.user.count(),
+        prisma.user.count({
+          where: { isBlocked: false, isVerified: true },
+        }),
+        prisma.user.count({
+          where: { isBlocked: false, isVerified: false },
+        }),
+        prisma.user.count({
+          where: { isBlocked: true },
+        }),
+      ]);
 
     return res.status(200).json({
       success: true,
-
+      stats: {
+        total: totalCustomers,
+        active: activeCustomers,
+        pending: pendingCustomers,
+        blocked: blockedCustomers,
+      },
       pagination: {
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit),
       },
-
       data: users,
     });
   } catch (error) {
     console.error("Get All Users Error:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch users",
@@ -1001,41 +987,23 @@ export const getAllUsers = async (
    BLOCK USER
 ========================================================== */
 
-export const blockUser = async (
-  req: Request,
-  res: Response
-) => {
+export const blockUser = async (req: Request, res: Response) => {
   try {
     const id = getParam(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: "User ID is required" });
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID is required",
-      });
-    }
-
-    const user = await prisma.user.update({
-      where: {
-        id,
-      },
-      data: {
-        isBlocked: true,
-      },
+    const previous = await prisma.user.findUnique({
+      where: { id }, select: { id: true, email: true, isBlocked: true }
     });
+    if (!previous) return res.status(404).json({ success: false, message: "User not found" });
 
-    return res.status(200).json({
-      success: true,
-      message: "User blocked successfully",
-      data: user,
-    });
+    const user = await prisma.user.update({ where: { id }, data: { isBlocked: true } });
+    await writeBlockAudit(req, previous, previous.isBlocked, true);
+
+    return res.status(200).json({ success: true, message: "User blocked successfully", data: user });
   } catch (error) {
     console.error("Block User Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to block user",
-    });
+    return res.status(500).json({ success: false, message: "Failed to block user" });
   }
 };
 
@@ -1043,41 +1011,23 @@ export const blockUser = async (
    UNBLOCK USER
 ========================================================== */
 
-export const unblockUser = async (
-  req: Request,
-  res: Response
-) => {
+export const unblockUser = async (req: Request, res: Response) => {
   try {
     const id = getParam(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: "User ID is required" });
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "User ID is required",
-      });
-    }
-
-    const user = await prisma.user.update({
-      where: {
-        id,
-      },
-      data: {
-        isBlocked: false,
-      },
+    const previous = await prisma.user.findUnique({
+      where: { id }, select: { id: true, email: true, isBlocked: true }
     });
+    if (!previous) return res.status(404).json({ success: false, message: "User not found" });
 
-    return res.status(200).json({
-      success: true,
-      message: "User unblocked successfully",
-      data: user,
-    });
+    const user = await prisma.user.update({ where: { id }, data: { isBlocked: false } });
+    await writeBlockAudit(req, previous, previous.isBlocked, false);
+
+    return res.status(200).json({ success: true, message: "User unblocked successfully", data: user });
   } catch (error) {
     console.error("Unblock User Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to unblock user",
-    });
+    return res.status(500).json({ success: false, message: "Failed to unblock user" });
   }
 };
 
@@ -1210,241 +1160,205 @@ export const getAllLoans = async (
    UPDATE LOAN AMOUNT
 ========================================================== */
 
-export const updateLoanAmount = async (
-  req: Request,
-  res: Response
-) => {
+export const updateLoanAmount = async (req: Request, res: Response) => {
   try {
     const id = getParam(req.params.id);
+    const raw = req.body?.eligibleAmount ?? req.body?.amount;
+    const eligibleAmount = Number(raw);
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Loan ID is required",
-      });
+    if (!id || raw === undefined || raw === null || raw === "" ||
+        !Number.isFinite(eligibleAmount) || eligibleAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Valid eligible amount is required" });
     }
 
-    const rawAmount = req.body?.amount;
-    const amount = Number(rawAmount);
+    const existing = await prisma.loanApplication.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, message: "Loan not found" });
 
-    if (
-      rawAmount === undefined ||
-      rawAmount === null ||
-      rawAmount === "" ||
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Valid loan amount greater than 0 is required",
-      });
+    if (existing.status !== "PENDING") {
+      return res.status(400).json({ success: false, message: "Eligible limit can only be updated for pending loans" });
     }
 
-    const existingLoan = await prisma.loanApplication.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!existingLoan) {
-      return res.status(404).json({
-        success: false,
-        message: "Loan not found",
-      });
+    if (eligibleAmount > existing.amount) {
+      return res.status(400).json({ success: false, message: "Eligible amount cannot exceed requested amount" });
     }
 
     const loan = await prisma.loanApplication.update({
       where: { id },
-      data: { amount },
+      data: { eligibleAmount },
     });
 
-    return res.status(200).json({
-      success: true,
-      message: "Loan amount updated successfully",
-      data: loan,
-    });
+    return res.status(200).json({ success: true, message: "Eligible limit saved", data: loan });
   } catch (error) {
-    console.error("Update Loan Amount Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update loan amount",
-    });
-  }
-};
-export const approveLoan = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const id = getParam(req.params.id);
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Loan ID is required",
-      });
-    }
-
-    const rawAmount = req.body?.amount;
-    const amount = Number(rawAmount);
-
-    if (
-      rawAmount === undefined ||
-      rawAmount === null ||
-      rawAmount === "" ||
-      !Number.isFinite(amount) ||
-      amount <= 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Please enter a valid loan amount before approving.",
-      });
-    }
-
-    const existingLoan = await prisma.loanApplication.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        status: true,
-      },
-    });
-
-    if (!existingLoan) {
-      return res.status(404).json({
-        success: false,
-        message: "Loan not found",
-      });
-    }
-
-    const loan = await prisma.loanApplication.update({
-      where: { id },
-      data: {
-        amount,
-        status: "APPROVED",
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Loan amount saved and approved successfully",
-      data: loan,
-    });
-  } catch (error) {
-    console.error("Approve Loan Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to approve loan",
-    });
+    console.error("Update Eligible Amount Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to update eligible amount" });
   }
 };
 
-/* ==========================================================
-   REJECT LOAN
-========================================================== */
-
-export const rejectLoan = async (
-  req: Request,
-  res: Response
-) => {
+export const approveLoan = async (req: Request, res: Response) => {
   try {
     const id = getParam(req.params.id);
+    const raw = req.body?.sanctionedAmount ?? req.body?.amount;
+    const sanctionedAmount = Number(raw);
+    const message = String(req.body?.message ?? req.body?.remarks ?? "").trim();
+    const adminId = String((req as any).user?.id ?? "");
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Loan ID is required",
-      });
+    if (!id || raw === undefined || raw === null || raw === "" ||
+        !Number.isFinite(sanctionedAmount) || sanctionedAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Valid sanctioned amount is required" });
+    }
+    if (!message) {
+      return res.status(400).json({ success: false, message: "Customer message is required" });
     }
 
-    const loan = await prisma.loanApplication.update({
-      where: {
-        id,
-      },
-      data: {
-        status: "REJECTED",
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Loan rejected successfully",
-      data: loan,
-    });
-  } catch (error) {
-    console.error("Reject Loan Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to reject loan",
-    });
-  }
-};
-
-/* ==========================================================
-   DISBURSE LOAN
-========================================================== */
-
-export const disburseLoan = async (
-  req: Request,
-  res: Response
-) => {
-  try {
-    const id = getParam(req.params.id);
-
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        message: "Loan ID is required",
-      });
+    const existing = await prisma.loanApplication.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, message: "Loan not found" });
+    if (existing.status !== "PENDING") {
+      return res.status(400).json({ success: false, message: "Only pending loans can be approved" });
+    }
+    if (existing.eligibleAmount != null && sanctionedAmount > existing.eligibleAmount) {
+      return res.status(400).json({ success: false, message: "Sanctioned amount cannot exceed eligible limit" });
     }
 
-    const existingLoan =
-      await prisma.loanApplication.findUnique({
-        where: {
-          id,
+    const result = await prisma.$transaction(async (tx) => {
+      const loan = await tx.loanApplication.update({
+        where: { id },
+        data: {
+          sanctionedAmount,
+          status: "APPROVED",
+          remarks: message,
+          approvedAt: new Date(),
+          ...(adminId ? { approvedBy: adminId } : {}),
         },
       });
 
-    if (!existingLoan) {
-      return res.status(404).json({
-        success: false,
-        message: "Loan not found",
-      });
-    }
+      let notificationSent = false;
+      if (loan.userId) {
+        await tx.notification.create({
+          data: {
+            userId: loan.userId,
+            title: "Loan Approval Update",
+            message: `Your loan application has been approved. Sanctioned amount: ₹${sanctionedAmount.toLocaleString("en-IN")}. ${message}`,
+            type: "loan",
+            channel: "app",
+            isRead: false,
+          },
+        });
+        notificationSent = true;
+      }
 
-    if (existingLoan.status !== "APPROVED") {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Only approved loans can be disbursed",
-      });
-    }
-
-    const loan = await prisma.loanApplication.update({
-  where: {
-    id,
-  },
-  data: {
-    status: "APPROVED",
-  },
-});
+      return { loan, notificationSent };
+    });
 
     return res.status(200).json({
       success: true,
-      message: "Loan disbursed successfully",
-      data: loan,
+      message: result.notificationSent ? "Loan approved and customer notified" : "Loan approved; no linked customer account for notification",
+      data: result.loan,
+      notificationSent: result.notificationSent,
+    });
+  } catch (error) {
+    console.error("Approve Loan Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to approve loan" });
+  }
+};
+
+export const rejectLoan = async (req: Request, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    const message = String(req.body?.message ?? req.body?.reason ?? req.body?.rejectionReason ?? "").trim();
+
+    if (!id) return res.status(400).json({ success: false, message: "Loan ID is required" });
+    if (!message) return res.status(400).json({ success: false, message: "Rejection reason/customer message is required" });
+
+    const existing = await prisma.loanApplication.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, message: "Loan not found" });
+    if (existing.status !== "PENDING") {
+      return res.status(400).json({ success: false, message: "Only pending loans can be rejected" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const loan = await tx.loanApplication.update({
+        where: { id },
+        data: { status: "REJECTED", rejectionReason: message, remarks: message },
+      });
+
+      let notificationSent = false;
+      if (loan.userId) {
+        await tx.notification.create({
+          data: {
+            userId: loan.userId,
+            title: "Loan Application Update",
+            message: `Your loan application has been rejected. Reason: ${message}`,
+            type: "loan",
+            channel: "app",
+            isRead: false,
+          },
+        });
+        notificationSent = true;
+      }
+      return { loan, notificationSent };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: result.notificationSent ? "Loan rejected and customer notified" : "Loan rejected; no linked customer account for notification",
+      data: result.loan,
+      notificationSent: result.notificationSent,
+    });
+  } catch (error) {
+    console.error("Reject Loan Error:", error);
+    return res.status(500).json({ success: false, message: "Failed to reject loan" });
+  }
+};
+
+export const disburseLoan = async (req: Request, res: Response) => {
+  try {
+    const id = getParam(req.params.id);
+    const message = String(req.body?.message ?? req.body?.remarks ?? "").trim();
+
+    if (!id) return res.status(400).json({ success: false, message: "Loan ID is required" });
+    if (!message) return res.status(400).json({ success: false, message: "Disbursement message is required" });
+
+    const existing = await prisma.loanApplication.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, message: "Loan not found" });
+    if (existing.status !== "APPROVED") {
+      return res.status(400).json({ success: false, message: "Only approved loans can be disbursed" });
+    }
+    if (!existing.sanctionedAmount || existing.sanctionedAmount <= 0) {
+      return res.status(400).json({ success: false, message: "Sanctioned amount is missing" });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const loan = await tx.loanApplication.update({
+        where: { id },
+        data: { status: "DISBURSED" },
+      });
+
+      let notificationSent = false;
+      if (loan.userId) {
+        await tx.notification.create({
+          data: {
+            userId: loan.userId,
+            title: "Loan Disbursement Update",
+            message: `Your loan has been marked as disbursed. Amount: ₹${Number(loan.sanctionedAmount).toLocaleString("en-IN")}. ${message}`,
+            type: "loan",
+            channel: "app",
+            isRead: false,
+          },
+        });
+        notificationSent = true;
+      }
+      return { loan, notificationSent };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: result.notificationSent ? "Loan disbursed and customer notified" : "Loan disbursed; no linked customer account for notification",
+      data: result.loan,
+      notificationSent: result.notificationSent,
     });
   } catch (error) {
     console.error("Disburse Loan Error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Failed to disburse loan",
-    });
+    return res.status(500).json({ success: false, message: "Failed to disburse loan" });
   }
 };
 
@@ -2870,21 +2784,9 @@ export const getLiveActivities = async (
       loans,
       users,
     ] = await Promise.all([
-      prisma.transaction.findMany({
-        take: 10,
+      prisma.transaction.findMany({ take: 10, orderBy: { createdAt: "desc" }, include: { user: { select: { id: true, name: true, city: true, state: true } } } }),
 
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
-
-      prisma.loanApplication.findMany({
-        take: 10,
-
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
+      prisma.loanApplication.findMany({ take: 10, orderBy: { createdAt: "desc" }, include: { user: { select: { id: true, name: true, city: true, state: true } } } }),
 
       prisma.user.findMany({
         take: 10,
@@ -2898,7 +2800,7 @@ export const getLiveActivities = async (
           name: true,
           email: true,
           role: true,
-          createdAt: true,
+          city: true, state: true, createdAt: true,
         },
       }),
     ]);
@@ -3054,7 +2956,7 @@ export const searchSystem = async (
           phoneNo: true,
           role: true,
           isBlocked: true,
-          createdAt: true,
+          city: true, state: true, createdAt: true,
         },
       }),
 
@@ -3119,4 +3021,41 @@ export const searchSystem = async (
 
 
 
+
+
+
+
+
+
+async function writeBlockAudit(
+  req: Request,
+  target: { id: string; email?: string | null },
+  oldBlocked: boolean,
+  newBlocked: boolean
+) {
+  try {
+    const actor = (req as any).user;
+    await prisma.auditLog.create({
+      data: {
+        action: newBlocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
+        module: "USER_MANAGEMENT",
+        entityId: target.id,
+        performedBy: actor?.id || actor?.userId || undefined,
+        role: actor?.role || undefined,
+        severity: newBlocked ? "WARNING" : "INFO",
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        oldData: { isBlocked: oldBlocked },
+        newData: { isBlocked: newBlocked },
+        metadata: {
+          targetUserId: target.id,
+          targetEmail: target.email || null,
+          reason: req.body?.reason || "Not provided by operator"
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Block Audit Error:", error);
+  }
+}
 

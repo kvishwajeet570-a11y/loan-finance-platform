@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -149,7 +149,11 @@ export default function WalletStatementPage() {
   const [typeFilter, setTypeFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [range, setRange] = useState("Last 30 Days");
-
+
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const loadStatement = useCallback(async () => {
     try {
       setError("");
@@ -255,31 +259,35 @@ export default function WalletStatementPage() {
 
   const filteredTransactions = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const now = new Date();
+    const startDate = fromDate
+      ? new Date(fromDate + "T00:00:00")
+      : new Date(now);
+    const endDate = toDate
+      ? new Date(toDate + "T23:59:59.999")
+      : new Date(now);
+
+    if (!fromDate) {
+      if (range === "Last 7 Days") startDate.setDate(now.getDate() - 7);
+      else if (range === "Last 30 Days") startDate.setDate(now.getDate() - 30);
+      else if (range === "Last 3 Months") startDate.setMonth(now.getMonth() - 3);
+      else if (range === "This Year") startDate.setMonth(0, 1);
+      else startDate.setDate(now.getDate() - 30);
+      startDate.setHours(0, 0, 0, 0);
+    }
 
     return transactions.filter((tx) => {
       const credit = isCredit(tx.type);
+      const txDate = tx.createdAt ? new Date(tx.createdAt) : new Date(0);
 
-      if (
-        typeFilter === "CREDIT" &&
-        !credit
-      ) {
-        return false;
-      }
-
-      if (
-        typeFilter === "DEBIT" &&
-        credit
-      ) {
-        return false;
-      }
+      if (Number.isNaN(txDate.getTime()) || txDate < startDate || txDate > endDate) return false;
+      if (typeFilter === "CREDIT" && !credit) return false;
+      if (typeFilter === "DEBIT" && credit) return false;
 
       if (
         statusFilter !== "ALL" &&
-        String(tx.status || "")
-          .toUpperCase() !== statusFilter
-      ) {
-        return false;
-      }
+        String(tx.status || "").toUpperCase() !== statusFilter
+      ) return false;
 
       if (!q) return true;
 
@@ -291,39 +299,28 @@ export default function WalletStatementPage() {
         tx.description,
         tx.remark,
         tx.paymentMethod,
-      ]
-        .filter(Boolean)
-        .some((value) =>
-          String(value)
-            .toLowerCase()
-            .includes(q)
-        );
+      ].filter(Boolean).some((value) =>
+        String(value).toLowerCase().includes(q)
+      );
     });
-  }, [
-    transactions,
-    search,
-    typeFilter,
-    statusFilter,
-  ]);
+  }, [transactions, search, typeFilter, statusFilter, range, fromDate, toDate]);
 
-  const totalCredit = transactions
+  const totalCredit = filteredTransactions
     .filter((tx) => isCredit(tx.type))
-    .reduce(
-      (sum, tx) =>
-        sum + Number(tx.amount || 0),
-      0
-    );
+    .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
-  const totalDebit = transactions
+  const totalDebit = filteredTransactions
     .filter((tx) => !isCredit(tx.type))
-    .reduce(
-      (sum, tx) =>
-        sum + Number(tx.amount || 0),
-      0
-    );
+    .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
 
-  const netBalance =
-    Number(wallet?.balance || 0);
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedTransactions = filteredTransactions.slice(
+    (safePage - 1) * pageSize,
+    safePage * pageSize
+  );
+
+  const netBalance = Number(wallet?.balance || 0);
 
   const maxAmount = Math.max(
     totalCredit,
@@ -503,22 +500,37 @@ export default function WalletStatementPage() {
 
           <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_auto]">
 
-            <FilterBox
-              label="From Date"
-              icon={<CalendarDays size={14} />}
-              text="01 Aug 2026"
-            />
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <label className="mb-2 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                <CalendarDays size={14} /> From Date
+              </label>
+              <input
+                type="date"
+                value={fromDate}
+                max={toDate || new Date().toISOString().slice(0, 10)}
+                onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
 
-            <FilterBox
-              label="To Date"
-              icon={<CalendarDays size={14} />}
-              text="12 Sep 2026"
-            />
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <label className="mb-2 flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                <CalendarDays size={14} /> To Date
+              </label>
+              <input
+                type="date"
+                value={toDate}
+                min={fromDate || undefined}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:border-blue-500"
+              />
+            </div>
 
             <SelectBox
               label="Transaction Type"
               value={typeFilter}
-              onChange={setTypeFilter}
+              onChange={(value) => { setTypeFilter(value); setCurrentPage(1); }}
               options={[
                 ["ALL", "All Transactions"],
                 ["CREDIT", "Credit"],
@@ -529,7 +541,7 @@ export default function WalletStatementPage() {
             <SelectBox
               label="Status"
               value={statusFilter}
-              onChange={setStatusFilter}
+              onChange={(value) => { setStatusFilter(value); setCurrentPage(1); }}
               options={[
                 ["ALL", "All Status"],
                 ["SUCCESS", "Completed"],
@@ -539,12 +551,7 @@ export default function WalletStatementPage() {
             />
 
             <button
-              onClick={() => {
-                setSearch("");
-                setTypeFilter("ALL");
-                setStatusFilter("ALL");
-                setRange("Last 30 Days");
-              }}
+              onClick={() => setCurrentPage(1)}
               className="mt-auto h-11 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[10px] font-black text-white shadow-lg shadow-blue-100 transition hover:-translate-y-0.5"
             >
               <span className="flex items-center justify-center gap-2">
@@ -568,7 +575,7 @@ export default function WalletStatementPage() {
             subtitle="Money added to wallet"
             icon={<ArrowDownLeft size={21} />}
             iconClass="bg-emerald-50 text-emerald-600"
-            badge="+12%"
+            badge="Filtered"
             badgeClass="bg-emerald-50 text-emerald-600"
           />
 
@@ -578,7 +585,7 @@ export default function WalletStatementPage() {
             subtitle="Money spent or withdrawn"
             icon={<ArrowUpRight size={21} />}
             iconClass="bg-red-50 text-red-600"
-            badge="-8%"
+            badge="Filtered"
             badgeClass="bg-red-50 text-red-600"
             valueClass="text-red-600"
           />
@@ -595,11 +602,11 @@ export default function WalletStatementPage() {
 
           <KpiCard
             title="Total Transactions"
-            value={String(transactions.length)}
+            value={String(filteredTransactions.length)}
             subtitle="In selected statement"
             icon={<ReceiptText size={21} />}
             iconClass="bg-purple-50 text-purple-600"
-            badge="All Time"
+            badge="Selected Range"
             badgeClass="bg-purple-50 text-purple-600"
           />
 
@@ -648,8 +655,10 @@ export default function WalletStatementPage() {
 
                     <input
                       value={search}
-                      onChange={(e) =>
-                        setSearch(e.target.value)
+                      onChange={(e) => {
+                        setSearch(e.target.value);
+                        setCurrentPage(1);
+                      }
                       }
                       placeholder="Search transactions..."
                       className="h-10 w-[200px] rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-[10px] font-semibold outline-none focus:border-blue-400 focus:bg-white"
@@ -664,7 +673,7 @@ export default function WalletStatementPage() {
                     className="flex h-10 items-center gap-2 rounded-xl border border-blue-200 bg-white px-4 text-[9px] font-black text-blue-600 shadow-sm"
                   >
                     <Download size={14} />
-                    Export PDF
+                    Print / Save PDF
                   </button>
 
                 </div>
@@ -782,7 +791,7 @@ export default function WalletStatementPage() {
 
                   ) : (
 
-                    filteredTransactions.map(
+                    paginatedTransactions.map(
                       (tx, index) => {
 
                         const credit =
@@ -802,7 +811,7 @@ export default function WalletStatementPage() {
                           >
 
                             <td className="px-5 py-4 text-[10px] font-bold text-slate-400">
-                              {index + 1}
+                              {(safePage - 1) * pageSize + index + 1}
                             </td>
 
                             <td className="px-3 py-4">
@@ -938,46 +947,31 @@ export default function WalletStatementPage() {
 
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-3.5">
-
-              <p className="text-[9px] text-slate-400">
-                Showing{" "}
-                <b className="text-slate-600">
-                  {filteredTransactions.length}
-                </b>{" "}
-                of{" "}
-                <b className="text-slate-600">
-                  {transactions.length}
-                </b>{" "}
-                transactions
+            <div className="flex flex-col gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-[10px] text-slate-500">
+                Showing {filteredTransactions.length === 0 ? 0 : (safePage - 1) * pageSize + 1}
+                {" - "}
+                {Math.min(safePage * pageSize, filteredTransactions.length)}
+                {" of "}{filteredTransactions.length} filtered transactions
               </p>
-
-              <div className="flex items-center gap-1">
-
-                <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[9px] text-slate-400">
-                  ‹
-                </button>
-
-                <button className="rounded-lg bg-blue-600 px-3 py-1.5 text-[9px] font-black text-white">
-                  1
-                </button>
-
-                <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[9px] text-slate-600">
-                  2
-                </button>
-
-                <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[9px] text-slate-600">
-                  3
-                </button>
-
-                <button className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[9px] text-slate-400">
-                  ›
-                </button>
-
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={safePage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >Previous</button>
+                <span className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">
+                  {safePage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 disabled:cursor-not-allowed disabled:opacity-40"
+                >Next</button>
               </div>
-
             </div>
-
           </section>
 
           {/* ===================================================

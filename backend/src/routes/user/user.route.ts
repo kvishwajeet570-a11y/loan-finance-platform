@@ -1,4 +1,5 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
 
 import {
   createUser,
@@ -178,10 +179,7 @@ router.patch(
    USER RESOURCES
 ===================================== */
 
-router.get(
-  "/:userId/loans",
-  getUserLoans
-);
+router.get("/:userId/loans", authMiddleware, getUserLoans);
 
 router.get(
   "/:userId/transactions",
@@ -190,6 +188,7 @@ router.get(
 
 router.get(
   "/:userId/documents",
+  authMiddleware,
   getUserDocuments
 );
 
@@ -333,3 +332,5 @@ router.post(
 );
 
 export default router;
+
+

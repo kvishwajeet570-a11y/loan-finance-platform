@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+﻿import jwt from "jsonwebtoken";
 
 
 const generateToken = (
@@ -11,7 +11,7 @@ const generateToken = (
 
     { id },
 
-    process.env.JWT_SECRET || "secret",
+    process.env.JWT_SECRET!,
 
     {
 

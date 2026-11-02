@@ -1,7 +1,7 @@
 ﻿"use client";
 
-import React from "react";
-import {
+import React, { useEffect, useState } from "react";
+import { 
   Trophy,
   Medal,
   Gift,
@@ -23,12 +23,11 @@ import {
   ChevronDown,
   Sparkles,
   Gem,
-  Flame,
-} from "lucide-react";
+  Flame, Rocket } from "lucide-react";
 
-import DsaSidebar from "@/components/dsa/DsaSidebar";
 
 const rupee = "₹";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 const stats = [
   {
@@ -69,148 +68,7 @@ const stats = [
   },
 ];
 
-const recentAchievements = [
-  {
-    title: "First Referral",
-    date: "05 Sep 2026",
-    icon: Medal,
-    gradient: "from-amber-400 to-orange-500",
-    status: "Completed",
-  },
-  {
-    title: "5 Referrals",
-    date: "12 Sep 2026",
-    icon: Users,
-    gradient: "from-blue-500 to-cyan-500",
-    status: "Completed",
-  },
-  {
-    title: "₹ 50K Earnings",
-    date: "18 Sep 2026",
-    icon: Gift,
-    gradient: "from-violet-500 to-purple-600",
-    status: "Completed",
-  },
-  {
-    title: "Top Performer",
-    date: "25 Sep 2026",
-    icon: Crown,
-    gradient: "from-emerald-400 to-green-600",
-    status: "Completed",
-  },
-  {
-    title: "100 Referrals",
-    date: "",
-    icon: Lock,
-    gradient: "from-slate-400 to-slate-600",
-    status: "In Progress",
-  },
-];
 
-const badges = [
-  {
-    title: "First Referral",
-    icon: Medal,
-    color: "amber",
-    completed: true,
-    progress: 100,
-  },
-  {
-    title: "5 Referrals",
-    icon: Users,
-    color: "blue",
-    completed: true,
-    progress: 100,
-  },
-  {
-    title: "₹ 50K Earnings",
-    icon: Gift,
-    color: "purple",
-    completed: true,
-    progress: 100,
-  },
-  {
-    title: "Top Performer",
-    icon: Crown,
-    color: "green",
-    completed: true,
-    progress: 100,
-  },
-  {
-    title: "10 Referrals",
-    icon: Lock,
-    color: "slate",
-    completed: false,
-    progress: 70,
-  },
-  {
-    title: "₹ 1 Lakh Earnings",
-    icon: Lock,
-    color: "slate",
-    completed: false,
-    progress: 35,
-  },
-  {
-    title: "50 Referrals",
-    icon: Lock,
-    color: "slate",
-    completed: false,
-    progress: 20,
-  },
-  {
-    title: "Annual Champion",
-    icon: Lock,
-    color: "slate",
-    completed: false,
-    progress: 10,
-  },
-];
-
-const milestones = [
-  {
-    title: "10 Successful Referrals",
-    value: "7 / 10",
-    percent: 70,
-    icon: Users,
-    color: "blue",
-  },
-  {
-    title: "₹ 1,00,000 Total Earnings",
-    value: "₹ 52,400 / ₹ 1,00,000",
-    percent: 52,
-    icon: Gift,
-    color: "orange",
-  },
-  {
-    title: "25 Approved Referrals",
-    value: "18 / 25",
-    percent: 72,
-    icon: CheckCircle2,
-    color: "green",
-  },
-  {
-    title: "Top 10 Leaderboard Rank",
-    value: "#24 / Top 10",
-    percent: 40,
-    icon: Trophy,
-    color: "yellow",
-  },
-  {
-    title: "Annual Business Target",
-    value: "₹ 5L / ₹ 10L",
-    percent: 50,
-    icon: BarChart3,
-    color: "blue",
-  },
-];
-
-const leaderboard = [
-  { rank: 1, name: "Rajesh Kumar", achievements: 24, points: "2,850", medal: "🥇" },
-  { rank: 2, name: "Amit Verma", achievements: 22, points: "2,410", medal: "🥈" },
-  { rank: 3, name: "Suresh Patel", achievements: 18, points: "1,980", medal: "🥉" },
-  { rank: 4, name: "Vikram Singh", achievements: 15, points: "1,650", medal: "" },
-  { rank: 5, name: "Manoj Yadav", achievements: 12, points: "1,320", medal: "" },
-];
 
 function MiniSparkline({ color = "blue" }: { color?: string }) {
   const colors: Record<string, string> = {
@@ -245,35 +103,200 @@ function BadgeIcon({
   const Icon = type;
 
   const gradients: Record<string, string> = {
-    amber: "from-yellow-300 via-amber-400 to-orange-500",
-    blue: "from-blue-400 via-blue-500 to-indigo-600",
-    purple: "from-purple-400 via-violet-500 to-fuchsia-600",
-    green: "from-emerald-300 via-green-500 to-teal-600",
-    slate: "from-slate-300 via-slate-400 to-slate-600",
+    amber: "from-yellow-300 via-amber-400 to-orange-600",
+    blue: "from-cyan-300 via-blue-500 to-indigo-700",
+    purple: "from-fuchsia-300 via-purple-500 to-violet-700",
+    green: "from-lime-300 via-emerald-500 to-teal-700",
+    slate: "from-slate-200 via-slate-400 to-slate-700",
   };
+
+  const gradient = gradients[color] || gradients.blue;
 
   return (
     <div
-      className={`relative mx-auto flex h-[70px] w-[70px] items-center justify-center ${
-        locked ? "opacity-80" : ""
+      className={`group/badge relative mx-auto flex h-[76px] w-[76px] items-center justify-center transition-all duration-300 hover:-translate-y-1 ${
+        locked ? "opacity-60 grayscale-[35%]" : ""
       }`}
     >
       <div
-        className={`absolute inset-0 rotate-45 rounded-[18px] bg-gradient-to-br ${gradients[color]} shadow-lg`}
+        className={`absolute inset-3 rounded-full bg-gradient-to-br ${gradient} opacity-60 blur-xl transition-all duration-300 group-hover/badge:inset-1 group-hover/badge:opacity-90`}
       />
-      <div className="relative flex h-[54px] w-[54px] items-center justify-center rounded-[14px] bg-white/20 text-white shadow-inner">
-        <Icon size={29} strokeWidth={2.4} />
+      <div
+        className={`absolute inset-[9px] rotate-45 rounded-[22px] border border-white/70 bg-gradient-to-br ${gradient} shadow-[0_8px_18px_rgba(30,64,175,0.28)] transition-transform duration-300 group-hover/badge:rotate-[55deg] group-hover/badge:scale-110`}
+      />
+      <div className="absolute inset-[15px] rounded-[17px] border border-white/40 bg-white/15 shadow-inner backdrop-blur-[2px]" />
+      <div className="absolute left-[20px] top-[17px] h-3 w-6 rotate-[-35deg] rounded-full bg-white/35 blur-[2px]" />
+      <div className="relative z-10 text-white drop-shadow-[0_3px_4px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover/badge:scale-110">
+        <Icon size={29} strokeWidth={2.3} />
       </div>
+      {!locked && (
+        <Sparkles
+          size={16}
+          className="absolute right-0 top-0 z-20 text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.7)]"
+        />
+      )}
     </div>
   );
 }
 
 export default function DsaAchievementsPage() {
+  const [achievementData, setAchievementData] = useState<any[]>([]);
+  const [achievementLoading, setAchievementLoading] = useState(true);
+  const [achievementError, setAchievementError] = useState("");
+  const [displayName, setDisplayName] = useState("DSA Partner");
+  const [successfulReferrals, setSuccessfulReferrals] = useState(0);
+  const [totalEarnings, setTotalEarnings] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadAchievements = async () => {
+      try {
+        const token = localStorage.getItem("loan_finance_token");
+        const rawUser = localStorage.getItem("loan_finance_user");
+        const user = rawUser ? JSON.parse(rawUser) : null;
+
+        if (active && user?.name) setDisplayName(String(user.name));
+        if (!token) throw new Error("Login required. Please sign in again.");
+
+        const response = await fetch(`${API_URL}/achievements`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result?.success !== true) {
+          throw new Error(result?.message || `API request failed (${response.status})`);
+        }
+
+        if (!Array.isArray(result?.data?.achievements)) {
+          throw new Error("Unexpected achievements API response.");
+        }
+
+        if (active) setAchievementData(result.data.achievements);
+        if (active) setSuccessfulReferrals(Number(result.data.successfulReferrals) || 0);
+        if (active) setTotalEarnings(Number(result.data.totalEarnings) || 0);
+      } catch (error) {
+        if (active) {
+          setAchievementError(error instanceof Error ? error.message : "Unable to load achievements.");
+          setAchievementData([]);
+        }
+      } finally {
+        if (active) setAchievementLoading(false);
+      }
+    };
+
+    loadAchievements();
+    return () => { active = false; };
+  }, []);
+
+  const stats = [
+    { title: "Total Achievements", value: String(achievementData.length), change: "", sub: "Database records", icon: Medal, iconClass: "from-blue-500 to-indigo-600", lineClass: "bg-blue-500" },
+    { title: "Badges Earned", value: String(achievementData.length), change: "", sub: "Earned achievements", icon: Award, iconClass: "from-emerald-400 to-green-600", lineClass: "bg-emerald-500" },
+    { title: "Milestones Completed", value: String([successfulReferrals >= 1, successfulReferrals >= 5, totalEarnings >= 50000, successfulReferrals >= 100].filter(Boolean).length), change: "", sub: "Based on referral performance", icon: Target, iconClass: "from-orange-400 to-amber-600", lineClass: "bg-orange-500" },
+    { title: "Recorded Rewards", value: rupee + achievementData.reduce((sum, item) => sum + (Number(item.reward) || 0), 0).toLocaleString("en-IN"), change: "", sub: "Rewards recorded in database", icon: Gift, iconClass: "from-violet-500 to-purple-700", lineClass: "bg-violet-500" },
+  ];
+
+  const recentAchievements = achievementData;
+  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
+  const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [showAllBadges, setShowAllBadges] = useState(false);
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadLeaderboard = async () => {
+      try {
+        const token = localStorage.getItem("loan_finance_token");
+        if (!token) return;
+
+        const response = await fetch(`${API_URL}/leaderboard/achievements`, {
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          cache: "no-store",
+        });
+
+        const result = await response.json();
+        if (!response.ok || result?.success !== true || !Array.isArray(result?.data)) {
+          throw new Error(result?.message || "Unable to load leaderboard.");
+        }
+
+        if (active) setLeaderboardData(result.data);
+      } catch (error) {
+        console.error("Achievement leaderboard load failed:", error);
+        if (active) setLeaderboardData([]);
+      }
+    };
+
+    loadLeaderboard();
+    return () => { active = false; };
+  }, []);
+
+  const badges = achievementData.map((item: any) => {
+    const title = String(item.title || "");
+
+    const isFirstReferral = title.includes("First Referral");
+    const isFiveReferrals = title.includes("5 Referrals");
+    const isEarnings = title.includes("50K") || title.includes("Earnings");
+    const isHundredReferrals = title.includes("100 Referrals");
+
+    return {
+      title,
+      icon: isFirstReferral ? Medal
+        : isFiveReferrals ? Users
+        : isEarnings ? Gift
+        : isHundredReferrals ? Lock
+        : Crown,
+      color: isFirstReferral ? "orange"
+        : isFiveReferrals ? "blue"
+        : isEarnings ? "purple"
+        : isHundredReferrals ? "slate"
+        : "green",
+      completed: isFirstReferral ? successfulReferrals >= 1
+        : isFiveReferrals ? successfulReferrals >= 5
+        : isEarnings ? totalEarnings >= 50000
+        : isHundredReferrals ? successfulReferrals >= 100
+        : false,
+      progress: isFirstReferral ? Math.min(100, successfulReferrals * 100)
+        : isFiveReferrals ? Math.min(100, Math.round(successfulReferrals / 5 * 100))
+        : isEarnings ? Math.min(100, Math.round(totalEarnings / 50000 * 100))
+        : isHundredReferrals ? Math.min(100, successfulReferrals)
+        : 0,
+    };
+  });
+
+  const milestones: Array<{
+    title: string;
+    value: string;
+    percent: number;
+    icon: React.ElementType;
+    color: string;
+  }> = [
+    { title: "Successful Referrals", value: `${successfulReferrals} / 10`, percent: Math.min(100, Math.round(successfulReferrals / 10 * 100)), icon: Users, color: "blue" },
+    { title: "Referral Earnings", value: `${rupee}${totalEarnings.toLocaleString("en-IN")} / ${rupee}50,000`, percent: Math.min(100, Math.round(totalEarnings / 50000 * 100)), icon: Gift, color: "green" },
+    { title: "100 Referrals", value: `${successfulReferrals} / 100`, percent: Math.min(100, Math.round(successfulReferrals / 100 * 100)), icon: Target, color: "orange" },
+  ];
+
+  const leaderboard = leaderboardData.map((item: any, index: number) => ({
+    rank: Number(item.rank) || index + 1,
+    name: String(item.name || "DSA Partner"),
+    achievements: Number(item.totalAchievements) || 0,
+    points: (Number(item.totalRewards) || 0).toLocaleString("en-IN"),
+    medal: index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : "",
+  }));
+
   return (
     <div className="min-h-screen bg-[#eef4fb] text-[#102347]">
-      <DsaSidebar />
 
-      <div className="lg:pl-[278px]">
+      <div className="">
         <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="flex items-center gap-3">
             <div className="relative hidden max-w-[590px] flex-1 md:block">
@@ -310,7 +333,7 @@ export default function DsaAchievementsPage() {
                   DS
                 </div>
                 <div className="leading-tight">
-                  <p className="text-sm font-black">DSA Demo</p>
+                  <p className="text-sm font-black">{displayName}</p>
                   <p className="text-[11px] text-slate-500">DSA Partner</p>
                 </div>
                 <ChevronDown size={15} />
@@ -469,9 +492,9 @@ export default function DsaAchievementsPage() {
               </div>
 
               <div className="mt-5 grid items-center gap-6 md:grid-cols-[190px_1fr]">
-                <div className="relative mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#2563eb_0_68%,#e2e8f0_68%_100%)]">
+                <div style={{ "--journey-progress": `${Math.min(100, Math.round(successfulReferrals / 10 * 100))}%` } as React.CSSProperties} className="relative mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#2563eb_0_var(--journey-progress),#e2e8f0_var(--journey-progress)_100%)]">
                   <div className="flex h-32 w-32 flex-col items-center justify-center rounded-full bg-white shadow-inner">
-                    <span className="text-3xl font-black">68%</span>
+                    <span className="text-3xl font-black">{Math.min(100, Math.round(successfulReferrals / 10 * 100))}%</span>
                     <span className="text-[11px] text-slate-500">
                       Overall Progress
                     </span>
@@ -486,7 +509,7 @@ export default function DsaAchievementsPage() {
                         Next Milestone
                       </p>
                       <p className="mt-1 text-sm font-black">
-                        10 Successful Referrals
+                        {successfulReferrals >= 10 ? "100 Successful Referrals" : "10 Successful Referrals"}
                       </p>
                     </div>
 
@@ -496,14 +519,14 @@ export default function DsaAchievementsPage() {
                   </div>
 
                   <div className="mt-4 h-3 overflow-hidden rounded-full bg-white">
-                    <div className="h-full w-[70%] rounded-full bg-gradient-to-r from-blue-600 to-cyan-400" />
+                    <div className="h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400" style={{ width: `${Math.min(100, Math.round(successfulReferrals / 10 * 100))}%` }} />
                   </div>
 
                   <div className="mt-2 flex justify-between text-xs font-bold">
                     <span className="text-slate-500">
-                      Just 3 more to unlock Silver Partner Badge!
+                      {Math.max(0, 10 - successfulReferrals)} more referrals to reach 10!
                     </span>
-                    <span>7 / 10</span>
+                    <span>{Math.min(successfulReferrals, 10)} / 10</span>
                   </div>
                 </div>
               </div>
@@ -524,24 +547,53 @@ export default function DsaAchievementsPage() {
                   </div>
                 </div>
 
-                <button className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-600">
-                  View All →
-                </button>
+                <button type="button" onClick={() => setShowAllAchievements(v => !v)} className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-600">{showAllAchievements ? "Show Less ↑" : "View All →"}</button>
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {recentAchievements.map((item) => (
+                {achievementLoading ? (
+                  <p className="col-span-full py-8 text-center text-sm text-slate-500">Loading achievements…</p>
+                ) : achievementError ? (
+                  <p className="col-span-full rounded-xl bg-red-50 p-4 text-center text-sm text-red-700">{achievementError}</p>
+                ) : recentAchievements.length === 0 ? (
+                  <p className="col-span-full py-8 text-center text-sm text-slate-500">No achievements recorded yet. Complete a successful referral to get started.</p>
+                ) : (showAllAchievements ? recentAchievements : recentAchievements.slice(0, 5)).map((item) => (
                   <div
                     key={item.title}
                     className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-3 text-center"
                   >
-                    <div className="relative mx-auto h-[70px] w-[70px]">
-                      <div
-                        className={`absolute inset-0 rotate-45 rounded-[18px] bg-gradient-to-br ${item.gradient} shadow-lg`}
-                      />
-                      <div className="relative flex h-[70px] items-center justify-center text-white">
-                        <item.icon size={28} />
+                    <div className="group/icon relative mx-auto h-[82px] w-[82px]">
+                      <div className={`absolute inset-1 rounded-[25px] opacity-25 blur-xl transition-all duration-300 group-hover/icon:opacity-60 ${
+                        String(item.title).includes("First Referral")
+                          ? "bg-orange-500"
+                          : String(item.title).includes("5 Referrals")
+                          ? "bg-sky-500"
+                          : String(item.title).includes("Earnings") || String(item.title).includes("50K")
+                          ? "bg-fuchsia-500"
+                          : String(item.title).includes("100 Referrals")
+                          ? "bg-slate-500"
+                          : "bg-emerald-500"
+                      }`} />
+                      <div className={`absolute inset-1 rotate-45 rounded-[24px] border border-white/60 shadow-xl transition-transform duration-300 group-hover/icon:rotate-[55deg] group-hover/icon:scale-105 ${
+                        String(item.title).includes("First Referral")
+                          ? "bg-gradient-to-br from-amber-300 via-orange-500 to-rose-600"
+                          : String(item.title).includes("5 Referrals")
+                          ? "bg-gradient-to-br from-cyan-300 via-blue-500 to-indigo-700"
+                          : String(item.title).includes("Earnings") || String(item.title).includes("50K")
+                          ? "bg-gradient-to-br from-pink-300 via-purple-500 to-violet-700"
+                          : String(item.title).includes("100 Referrals")
+                          ? "bg-gradient-to-br from-slate-300 via-slate-500 to-slate-700"
+                          : "bg-gradient-to-br from-emerald-300 via-green-500 to-teal-700"
+                      }`} />
+                      <div className="absolute inset-0 flex items-center justify-center text-white drop-shadow-[0_3px_5px_rgba(0,0,0,0.3)]">
+                        {String(item.title).includes("First Referral") ? <Trophy size={35} strokeWidth={2.1} /> :
+                         String(item.title).includes("5 Referrals") ? <Rocket size={35} strokeWidth={2.1} /> :
+                         String(item.title).includes("50K") || String(item.title).includes("Earnings") ? <Gem size={35} strokeWidth={2.1} /> :
+                         String(item.title).includes("100 Referrals") ? <Crown size={35} strokeWidth={2.1} /> :
+                         <Star size={35} strokeWidth={2.1} />}
                       </div>
+                      <Sparkles className="absolute -right-1 top-0 text-amber-400 drop-shadow-sm" size={19} />
+                      <span className="absolute -bottom-0.5 -left-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-cyan-300 shadow" />
                     </div>
 
                     <p className="mt-3 text-[11px] font-black">{item.title}</p>
@@ -553,12 +605,12 @@ export default function DsaAchievementsPage() {
                           : "bg-blue-100 text-blue-600"
                       }`}
                     >
-                      {item.status}
+                      Recorded
                     </span>
 
                     {item.date && (
                       <p className="mt-2 text-[9px] text-slate-400">
-                        {item.date}
+                        {item.createdAt ? new Date(item.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : ""}
                       </p>
                     )}
 
@@ -590,13 +642,12 @@ export default function DsaAchievementsPage() {
                   </p>
                 </div>
 
-                <button className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-600">
-                  View All →
-                </button>
+                <button type="button" onClick={() => setShowAllBadges(v => !v)} className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-2 text-xs font-bold text-blue-600">{showAllBadges ? "Show Less ↑" : "View All →"}</button>
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {badges.map((badge) => (
+                {badges.length === 0 && <p className="col-span-full py-6 text-center text-xs text-slate-500">Badges will appear when achievements are earned.</p>}
+                {(showAllBadges ? badges : badges.slice(0, 4)).map((badge) => (
                   <div
                     key={badge.title}
                     className="rounded-2xl border border-slate-200 bg-gradient-to-b from-white to-slate-50 p-3 text-center transition hover:-translate-y-1 hover:shadow-lg"
@@ -604,7 +655,7 @@ export default function DsaAchievementsPage() {
                     <BadgeIcon
                       type={badge.icon}
                       color={badge.color}
-                      locked={!badge.completed}
+                      locked={false}
                     />
 
                     <p className="mt-4 text-[11px] font-black">{badge.title}</p>
@@ -642,13 +693,12 @@ export default function DsaAchievementsPage() {
                   Milestone Progress
                 </h2>
 
-                <button className="text-xs font-bold text-blue-600">
-                  View All →
-                </button>
+                <button type="button" onClick={() => setShowAllMilestones(v => !v)} className="text-xs font-bold text-blue-600">{showAllMilestones ? "Show Less ↑" : "View All →"}</button>
               </div>
 
               <div className="mt-5 space-y-5">
-                {milestones.map((item) => {
+                {milestones.length === 0 && <p className="py-6 text-center text-xs text-slate-500">Milestone progress is not available yet.</p>}
+                {(showAllMilestones ? milestones : milestones.slice(0, 3)).map((item) => {
                   const Icon = item.icon;
 
                   return (
@@ -706,9 +756,7 @@ export default function DsaAchievementsPage() {
                   DSA Leaderboard
                 </h2>
 
-                <button className="text-xs font-bold text-blue-600">
-                  View All →
-                </button>
+                <button type="button" onClick={() => setShowAllLeaderboard(v => !v)} className="text-xs font-bold text-blue-600">{showAllLeaderboard ? "Show Less ↑" : "View All →"}</button>
               </div>
 
               <div className="mt-5 overflow-hidden rounded-xl border border-slate-100">
@@ -719,7 +767,7 @@ export default function DsaAchievementsPage() {
                   <span className="text-right">Points</span>
                 </div>
 
-                {leaderboard.map((person) => (
+                {(showAllLeaderboard ? leaderboard : leaderboard.slice(0, 5)).map((person) => (
                   <div
                     key={person.rank}
                     className="grid grid-cols-[35px_1fr_75px_70px] items-center border-t border-slate-100 px-3 py-3"
@@ -749,27 +797,6 @@ export default function DsaAchievementsPage() {
                     </span>
                   </div>
                 ))}
-
-                <div className="grid grid-cols-[35px_1fr_75px_70px] items-center border-t border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-3 py-3">
-                  <span className="text-xs font-black text-blue-600">#24</span>
-
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 text-[9px] font-black text-white">
-                      DS
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-black text-blue-700">
-                        DSA Demo (You)
-                      </p>
-                    </div>
-                  </div>
-
-                  <span className="text-center text-[11px] font-black">12</span>
-
-                  <span className="text-right text-[11px] font-black text-blue-700">
-                    980
-                  </span>
-                </div>
               </div>
             </div>
           </section>
@@ -783,3 +810,20 @@ export default function DsaAchievementsPage() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

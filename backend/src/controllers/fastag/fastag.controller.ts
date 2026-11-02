@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import fastagService, { FastagService } from "../../services/fastag/fastag.service";
 
 export const getFastags = async (
@@ -153,6 +153,63 @@ export const getFastagAnalytics = async (
     res.status(500).json({
       success: false,
       message: "Analytics failed",
+    });
+  }
+};
+
+
+// Customer FASTag endpoints: use the verified login identity.
+export const getMyFastags = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const data = await fastagService.getCustomerFastags(customerId);
+    res.status(200).json({ success: true, data, total: data.length });
+  } catch (error) {
+    console.error("Get customer FASTags failed:", error);
+    res.status(500).json({ success: false, message: "Unable to load your FASTags" });
+  }
+};
+
+export const createMyFastag = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const customerId = req.user?.id;
+    if (!customerId) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    const vehicleNumber = String(req.body?.vehicleNumber || "").trim().toUpperCase();
+    const vehicleType = String(req.body?.vehicleType || "").trim();
+    const amount = Number(req.body?.amount);
+
+    if (!/^[A-Z0-9 -]{5,20}$/.test(vehicleNumber)) {
+      res.status(400).json({ success: false, message: "Valid vehicle registration number is required" });
+      return;
+    }
+
+    if (!vehicleType || !Number.isFinite(amount) || amount < 0) {
+      res.status(400).json({ success: false, message: "Valid provider and amount are required" });
+      return;
+    }
+
+    const data = await fastagService.createFastag({
+      customerId,
+      vehicleNumber,
+      vehicleType,
+      amount,
+    });
+
+    res.status(201).json({ success: true, message: "FASTag record created", data });
+  } catch (error: any) {
+    console.error("Create customer FASTag failed:", error);
+    res.status(400).json({
+      success: false,
+      message: error?.message || "Unable to create FASTag record",
     });
   }
 };

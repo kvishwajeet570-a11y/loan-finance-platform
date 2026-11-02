@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   ArrowDownToLine,
@@ -32,15 +32,194 @@ import {
   List,
   CircleHelp,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
-const money = "₹0.00";
+function formatMoney(value: number | string | undefined) {
+  return `₹${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function unwrap(payload: any) {
+  return payload?.data ?? payload;
+}
 
 export default function DsaWalletBalancePage() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const router = useRouter();
+  const [wallet, setWallet] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+  const [walletError, setWalletError] = useState("");
+  const [walletModal, setWalletModal] = useState<"add" | "withdraw" | null>(null);
+  const [addAmount, setAddAmount] = useState("");
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+
+  const loadWallet = useCallback(async () => {
+    try {
+      setWalletError("");
+      const token = localStorage.getItem("loan_finance_token");
+      const storedUser = localStorage.getItem("loan_finance_user");
+
+      if (!token || !storedUser) {
+        router.replace("/login");
+        return;
+      }
+
+      const config = {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true,
+      };
+
+      const [walletRes, balanceRes] = await Promise.all([
+        api.get("/wallet/me", config),
+        api.get("/wallet/balance", config),
+      ]);
+
+      const walletData = unwrap(walletRes.data);
+      const balanceData = unwrap(balanceRes.data);
+
+      setWallet({
+        ...(walletData || {}),
+        ...(balanceData || {}),
+      });
+      setWalletBalance(
+        Number(balanceData?.balance ?? walletData?.balance ?? 0)
+      );
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("loan_finance_token");
+        localStorage.removeItem("loan_finance_user");
+        router.replace("/login");
+        return;
+      }
+
+      setWalletError(
+        error?.response?.data?.message || "Wallet data load nahi hua."
+      );
+    } finally {
+      setLoadingWallet(false);
+      setRefreshing(false);
+    }
+  }, [router]);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadWallet();
+  }, [loadWallet]);
+
+  const refreshWallet = async () => {
+    setRefreshing(true);
+    await loadWallet();
+  };
+
+  const money = formatMoney(walletBalance);
+  const totalEarnings = formatMoney(wallet?.totalEarnings);
+  const pendingAmount = formatMoney(wallet?.pendingAmount);
+
+  const goToTransactions = () => router.push("/dsa/wallet/transactions");
+  const goToStatement = () => router.push("/dsa/wallet/statement");
+  const addMoneyWithRazorpay = async () => {
+    const rawAmount = addAmount;
+
+    const amount = Number(rawAmount);
+    if (!Number.isFinite(amount) || amount < 100 || amount > 100000) {
+      alert("Amount ₹100 se ₹1,00,000 ke beech hona chahiye.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("loan_finance_token");
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
+      const scriptUrl = "https://checkout.razorpay.com/v1/checkout.js";
+      if (!(window as any).Razorpay) {
+        await new Promise<void>((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = scriptUrl;
+          script.async = true;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Razorpay checkout load nahi hua."));
+          document.body.appendChild(script);
+        });
+      }
+
+      const orderResponse = await api.post(
+        "/payment/razorpay/wallet/order",
+        { amount, paymentMethod: "ONLINE" },
+        { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+      );
+
+      const order = unwrap(orderResponse.data);
+      if (!order?.orderId || !order?.keyId || !order?.paymentId) {
+        throw new Error("Payment order create nahi hua.");
+      }
+
+      const RazorpayConstructor = (window as any).Razorpay;
+      const checkout = new RazorpayConstructor({
+        key: order.keyId,
+        amount: order.amountInPaise,
+        currency: order.currency || "INR",
+        name: "DSA FinCorp",
+        description: "Wallet Add Money",
+        order_id: order.orderId,
+        prefill: {
+          name: order.name || "",
+          email: order.email || "",
+          contact: order.contact || "",
+        },
+        handler: async (response: any) => {
+          try {
+            await api.post(
+              "/payment/razorpay/wallet/verify",
+              {
+                paymentId: order.paymentId,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              },
+              { headers: { Authorization: `Bearer ${token}` }, withCredentials: true }
+            );
+            await loadWallet();
+            alert("Payment verification successful. Wallet balance refresh ho gaya.");
+          } catch (error: any) {
+            alert(
+              error?.response?.data?.message ||
+              "Payment verification confirm nahi hua. Dobara payment karne se pehle support se contact karein."
+            );
+          }
+        },
+        modal: { ondismiss: () => {} },
+        theme: { color: "#155fe5" },
+      });
+
+      checkout.on?.("payment.failed", (failure: any) => {
+        alert(failure?.error?.description || "Payment failed. Please try again.");
+      });
+      checkout.open();
+    } catch (error: any) {
+      alert(error?.response?.data?.message || error?.message || "Add Money start nahi hua.");
+    }
+  };
+
+  const showWithdrawalNotice = () => { setWalletModal("withdraw"); };
 
   return (
     <div className="min-h-screen bg-[#f4f7fc] text-[#07183d]">
+{walletError && (
+        <div role="alert" className="fixed right-4 top-4 z-50 max-w-md rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700 shadow-lg">
+          {walletError}
+        </div>
+      )}
+
       {/* ================= SIDEBAR ================= */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[200px] overflow-hidden bg-[#07172f] text-white lg:block">
         <div className="flex h-[68px] items-center gap-3 border-b border-white/10 px-5">
@@ -97,7 +276,7 @@ export default function DsaWalletBalancePage() {
         </div>
 
         <div className="absolute bottom-4 left-4 right-4 rounded-2xl border border-yellow-300/30 bg-gradient-to-br from-[#102c57] to-[#111b3e] p-4 shadow-xl">
-          <div className="mb-2 text-center text-2xl">👑</div>
+          <div className="mb-2 text-center text-2xl">ðŸ‘‘</div>
           <div className="text-center text-xs font-bold text-yellow-200">
             Premium DSA Panel
           </div>
@@ -233,7 +412,7 @@ export default function DsaWalletBalancePage() {
                 <b className="text-slate-700">06 Oct 2026, 10:27 AM</b>
               </div>
 
-              <button className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-3 text-white shadow-lg shadow-blue-500/20">
+              <button onClick={refreshWallet} disabled={refreshing} title="Refresh wallet" className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-3 text-white shadow-lg shadow-blue-500/20 disabled:opacity-60">
                 <RefreshCw size={18} />
               </button>
             </div>
@@ -261,22 +440,30 @@ export default function DsaWalletBalancePage() {
                 </div>
 
                 <div className="text-5xl font-black tracking-tight sm:text-6xl">
-                  ₹0.00
+                  {loadingWallet ? "Loading..." : money}
                 </div>
 
                 <div className="mt-1 text-sm text-blue-100">
                   Available Wallet Balance
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3 py-1.5 text-[10px] font-bold">
-                    <ShieldCheck size={13} />
-                    Active Wallet
-                  </span>
-                  <span className="flex items-center gap-1.5 rounded-full border border-cyan-200/30 bg-white/10 px-3 py-1.5 text-[10px] font-bold">
-                    <LockKeyhole size={13} />
-                    Secure & Encrypted
-                  </span>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setAddAmount(""); setWalletModal("add"); }}
+                    className="flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-lg transition hover:-translate-y-0.5"
+                  >
+                    <Zap size={18} />
+                    Add Money
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setWithdrawAmount(""); setWalletModal("withdraw"); }}
+                    className="flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20"
+                  >
+                    <ArrowUpRight size={18} />
+                    Withdraw
+                  </button>
                 </div>
               </div>
 
@@ -307,23 +494,13 @@ export default function DsaWalletBalancePage() {
               {/* ACTIONS */}
               <div className="lg:text-right">
                 <div className="mb-1 text-lg font-black">
-                  “Simple • Secure • Always With You”
+                  â€œSimple â€¢ Secure â€¢ Always With Youâ€
                 </div>
                 <div className="mb-5 text-xs text-blue-100">
                   Manage your funds anytime, anywhere.
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <ActionButton
-                    icon={<Zap size={18} />}
-                    label="Add Money"
-                    green
-                  />
-                  <ActionButton
-                    icon={<ArrowUpRight size={18} />}
-                    label="Withdraw"
-                    purple
-                  />
+                <div className="grid grid-cols-1 gap-2">
                   <ActionButton
                     icon={<List size={18} />}
                     label="View Transactions"
@@ -389,7 +566,7 @@ export default function DsaWalletBalancePage() {
                 {/* Donut */}
                 <div className="mx-auto flex h-40 w-40 items-center justify-center rounded-full bg-[conic-gradient(#1677ff_0deg,#59c9ff_90deg,#dcecff_90deg,#e9f1fa_360deg)] p-4">
                   <div className="flex h-full w-full flex-col items-center justify-center rounded-full bg-white">
-                    <span className="text-xl font-black">₹0.00</span>
+                    <span className="text-xl font-black">{loadingWallet ? "..." : money}</span>
                     <span className="text-[10px] text-slate-500">
                       Total Balance
                     </span>
@@ -436,24 +613,28 @@ export default function DsaWalletBalancePage() {
                   title="Add Money"
                   subtitle="Add funds to wallet"
                   tone="green"
+                  onClick={() => { setAddAmount(""); setWalletModal("add"); }}
                 />
                 <QuickAction
                   icon={<ArrowUpRight />}
                   title="Withdraw"
                   subtitle="Transfer funds to bank"
                   tone="purple"
+                  onClick={() => { setWithdrawAmount(""); setWalletModal("withdraw"); }}
                 />
                 <QuickAction
                   icon={<List />}
                   title="Transactions"
                   subtitle="View wallet activity"
                   tone="blue"
+                  onClick={goToTransactions}
                 />
                 <QuickAction
                   icon={<FileText />}
                   title="Statement"
                   subtitle="Download wallet statement"
                   tone="orange"
+                  onClick={goToStatement}
                 />
               </div>
             </section>
@@ -642,9 +823,264 @@ export default function DsaWalletBalancePage() {
           </div>
 
           <div className="pb-6 pt-5 text-center text-[10px] text-slate-400">
-            © 2026 DSA FINCORP • Secure Wallet Dashboard
+            Â© 2026 DSA FINCORP â€¢ Secure Wallet Dashboard
           </div>
         </div>
+      {/* DSA_WALLET_FORMS_ADDED */}
+      {walletModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">
+                  {walletModal === "add" ? "Add Money" : "Withdraw Money"}
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Available balance: {money}
+                </p>
+              </div>
+              <button type="button" onClick={() => setWalletModal(null)}
+                className="rounded-xl bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
+                aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+
+            {walletModal === "add" ? (
+              <form className="space-y-5 p-6" onSubmit={(e) => { e.preventDefault(); void addMoneyWithRazorpay(); }}>
+                <label className="block text-sm font-bold text-slate-700">
+                  Amount to add (₹)
+                  <input type="number" min="100" max="100000" step="1"
+                    required value={addAmount}
+                    onChange={(e) => setAddAmount(e.target.value)}
+                    placeholder="Enter amount, e.g. 1000"
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {["500", "1000", "5000", "10000"].map((v) => (
+                    <button key={v} type="button" onClick={() => setAddAmount(v)}
+                      className="rounded-xl border border-blue-100 bg-blue-50 px-2 py-3 text-sm font-bold text-blue-700 hover:bg-blue-100">
+                      ₹{Number(v).toLocaleString("en-IN")}
+                    </button>
+                  ))}
+                </div>
+                <p className="rounded-xl bg-emerald-50 p-3 text-xs leading-5 text-emerald-800">
+                  Payment will be processed through the existing Razorpay checkout. Wallet credit depends on successful server-side verification.
+                </p>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setWalletModal(null)}
+                    className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-600">Cancel</button>
+                  <button type="submit"
+                    className="flex-1 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white hover:bg-blue-700">Continue to Pay</button>
+                </div>
+              </form>
+            ) : (
+              <form className="space-y-5 p-6" onSubmit={(e) => { e.preventDefault(); alert("Withdrawal form is ready, but the DSA withdrawal-request API is not yet connected. No money has been deducted."); }}>
+                <label className="block text-sm font-bold text-slate-700">
+                  Withdrawal amount (₹)
+                  <input type="number" min="100" max={Math.max(100, walletBalance)} step="1"
+                    required value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="Enter amount to withdraw"
+                    className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-lg font-bold outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+                </label>
+                <div className="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+                  Minimum withdrawal: ₹100. A verified withdrawal API and bank-account selection are required before a request can be submitted. This form does not deduct your balance.
+                </div>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setWalletModal(null)}
+                    className="flex-1 rounded-xl border border-slate-200 px-4 py-3 font-bold text-slate-600">Cancel</button>
+                  <button type="submit"
+                    className="flex-1 rounded-xl bg-slate-400 px-4 py-3 font-bold text-white hover:bg-slate-500">Check Request Setup</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+      {/* DSA_WALLET_PREMIUM_MODAL */}
+      {walletModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-3 backdrop-blur-md sm:p-6">
+          <div className="relative flex max-h-[94vh] w-full max-w-[550px] flex-col overflow-hidden rounded-[26px] border border-white/60 bg-white shadow-2xl">
+            {/* Gradient hero */}
+            <div className={`relative shrink-0 overflow-hidden px-6 py-5 text-white ${walletModal === "add" ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" : "bg-gradient-to-r from-violet-700 via-purple-600 to-fuchsia-500"}`}>
+              <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+              <div className="absolute bottom-[-55px] right-20 h-32 w-32 rounded-full bg-white/10" />
+              <button type="button" onClick={() => setWalletModal(null)} aria-label="Close modal"
+                className="absolute right-4 top-4 z-10 rounded-xl border border-white/30 bg-white/10 p-2 hover:bg-white/20">
+                <X size={19} />
+              </button>
+              <div className="relative z-[1] pr-10">
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/80">✦ Digital Wallet</div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight">
+                  {walletModal === "add" ? "Add Money" : "Withdraw Money"}
+                </h2>
+                <p className="mt-0.5 text-lg font-black text-yellow-200">
+                  {walletModal === "add" ? "Securely & Instantly" : "Transfer to Your Bank"}
+                </p>
+                <p className="mt-2 max-w-[340px] text-xs leading-5 text-white/90">
+                  {walletModal === "add" ? "Add funds to your wallet using our payment checkout." : "Review your amount and bank details before requesting a withdrawal."}
+                </p>
+              </div>
+              <div className="pointer-events-none absolute bottom-4 right-8 hidden text-6xl opacity-20 sm:block">
+                {walletModal === "add" ? "₹+" : "₹↗"}
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div className="flex shrink-0 items-center justify-center gap-3 border-b border-slate-100 px-4 py-4 text-[11px] font-bold sm:gap-5">
+              <span className={`flex items-center gap-2 ${walletModal === "add" ? "text-blue-600" : "text-purple-600"}`}>
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full text-white ${walletModal === "add" ? "bg-blue-600" : "bg-purple-600"}`}>1</span>
+                {walletModal === "add" ? "Amount" : "Details"}
+              </span>
+              <span className="h-px w-8 bg-slate-200 sm:w-12" />
+              <span className="flex items-center gap-2 text-slate-400">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-slate-50">2</span>
+                {walletModal === "add" ? "Payment" : "Review"}
+              </span>
+              <span className="h-px w-8 bg-slate-200 sm:w-12" />
+              <span className="flex items-center gap-2 text-slate-400">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-slate-50">3</span>
+                Confirm
+              </span>
+            </div>
+
+            {/* Scrollable form content */}
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <div className={`mb-5 flex items-center justify-between rounded-2xl border p-4 ${walletModal === "add" ? "border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50" : "border-purple-100 bg-gradient-to-r from-purple-50 to-fuchsia-50"}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ${walletModal === "add" ? "text-blue-600" : "text-purple-600"}`}>
+                    <Wallet size={22} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Available Balance</p>
+                    <p className="mt-0.5 text-xl font-black text-slate-900">{money}</p>
+                    <p className="text-[11px] text-slate-500">Your current wallet balance</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-white bg-white/90 px-3 py-2 text-center shadow-sm">
+                  <p className="text-[10px] font-semibold text-slate-500">{walletModal === "add" ? "Minimum Add" : "Minimum Withdraw"}</p>
+                  <p className={`text-sm font-black ${walletModal === "add" ? "text-blue-700" : "text-purple-700"}`}>₹100</p>
+                </div>
+              </div>
+
+              {walletModal === "add" ? (
+                <form onSubmit={(e) => { e.preventDefault(); void addMoneyWithRazorpay(); }} className="space-y-5">
+                  <section>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="dsa-add-amount" className="text-xs font-black uppercase tracking-wider text-slate-700">Enter Amount (₹)</label>
+                      <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">MIN ₹100</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">Choose how much you want to add</p>
+                    <div className="mt-3 flex overflow-hidden rounded-xl border-2 border-blue-100 focus-within:border-blue-500">
+                      <span className="flex items-center bg-blue-50 px-4 text-lg font-black text-blue-700">₹</span>
+                      <input id="dsa-add-amount" type="number" min="100" max="100000" step="1" required value={addAmount} onChange={(e) => setAddAmount(e.target.value)} placeholder="Enter amount" className="min-w-0 flex-1 px-4 py-4 text-lg font-bold text-slate-900 outline-none placeholder:text-slate-300" />
+                    </div>
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {["500", "1000", "5000", "10000"].map((v) => (
+                        <button key={v} type="button" onClick={() => setAddAmount(v)} className={`rounded-xl border px-1 py-3 text-xs font-black transition ${addAmount === v ? "border-blue-500 bg-blue-50 text-blue-700" : "border-blue-100 text-blue-600 hover:bg-blue-50"}`}>₹{Number(v).toLocaleString("en-IN")}</button>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Select Payment Method</h3>
+                        <p className="mt-1 text-xs text-slate-400">Choose your preferred payment option</p>
+                      </div>
+                      <span className="text-[10px] font-black text-emerald-600">🔒 SECURE</span>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-3 rounded-xl border border-blue-300 bg-blue-50/80 p-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-blue-600 shadow-sm"><CreditCard size={19} /></span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-black text-slate-800">UPI <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] text-emerald-700">FAST</span></p>
+                          <p className="mt-1 text-[11px] text-slate-500">Google Pay · PhonePe · Paytm</p>
+                        </div>
+                        <span className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-blue-600"><span className="h-2.5 w-2.5 rounded-full bg-blue-600" /></span>
+                      </div>
+                      <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500"><CreditCard size={19} /></span>
+                        <div className="flex-1"><p className="text-xs font-black text-slate-800">Debit / Credit Card</p><p className="mt-1 text-[11px] text-slate-500">Visa · Mastercard · RuPay</p></div>
+                        <span className="h-5 w-5 rounded-full border-2 border-slate-300" />
+                      </div>
+                      <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 text-slate-500"><Landmark size={19} /></span>
+                        <div className="flex-1"><p className="text-xs font-black text-slate-800">Net Banking</p><p className="mt-1 text-[11px] text-slate-500">Supported banks via checkout</p></div>
+                        <span className="h-5 w-5 rounded-full border-2 border-slate-300" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <div className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-600">
+                    <ShieldCheck size={17} className="mt-0.5 shrink-0 text-emerald-600" />
+                    <p>Payments are processed through the existing Razorpay checkout. Wallet credit depends on successful payment verification.</p>
+                  </div>
+                  <label className="flex items-start gap-2 rounded-xl bg-slate-50 p-3 text-[11px] leading-5 text-slate-600">
+                    <input type="checkbox" required className="mt-1 accent-blue-600" />
+                    <span>I agree to the <span className="font-bold text-blue-700">Terms & Conditions</span> and confirm the payment amount is correct.</span>
+                  </label>
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => setWalletModal(null)} className="flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-3 py-3 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:brightness-105">Continue to Pay <span className="ml-1">›</span></button>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-100 pt-4 text-[10px] font-semibold text-slate-400">
+                    <span>♧ Secure Payment</span><span>◇ Trusted Platform</span><span>✓ Protected</span>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={(e) => { e.preventDefault(); alert("UI preview only: withdrawal API and verified bank-account selection must be connected before submitting a real request. No money has been deducted."); }} className="space-y-5">
+                  <section>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Enter Amount (₹)</h3>
+                    <div className="mt-3 flex overflow-hidden rounded-xl border border-purple-100 focus-within:border-purple-500">
+                      <span className="flex items-center bg-purple-50 px-4 text-lg font-black text-purple-700">₹</span>
+                      <input type="number" min="100" max={walletBalance} step="1" required value={withdrawAmount} onChange={(e) => setWithdrawAmount(e.target.value)} placeholder="Enter amount" className="min-w-0 flex-1 px-4 py-4 text-lg font-bold text-slate-900 outline-none placeholder:text-slate-300" />
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">Minimum: ₹100 <span className="mx-1">|</span> Maximum: {money}</p>
+                    <div className="mt-3 grid grid-cols-4 gap-2">
+                      {["500", "1000", "5000", "10000"].map((v) => (
+                        <button key={v} type="button" disabled={Number(v) > walletBalance} onClick={() => setWithdrawAmount(v)} className={`rounded-xl border px-1 py-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-40 ${withdrawAmount === v ? "border-purple-500 bg-purple-50 text-purple-700" : "border-purple-100 text-purple-700 hover:bg-purple-50"}`}>₹{Number(v).toLocaleString("en-IN")}</button>
+                      ))}
+                    </div>
+                  </section>
+                  <section>
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">Select Bank Account</h3>
+                      <button type="button" onClick={() => alert("Connect your verified saved-bank-account API here before adding a bank account.")} className="text-[10px] font-black text-purple-700 hover:underline">+ Add New Bank Account</button>
+                    </div>
+                    <div className="mt-3 rounded-xl border border-dashed border-purple-200 bg-purple-50/50 p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-purple-600 shadow-sm"><Landmark size={20} /></span>
+                        <div className="flex-1">
+                          <p className="text-xs font-black text-slate-800">Saved Bank Account</p>
+                          <p className="mt-1 text-[11px] text-slate-500">Connect your verified bank-account list</p>
+                        </div>
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[9px] font-black text-amber-700">SETUP NEEDED</span>
+                      </div>
+                    </div>
+                  </section>
+                  <label className="block text-xs font-black text-slate-700">Remarks (Optional)
+                    <textarea rows={2} maxLength={200} placeholder="Add a note for this request" className="mt-2 w-full resize-y rounded-xl border border-slate-200 px-3 py-3 text-sm font-normal outline-none focus:border-purple-400" />
+                  </label>
+                  <div className="rounded-xl border border-orange-100 bg-orange-50 p-4">
+                    <p className="text-xs font-black text-orange-700">ⓘ Important Information</p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4 text-[11px] leading-5 text-orange-900">
+                      <li>Withdrawal requests require backend verification.</li>
+                      <li>Processing time depends on approval and bank transfer.</li>
+                      <li>This preview does not transfer money or deduct your balance.</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={() => setWalletModal(null)} className="flex-1 rounded-xl border border-slate-200 px-3 py-3 text-sm font-black text-slate-700 hover:bg-slate-50">Cancel</button>
+                    <button type="submit" disabled={!withdrawAmount || Number(withdrawAmount) < 100 || Number(withdrawAmount) > walletBalance || withdrawSubmitting} className="flex-1 rounded-xl bg-gradient-to-r from-purple-600 to-fuchsia-600 px-3 py-3 text-sm font-black text-white shadow-lg shadow-purple-200 transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50">Review & Withdraw <span className="ml-1">›</span></button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       </main>
     </div>
   );
@@ -706,15 +1142,17 @@ function ActionButton({
   green,
   purple,
   blue,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   green?: boolean;
   purple?: boolean;
   blue?: boolean;
+  onClick?: () => void;
 }) {
   return (
-    <button className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-white px-2 py-3 text-[10px] font-black text-[#10255b] shadow-lg transition hover:-translate-y-0.5">
+    <button onClick={onClick ?? (() => { if (label === "View Transactions") { window.location.href = "/dsa/wallet/transactions"; } else { alert(label + " feature abhi integrate nahi hai."); } })} className="flex min-h-[62px] items-center justify-center gap-2 rounded-xl bg-white px-2 py-3 text-[10px] font-black text-[#10255b] shadow-lg transition hover:-translate-y-0.5">
       <span
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white ${
           green
@@ -761,7 +1199,7 @@ function SummaryCard({
         </div>
 
         <span className="rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold text-emerald-600">
-          ↑ +0%
+          â†‘ +0%
         </span>
       </div>
 
@@ -802,17 +1240,7 @@ function ProgressRow({
   );
 }
 
-function QuickAction({
-  icon,
-  title,
-  subtitle,
-  tone,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  tone: "green" | "purple" | "blue" | "orange";
-}) {
+function QuickAction({ icon, title, subtitle, tone, onClick }: { icon: React.ReactNode; title: string; subtitle: string; tone: "green" | "purple" | "blue" | "orange"; onClick?: () => void; }) {
   const bg = {
     green: "bg-emerald-500",
     purple: "bg-violet-600",
@@ -821,7 +1249,7 @@ function QuickAction({
   };
 
   return (
-    <button className="group flex items-center gap-3 rounded-2xl border border-slate-200 p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg">
+    <button onClick={onClick ?? (() => { if (title === "Transactions") { window.location.href = "/dsa/wallet/transactions"; } else if (title === "Statement") { window.location.href = "/dsa/wallet/statement"; } else { alert(title + " feature abhi integrate nahi hai."); } })} className="group flex items-center gap-3 rounded-2xl border border-slate-200 p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-lg">
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-white ${bg[tone]}`}
       >
@@ -875,7 +1303,7 @@ function CommissionCard({
       </div>
 
       <span className="rounded-full bg-emerald-50 px-2 py-1 text-[8px] font-bold text-emerald-600">
-        ↑ +0%
+        â†‘ +0%
       </span>
     </div>
   );
@@ -903,3 +1331,4 @@ function SecurityItem({
     </div>
   );
 }
+

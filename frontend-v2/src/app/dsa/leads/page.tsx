@@ -166,7 +166,7 @@ export default function DsaLeadsPage() {
  }
 
  const endpoint =
- `${API}/dsa/${encodeURIComponent(user.id)}/loans`;
+ `${API}/lead`;
 
  const response = await fetch(endpoint, {
  method: "GET",
@@ -1564,5 +1564,6 @@ function Detail({
  </div>
  );
 }
+
 
 

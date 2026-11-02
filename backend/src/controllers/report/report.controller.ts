@@ -1,37 +1,37 @@
+
 import { Request, Response } from "express";
 import { LoanStatus, Prisma } from "@prisma/client";
 import prisma from "../../config/database/prisma";
+import dsaService from "../../services/dsa/dsa.service";
+
+/**
+ * DASHBOARD REPORT
+ */
 export const dashboardReport = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const [
-  users,
-  loans,
-  approvedLoans,
-  disbursedLoans,
-  partners,
-  payments,
-]
-    = await Promise.all([
+      users,
+      loans,
+      approvedLoans,
+      disbursedLoans,
+      partners,
+      payments,
+    ] = await Promise.all([
       prisma.user.count(),
       prisma.loanApplication.count(),
       prisma.loanApplication.count({
-        where: { status: "APPROVED" },
+        where: { status: LoanStatus.APPROVED },
       }),
       prisma.loanApplication.count({
         where: { status: LoanStatus.APPROVED },
       }),
       prisma.partner.count(),
-      
       prisma.payment.aggregate({
-        _sum: {
-          amount: true,
-        },
-        where: {
-          status: "SUCCESS",
-        },
+        _sum: { amount: true },
+        where: { status: "SUCCESS" },
       }),
     ]);
 
@@ -44,11 +44,11 @@ export const dashboardReport = async (
         disbursedLoans,
         partners,
         dsa: 0,
-        revenue:
-          payments._sum.amount || 0,
+        revenue: payments._sum.amount ?? 0,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("Dashboard report failed:", error);
     res.status(500).json({
       success: false,
       message: "Report generation failed",
@@ -64,29 +64,25 @@ export const loanReport = async (
   res: Response
 ): Promise<void> => {
   try {
-    const status =
-  req.query.status as LoanStatus | undefined;
+    const status = req.query.status as LoanStatus | undefined;
+    const where: Prisma.LoanApplicationWhereInput = {};
 
-const where: Prisma.LoanApplicationWhereInput = {};
+    if (status) {
+      where.status = status;
+    }
 
-if (status) {
-  where.status = status;
-}
-
-    const loans =
-      await prisma.loanApplication.findMany({
-        where: where,
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+    const loans = await prisma.loanApplication.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+    });
 
     res.status(200).json({
       success: true,
       total: loans.length,
       data: loans,
     });
-  } catch {
+  } catch (error) {
+    console.error("Loan report failed:", error);
     res.status(500).json({
       success: false,
       message: "Loan report failed",
@@ -102,32 +98,25 @@ export const paymentReport = async (
   res: Response
 ): Promise<void> => {
   try {
-    const payments =
-      await prisma.payment.findMany({
-        include: {
-          user: true,
-        },
-      });
-
-    const totalVolume =
-      await prisma.payment.aggregate({
-        _sum: {
-          amount: true,
-        },
-        where: {
-          status: "SUCCESS",
-        },
-      });
+    const [payments, totalVolume] = await Promise.all([
+      prisma.payment.findMany({
+        include: { user: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: "SUCCESS" },
+      }),
+    ]);
 
     res.status(200).json({
       success: true,
-      totalTransactions:
-        payments.length,
-      totalVolume:
-        totalVolume._sum.amount || 0,
+      totalTransactions: payments.length,
+      totalVolume: totalVolume._sum.amount ?? 0,
       data: payments,
     });
-  } catch {
+  } catch (error) {
+    console.error("Payment report failed:", error);
     res.status(500).json({
       success: false,
       message: "Payment report failed",
@@ -137,17 +126,82 @@ export const paymentReport = async (
 
 /**
  * DSA REPORT
+ * Uses the existing DSA dashboard service.
  */
 export const dsaReport = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  res.status(200).json({
-    success: true,
-    total: 0,
-    data: [],
-    message: "DSA module not available.",
-  });
+  try {
+    const dsaId = req.user?.id;
+
+    if (!dsaId) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    if (
+      String(req.user?.role ?? "").toUpperCase() !== "DSA"
+    ) {
+      res.status(403).json({
+        success: false,
+        message: "DSA access required",
+      });
+      return;
+    }
+
+    const data = await dsaService.getDSADashboard(dsaId);
+
+    res.status(200).json({
+      success: true,
+      data,
+    });
+  } catch (error) {
+    console.error("DSA report failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "DSA report generation failed",
+    });
+  }
+};
+
+/**
+ * TOP DSA REPORT
+ * Global ranking by approved applications.
+ */
+export const topDsaReport = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const data = await prisma.loanApplication.groupBy({
+      by: ["assignedTo"],
+      where: {
+        status: LoanStatus.APPROVED,
+        assignedTo: { not: null },
+      },
+      _count: { id: true },
+      _sum: { amount: true },
+      orderBy: {
+        _count: { id: "desc" },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      total: data.length,
+      data,
+    });
+  } catch (error) {
+    console.error("Top DSA report failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Top DSA report generation failed",
+    });
+  }
 };
 
 /**
@@ -158,19 +212,17 @@ export const partnerReport = async (
   res: Response
 ): Promise<void> => {
   try {
-    const partners =
-      await prisma.partner.findMany({
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+    const partners = await prisma.partner.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
     res.status(200).json({
       success: true,
       total: partners.length,
       data: partners,
     });
-  } catch {
+  } catch (error) {
+    console.error("Partner report failed:", error);
     res.status(500).json({
       success: false,
       message: "Partner report failed",
@@ -186,31 +238,24 @@ export const revenueReport = async (
   res: Response
 ): Promise<void> => {
   try {
-    const revenue =
-      await prisma.payment.aggregate({
-        _sum: {
-          amount: true,
-        },
-        where: {
-          status: "SUCCESS",
-        },
-      });
-
-    const monthly =
-      await prisma.payment.groupBy({
+    const [revenue, monthly] = await Promise.all([
+      prisma.payment.aggregate({
+        _sum: { amount: true },
+        where: { status: "SUCCESS" },
+      }),
+      prisma.payment.groupBy({
         by: ["createdAt"],
-        _sum: {
-          amount: true,
-        },
-      });
+        _sum: { amount: true },
+      }),
+    ]);
 
     res.status(200).json({
       success: true,
-      totalRevenue:
-        revenue._sum.amount || 0,
+      totalRevenue: revenue._sum.amount ?? 0,
       monthly,
     });
-  } catch {
+  } catch (error) {
+    console.error("Revenue report failed:", error);
     res.status(500).json({
       success: false,
       message: "Revenue report failed",
@@ -247,7 +292,8 @@ export const reportAnalytics = async (
         totalPartners,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("Report analytics failed:", error);
     res.status(500).json({
       success: false,
       message: "Analytics failed",
@@ -256,16 +302,18 @@ export const reportAnalytics = async (
 };
 
 /* =========================================
-   ALIAS EXPORTS FOR ROUTES
+   ALIAS EXPORTS FOR EXISTING ROUTES
 ========================================= */
 
 export const getDashboardReport = dashboardReport;
 export const getLoanReport = loanReport;
 export const getPaymentReport = paymentReport;
 export const getDsaReport = dsaReport;
+export const getTopDsaReport = topDsaReport;
 export const getPartnerReport = partnerReport;
 export const getRevenueReport = revenueReport;
 export const getReportAnalytics = reportAnalytics;
+
 export const getCustomerReport = loanReport;
 export const getCommissionReport = revenueReport;
 export const getTransactionReport = paymentReport;
@@ -288,7 +336,6 @@ export const getApprovedReport = loanReport;
 export const getRejectedReport = loanReport;
 
 export const getTopCustomersReport = dashboardReport;
-export const getTopDsaReport = dsaReport;
 export const getTopPartnersReport = partnerReport;
 
 export const getGrowthReport = dashboardReport;

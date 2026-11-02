@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import bankService from "../../services/bank/bank.service";
 
 export const getBanks = async (
@@ -49,6 +49,16 @@ export const getBankById = async (
       return;
     }
 
+    const role = String(req.user?.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user?.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+    if (!isAdmin && bank.userId !== req.user.id) {
+      res.status(403).json({ success: false, message: "Forbidden: you cannot access this bank account" });
+      return;
+    }
     res.status(200).json({
       success: true,
       data: bank,
@@ -92,9 +102,25 @@ export const updateBank = async (
   res: Response
 ): Promise<void> => {
   try {
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+    const existing = await bankService.getBankById(req.params.id);
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Bank account not found" });
+      return;
+    }
+    const role = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    if (!isAdmin && existing.userId !== req.user.id) {
+      res.status(403).json({ success: false, message: "Forbidden: you cannot update this bank account" });
+      return;
+    }
+    const { userId, verificationStatus, verifiedAt, rejectionReason, ...safeUpdates } = req.body;
     const bank = await bankService.updateBank(
       req.params.id,
-      req.body
+      safeUpdates
     );
 
     res.status(200).json({
@@ -197,7 +223,15 @@ export const createBankAccount = async (
   res: Response
 ): Promise<void> => {
   try {
-    const bank = await bankService.createBank(req.body);
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const bank = await bankService.createBank({
+      ...req.body,
+      userId: req.user.id,
+    });
 
     res.status(201).json({
       success: true,
@@ -222,9 +256,25 @@ export const updateBankAccount = async (
   res: Response
 ): Promise<void> => {
   try {
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+    const existing = await bankService.getBankById(req.params.id);
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Bank account not found" });
+      return;
+    }
+    const role = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    if (!isAdmin && existing.userId !== req.user.id) {
+      res.status(403).json({ success: false, message: "Forbidden: you cannot update this bank account" });
+      return;
+    }
+    const { userId, verificationStatus, verifiedAt, rejectionReason, ...safeUpdates } = req.body;
     const bank = await bankService.updateBank(
       req.params.id,
-      req.body
+      safeUpdates
     );
 
     res.status(200).json({
@@ -250,6 +300,24 @@ export const deleteBankAccount = async (
   res: Response
 ): Promise<void> => {
   try {
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const existing = await bankService.getBankById(req.params.id);
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Bank account not found" });
+      return;
+    }
+
+    const role = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    if (!isAdmin && existing.userId !== req.user.id) {
+      res.status(403).json({ success: false, message: "Forbidden: you cannot delete this bank account" });
+      return;
+    }
+
     await bankService.deleteBank(req.params.id);
 
     res.status(200).json({
@@ -274,10 +342,15 @@ export const getUserBankAccounts = async (
   res: Response
 ): Promise<void> => {
   try {
-    const accounts =
-      await bankService.getUserBankAccounts(
-        req.params.userId
-      );
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const role = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    const targetUserId = isAdmin ? req.params.userId : req.user.id;
+    const accounts = await bankService.getUserBankAccounts(targetUserId);
 
     res.status(200).json({
       success: true,
@@ -305,6 +378,12 @@ export const verifyBankAccount = async (
   res: Response
 ): Promise<void> => {
   try {
+    const existing = await bankService.getBankById(req.params.id);
+    if (!existing) {
+      res.status(404).json({ success: false, message: "Bank account not found" });
+      return;
+    }
+
     const account =
       await bankService.verifyBankAccount(
         req.params.id
@@ -340,6 +419,18 @@ export const setPrimaryAccount = async (
         success: false,
         message: "Bank account not found",
       });
+      return;
+    }
+
+    if (!req.user?.id) {
+      res.status(401).json({ success: false, message: "Unauthorized" });
+      return;
+    }
+
+    const role = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+    const isAdmin = req.user.permissions?.includes("*") || role === "ADMIN" || role === "SUPER_ADMIN";
+    if (!isAdmin && bank.userId !== req.user.id) {
+      res.status(403).json({ success: false, message: "Forbidden: you cannot change this bank account's primary status" });
       return;
     }
 
@@ -392,4 +483,12 @@ export const searchAccounts = async (
     });
   }
 };
+
+
+
+
+
+
+
+
 

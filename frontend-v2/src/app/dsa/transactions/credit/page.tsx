@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import DsaSidebar from "@/components/dsa/DsaSidebar";
 
 type Transaction = {
   id?: string;
@@ -54,20 +53,20 @@ const isCredit = (t: Transaction) =>
   );
 
 const money = (v: any) =>
-  `₹${Number(v || 0).toLocaleString("en-IN", {
+  `â‚¹${Number(v || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
 const shortMoney = (v: number) =>
-  `₹${Math.round(v).toLocaleString("en-IN")}`;
+  `â‚¹${Math.round(v).toLocaleString("en-IN")}`;
 
 const formatDate = (v?: string) => {
-  if (!v) return "—";
+  if (!v) return "â€”";
 
   const d = new Date(v);
 
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "â€”";
 
   return d.toLocaleString("en-IN", {
     day: "2-digit",
@@ -454,13 +453,12 @@ export default function CreditTransactionsPage() {
   return (
     <div className="min-h-screen bg-[#f2fbf8] text-[#10294f]">
 
-      <DsaSidebar />
 
-      <div className="lg:pl-[278px]">
+      <div className="">
       <main className="mx-auto max-w-[1550px] px-4 py-5 sm:px-6 lg:px-8">
 
         {/* =====================================================
-            CREDIT AI HERO — SAME MINT / GREEN VISUAL LANGUAGE
+            CREDIT AI HERO â€” SAME MINT / GREEN VISUAL LANGUAGE
         ===================================================== */}
 
         <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#e9fff6] via-[#edfbfa] to-[#dff7ee] shadow-[0_25px_70px_rgba(22,137,105,.12)]">
@@ -493,7 +491,7 @@ export default function CreditTransactionsPage() {
 
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-[#d9fff0] px-3.5 py-1.5 text-[13px] font-black tracking-wide text-[#049568] shadow-sm">
                 <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[#0ab981] text-white">
-                  ₹
+                  â‚¹
                 </span>
 
                 CREDIT TRANSACTIONS
@@ -514,7 +512,7 @@ export default function CreditTransactionsPage() {
               </p>
 
               <p className="mt-2 max-w-[690px] text-sm leading-6 text-[#587368] sm:text-[15px]">
-                Every top-up, refund, cashback and amount received —
+                Every top-up, refund, cashback and amount received â€”
                 secure, transparent and always updated in real-time.
               </p>
 
@@ -562,7 +560,7 @@ export default function CreditTransactionsPage() {
                     </p>
 
                     <p className="text-lg font-black text-[#102d58]">
-                      + ₹5,000
+                      + â‚¹5,000
                     </p>
                   </div>
 
@@ -629,11 +627,11 @@ export default function CreditTransactionsPage() {
                 {/* rupee coin */}
 
                 <div className="absolute bottom-[-5px] left-[15px] flex h-[62px] w-[62px] rotate-[-10deg] items-center justify-center rounded-full border-[5px] border-[#f6c55d] bg-gradient-to-br from-[#ffc95a] to-[#e99422] text-[25px] font-black text-white shadow-[0_15px_25px_rgba(210,139,24,.30)]">
-                  ₹
+                  â‚¹
                 </div>
 
                 <div className="absolute bottom-[-7px] right-[12px] flex h-[51px] w-[51px] rotate-[13deg] items-center justify-center rounded-full border-[4px] border-[#f8c75b] bg-gradient-to-br from-[#ffd76b] to-[#ee9821] text-xl font-black text-white shadow-lg">
-                  ₹
+                  â‚¹
                 </div>
 
               </div>
@@ -677,11 +675,11 @@ export default function CreditTransactionsPage() {
                 </p>
 
                 <div className="mt-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-[14px] font-black text-emerald-600">
-                  ↑ {stats.thisMonth > 0 ? "Active" : "0"} this month
+                  â†‘ {stats.thisMonth > 0 ? "Active" : "0"} this month
                 </div>
 
                 <p className="mt-3 text-[13px] font-medium italic text-[#527365]">
-                  “Every credit moves you closer to your bigger goals.”
+                  â€œEvery credit moves you closer to your bigger goals.â€
                 </p>
 
               </div>
@@ -821,7 +819,7 @@ export default function CreditTransactionsPage() {
 
                 </div>
 
-                <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600">
+                <button type="button" title="Reset all filters" onClick={() => { setSearch(""); setSource("ALL"); setPeriod("ALL"); }} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-[13px] font-black text-slate-600">
                   <Filter size={15} />
                   Filters
                 </button>
@@ -1376,7 +1374,7 @@ export default function CreditTransactionsPage() {
                 value={
                   selected.transactionId ||
                   selected.id ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1397,7 +1395,7 @@ export default function CreditTransactionsPage() {
                 label="Source"
                 value={
                   selected.category ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1405,7 +1403,7 @@ export default function CreditTransactionsPage() {
                 label="Payment Method"
                 value={
                   selected.paymentMethod ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1424,7 +1422,7 @@ export default function CreditTransactionsPage() {
                     ? money(
                         selected.balanceAfter
                       )
-                    : "—"
+                    : "â€”"
                 }
               />
 
@@ -1553,5 +1551,6 @@ function Detail({
     </div>
   );
 }
+
 
 

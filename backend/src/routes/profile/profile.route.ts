@@ -1,4 +1,5 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
 
 import {
   getMyProfile,
@@ -33,6 +34,9 @@ import {
   getProfileWallet,
   getProfileTransactions,
   getProfileNotifications,
+  markMyNotificationRead,
+  markMyNotificationsRead,
+  deleteMyNotification,
 
   deactivateProfile,
   reactivateProfile,
@@ -42,6 +46,7 @@ import {
 } from "../../controllers/profile/profile.controller";
 
 const router = Router();
+router.use(authMiddleware);
 
 /* ========================================
    DASHBOARD & ANALYTICS
@@ -186,6 +191,20 @@ router.get(
   getProfileNotifications
 );
 
+router.patch(
+  "/notifications/read-all",
+  markMyNotificationsRead
+);
+
+router.patch(
+  "/notifications/:id/read",
+  markMyNotificationRead
+);
+router.delete(
+  "/notifications/:id",
+  deleteMyNotification
+);
+
 /* ========================================
    PROFILE STATUS
 ======================================== */
@@ -224,3 +243,5 @@ router.get(
 );
 
 export default router;
+
+

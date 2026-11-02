@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import crypto from "crypto";
 import { ReferralStatus } from "@prisma/client";
 import prisma from "../../prisma/prisma";
@@ -239,7 +239,7 @@ export const getUserReferrals = async (req: Request, res: Response): Promise<Res
 
 export const getCustomerReferrals = async (req: Request, res: Response): Promise<Response> => {
   const customerId = String(req.params.customerId);
-  const data = await prisma.referral.findMany({ where: { source: "CUSTOMER", userId: customerId } });
+  const data = await prisma.referral.findMany({ where: { userId: customerId }, orderBy: { createdAt: "desc" } });
   return res.status(200).json({ success: true, data });
 };
 
@@ -271,6 +271,59 @@ export const getReferralRewards = async (req: Request, res: Response): Promise<R
   return res.status(200).json({ success: true, rewardAmount: referral?.rewardAmount || 0 });
 };
 
+export const getReferralHistory = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const userId = String(req.params.userId || "").trim();
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const ownedReferrals = await prisma.referral.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+
+    const referralIds = ownedReferrals.map((item) => item.id);
+
+    if (referralIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        total: 0,
+      });
+    }
+
+    const data = await prisma.referralHistory.findMany({
+      where: { referralId: { in: referralIds } },
+      orderBy: { createdAt: "desc" },
+      include: {
+        referredUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      data,
+      total: data.length,
+    });
+  } catch (error) {
+    console.error("getReferralHistory error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch referral history",
+    });
+  }
+};
 export const getReferralCommissions = async (req: Request, res: Response): Promise<Response> => {
   const userId = String(req.params.userId);
   // Fallback map matching your routing signature
@@ -505,6 +558,9 @@ export const applyReferralCode = async (req: Request, res: Response): Promise<Re
   try {
     const { userId, referralCode } = req.body;
     if (!userId || !referralCode) return res.status(400).json({ success: false, message: "User ID and Referral Code are required" });
+    const authenticatedUserId = req.user?.id;
+    if (!authenticatedUserId) return res.status(401).json({ success: false, message: "Authentication required" });
+    if (authenticatedUserId !== userId) return res.status(403).json({ success: false, message: "User ID does not match authenticated account" });
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
@@ -519,7 +575,7 @@ export const applyReferralCode = async (req: Request, res: Response): Promise<Re
     const reward = 100;
 
     await prisma.$transaction(async (tx) => {
-      await tx.referral.update({
+      const updatedReferral = await tx.referral.update({
         where: { id: referral.id },
         data: {
           referredUserId: userId,
@@ -533,6 +589,38 @@ export const applyReferralCode = async (req: Request, res: Response): Promise<Re
         },
       });
 
+      const referrer = await tx.user.findUnique({
+        where: { id: referral.userId },
+        select: { id: true, role: true },
+      });
+
+      if (referrer?.role.toLowerCase() === "user" && referral.source === "CUSTOMER") {
+        const milestones = [
+          { count: 1, title: "First Successful Referral", description: "Completed the first successful customer referral." },
+          { count: 5, title: "Referral Builder", description: "Completed 5 successful customer referrals." },
+          { count: 10, title: "Referral Champion", description: "Completed 10 successful customer referrals." },
+        ];
+
+        for (const milestone of milestones) {
+          if (updatedReferral.successfulReferrals >= milestone.count) {
+            const existing = await tx.achievement.findFirst({
+              where: { userId: referrer.id, title: milestone.title },
+              select: { id: true },
+            });
+
+            if (!existing) {
+              await tx.achievement.create({
+                data: {
+                  userId: referrer.id,
+                  title: milestone.title,
+                  description: milestone.description,
+                  reward: 0,
+                },
+              });
+            }
+          }
+        }
+      }
       await tx.referralHistory.create({
         data: { referralId: referral.id, referredUserId: userId, rewardAmount: reward },
       });
@@ -560,7 +648,7 @@ export const applyReferralCode = async (req: Request, res: Response): Promise<Re
       await tx.notification.create({
         data: {
           userId: referral.userId, title: "Referral Reward Earned",
-          message: `₹${reward} referral reward has been credited to your wallet.`, type: "referral", priority: "high", channel: "app",
+          message: `Ã¢â€šÂ¹${reward} referral reward has been credited to your wallet.`, type: "referral", priority: "high", channel: "app",
         },
       });
     });
@@ -570,3 +658,6 @@ export const applyReferralCode = async (req: Request, res: Response): Promise<Re
     return res.status(500).json({ success: false, message: "Failed to apply referral code", error: error instanceof Error ? error.message : "Unknown Error" });
   }
 };
+
+
+

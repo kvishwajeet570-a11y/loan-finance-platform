@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import {
+import { MapPinned,
   LayoutDashboard,
   BarChart3,
   Users,
@@ -141,12 +141,7 @@ const groups = [
         label: "Reports",
         href: "/dsa/reports",
         icon: TrendingUp,
-        children: [
-          { label: "Business Report", href: "/dsa/reports?type=business" },
-          { label: "Loan Report", href: "/dsa/reports?type=loan" },
-          { label: "Commission Report", href: "/dsa/reports?type=commission" },
-          { label: "Customer Report", href: "/dsa/reports?type=customer" },
-        ],
+        children: [],
       },
     ],
   },
@@ -154,50 +149,33 @@ const groups = [
     title: "GROWTH",
     items: [
       {
-        label: "Refer & Earn",
+        label: "Referral",
         href: "/dsa/referral",
         icon: TrendingUp,
-        children: [
-          { label: "Referral Link", href: "/dsa/referral" },
-          { label: "My Referrals", href: "/dsa/referral?tab=referrals" },
-          { label: "Referral Earnings", href: "/dsa/referral?tab=earnings" },
-        ],
+        children: [],
       },
       {
         label: "Achievements",
         href: "/dsa/achievements",
-        icon: Trophy,
-        children: [
-          { label: "Milestones", href: "/dsa/achievements" },
-          { label: "Completed", href: "/dsa/achievements?status=completed" },
-        ],
+        icon: Trophy, children: [],
       },
       {
         label: "Leaderboard",
         href: "/dsa/leaderboard",
-        icon: Trophy,
-        children: [
-          { label: "Overall", href: "/dsa/leaderboard" },
-          { label: "Weekly", href: "/dsa/leaderboard?period=weekly" },
-          { label: "Monthly", href: "/dsa/leaderboard?period=monthly" },
-        ],
+        icon: Trophy, children: [],
       },
       {
         label: "Training Center",
         href: "/dsa/training",
         icon: GraduationCap,
-        children: [
-          { label: "Training Videos", href: "/dsa/training" },
-          { label: "Product Training", href: "/dsa/training?type=product" },
-          { label: "Sales Training", href: "/dsa/training?type=sales" },
-        ],
+        children: [],
       },
     ],
   },
   {
     title: "TOOLS",
     items: [
-      { label: "EMI Calculator", href: "/dsa/tools/emi-calculator", icon: Calculator },
+      { label: "EMI Calculator", href: "/dsa/emi-calculator", icon: Calculator },
       { label: "Loan Eligibility", href: "/dsa/tools/loan-eligibility", icon: CircleGauge },
       { label: "Credit Score", href: "/dsa/tools/credit-score", icon: CreditCard },
     ],
@@ -209,10 +187,6 @@ const groups = [
         label: "Pin Code",
         href: "/dsa/pin-code",
         icon: Calculator,
-        children: [
-          { label: "Pin Code", href: "/dsa/pin-code" },
-          { label: "Company", href: "/dsa/company" },
-        ],
       },
     ],
   },  {
@@ -220,33 +194,13 @@ const groups = [
     items: [
       {
         label: "Marketing",
-        href: "/dsa/marketing",
+        href: "/dsa/marketing-tools",
         icon: TrendingUp,
-        children: [
-          { label: "Marketing Overview", href: "/dsa/marketing" },
-          { label: "Marketing Materials", href: "/dsa/marketing/materials" },
-          { label: "Banners & Posters", href: "/dsa/marketing/banners" },
-        ],
-      },
-      {
-        label: "Advisor Training",
-        href: "/dsa/advisor-training",
-        icon: GraduationCap,
-        children: [
-          { label: "Training Overview", href: "/dsa/advisor-training" },
-          { label: "Training Videos", href: "/dsa/advisor-training/videos" },
-          { label: "Training Documents", href: "/dsa/advisor-training/documents" },
-        ],
       },
       {
         label: "Lender Policy",
         href: "/dsa/lender-policy",
         icon: FileText,
-        children: [
-          { label: "All Lender Policies", href: "/dsa/lender-policy" },
-          { label: "Lender List", href: "/dsa/lender-policy/lenders" },
-          { label: "Policy Documents", href: "/dsa/lender-policy/documents" },
-        ],
       },
     ],
   },  {
@@ -256,22 +210,11 @@ const groups = [
         label: "Help & Support",
         href: "/dsa/support",
         icon: LifeBuoy,
-        children: [
-          { label: "FAQ", href: "/dsa/support?tab=faq" },
-          { label: "My Tickets", href: "/dsa/support?tab=tickets" },
-          { label: "Create Ticket", href: "/dsa/support?tab=create" },
-        ],
       },
       {
         label: "Profile",
         href: "/dsa/profile",
         icon: UserCog,
-        children: [
-          { label: "Personal Details", href: "/dsa/profile" },
-          { label: "KYC & Documents", href: "/dsa/profile?tab=kyc" },
-          { label: "Bank Details", href: "/dsa/profile?tab=bank" },
-          { label: "Security", href: "/dsa/profile?tab=security" },
-        ],
       },
     ],
   },
@@ -428,7 +371,7 @@ export default function DsaSidebar() {
                 Wallet
               </div>
               <div className="mt-1 text-[15px] font-black text-slate-900">
-                â‚¹{wallet.toLocaleString("en-IN")}
+                ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¹{wallet.toLocaleString("en-IN")}
               </div>
             </div>
 
@@ -476,7 +419,7 @@ export default function DsaSidebar() {
                 onClick={() => setSidebarSearch("")}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400 hover:text-slate-700"
               >
-                Ã—
+                ÃƒÆ’Ã¢â‚¬â€
               </button>
             )}
           </div>
@@ -601,6 +544,19 @@ export default function DsaSidebar() {
     </aside>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

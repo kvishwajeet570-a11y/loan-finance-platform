@@ -1,18 +1,18 @@
-import { Request, Response, NextFunction } from "express";
+﻿import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { isActiveAuthSession } from "../middlewares/sessionAuth";
 
 export interface AuthRequest extends Request {
   user?: any;
 }
 
-export const authGuard = (
+export const authGuard = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const authHeader =
-      req.headers.authorization;
+    const authHeader = req.headers.authorization;
 
     if (!authHeader) {
       return res.status(401).json({
@@ -21,18 +21,26 @@ export const authGuard = (
       });
     }
 
-    const token =
-      authHeader.startsWith("Bearer ")
-        ? authHeader.split(" ")[1]
-        : authHeader;
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : authHeader;
 
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    );
+    ) as jwt.JwtPayload;
+
+    if (
+      typeof decoded.id !== "string" ||
+      !(await isActiveAuthSession(decoded.id, decoded.sid))
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or revoked. Please login again.",
+      });
+    }
 
     req.user = decoded;
-
     next();
   } catch (error) {
     return res.status(401).json({

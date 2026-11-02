@@ -1,7 +1,10 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authenticate from "../../middlewares/AuthMiddleware";
 
 import {
   createFastag,
+  getMyFastags,
+  createMyFastag,
   getFastagById,
   getAllFastags,
   updateFastag,
@@ -124,6 +127,10 @@ router.get(
   "/user/:userId",
   getUserFastags
 );
+
+router.get("/my", authenticate, getMyFastags);
+
+router.post("/my", authenticate, createMyFastag);
 
 router.get(
   "/:id",

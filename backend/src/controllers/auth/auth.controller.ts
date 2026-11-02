@@ -1,10 +1,12 @@
-﻿import { Request, Response } from "express";
+import { ReferralService } from "../../services/referral/referral.service";
+import { Request, Response } from "express";
 
 import bcrypt from "bcryptjs";
 
 import jwt from "jsonwebtoken";
 
 import prisma from "../../prisma/prisma";
+import { createLoginSecurityRecords } from "../../services/security/authSecurity.service";
 
 import { sendEmail } from "../../utils/sendEmail";
 
@@ -600,6 +602,19 @@ export const registerUser =
 
         });
 
+      // Initialize referral program for regular customer accounts only.
+      if (updatedUser.role.toLowerCase() === "user") {
+        try {
+          await ReferralService.createReferralProgram({
+            userId: updatedUser.id,
+            source: "CUSTOMER",
+          });
+        } catch (referralError) {
+          // Registration remains successful if referral initialization fails.
+          console.error("[CUSTOMER_REFERRAL_SETUP_ERROR]", referralError);
+        }
+      }
+
       return res.status(201).json({
 
         success: true,
@@ -756,45 +771,73 @@ export const loginUser =
 
       }
 
-      /* JWT */
+      if (user.role.toUpperCase() === "PARTNER") {
+        if (!user.isActive) {
+          return res.status(403).json({
+            success: false,
+            message: "Partner account is inactive",
+          });
+        }
 
-      const token =
-        jwt.sign(
+        const partner = await prisma.partner.findUnique({
+          where: { userId: user.id },
+        });
 
-          {
+        if (!partner) {
+          return res.status(403).json({
+            success: false,
+            message: "Partner profile not found. Contact support.",
+          });
+        }
 
-            id: user.id,
+        if (partner.isBlocked || !partner.isActive) {
+          return res.status(403).json({
+            success: false,
+            message: "Partner account is blocked or inactive",
+          });
+        }
 
-            email:
-              user.email,
+        if (partner.status.toUpperCase() !== "APPROVED") {
+          return res.status(403).json({
+            success: false,
+            message: "Partner account is pending Super Admin approval",
+            status: partner.status,
+          });
+        }
+      }
+      const securitySession = await createLoginSecurityRecords(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
+        req
+      );
 
-            role:
-              user.role,
+      /* JWT: bind access token to database session */
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          sid: securitySession.sessionId,
+        },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+      );
 
-          },
-
-          process.env.JWT_SECRET!,
-
-          {
-
-            expiresIn:
-              "7d",
-
-          }
-
-        );
+      const safeUser = Object.fromEntries(
+        Object.entries(user).filter(
+          ([key]) => !["password", "otp", "otpExpiry"].includes(key)
+        )
+      );
 
       return res.status(200).json({
-
         success: true,
-
-        message:
-          "Login successful",
-
+        message: "Login successful",
         token,
-
-        user,
-
+        refreshToken: securitySession.refreshToken,
+        user: safeUser,
       });
 
     } catch (error) {
@@ -1252,4 +1295,7 @@ export const deleteAccount =
     }
 
   };
+
+
+
 

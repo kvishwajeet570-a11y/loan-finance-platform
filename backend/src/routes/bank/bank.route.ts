@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 
 import {
   createBankAccount,
@@ -13,76 +13,27 @@ import {
   getBankAnalytics,
 } from "../../controllers/bank/bank.controller";
 
+import authenticate from "../../middlewares/AuthMiddleware";
+import roleMiddleware from "../../middlewares/RoleMiddleware";
+
 const router = Router();
 
-/* ========================================
-   ANALYTICS
-======================================== */
+// Every bank endpoint requires a valid login.
+router.use(authenticate);
 
-router.get(
-  "/analytics",
-  getBankAnalytics
-);
+// Administrative bank overview and verification.
+router.get("/analytics", roleMiddleware("SUPER_ADMIN", "ADMIN"), getBankAnalytics);
+router.get("/", roleMiddleware("SUPER_ADMIN", "ADMIN"), getAllBankAccounts);
+router.get("/search/:keyword", roleMiddleware("SUPER_ADMIN", "ADMIN"), searchAccounts);
+router.patch("/:id/verify", roleMiddleware("SUPER_ADMIN", "ADMIN"), verifyBankAccount);
 
-/* ========================================
-   BANK ACCOUNTS
-======================================== */
-
-router.post(
-  "/",
-  createBankAccount
-);
-
-router.get(
-  "/",
-  getAllBankAccounts
-);
-
-router.get(
-  "/search/:keyword",
-  searchAccounts
-);
-
-router.get(
-  "/:id",
-  getBankById
-);
-
-router.put(
-  "/:id",
-  updateBankAccount
-);
-
-router.delete(
-  "/:id",
-  deleteBankAccount
-);
-
-/* ========================================
-   USER BANK ACCOUNTS
-======================================== */
-
-router.get(
-  "/user/:userId",
-  getUserBankAccounts
-);
-
-/* ========================================
-   VERIFICATION
-======================================== */
-
-router.patch(
-  "/:id/verify",
-  verifyBankAccount
-);
-
-/* ========================================
-   PRIMARY ACCOUNT
-======================================== */
-
-router.patch(
-  "/:id/set-primary",
-  setPrimaryAccount
-);
+// Customer account operations require authentication.
+// Controllers must still enforce account ownership using req.user.id.
+router.post("/", createBankAccount);
+router.get("/user/:userId", getUserBankAccounts);
+router.get("/:id", getBankById);
+router.put("/:id", updateBankAccount);
+router.delete("/:id", deleteBankAccount);
+router.patch("/:id/set-primary", setPrimaryAccount);
 
 export default router;

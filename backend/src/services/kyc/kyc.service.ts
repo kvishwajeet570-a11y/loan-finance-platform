@@ -1,4 +1,4 @@
-﻿import prisma from "../../prisma/prisma";
+import prisma from "../../prisma/prisma";
 import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 
@@ -34,11 +34,7 @@ class KYCService {
         },
       });
 
-    if (existingKYC) {
-      throw new Error(
-        "KYC already submitted"
-      );
-    }
+    if (existingKYC) { return existingKYC; }
 
     return prisma.kYC.create({
       data: {

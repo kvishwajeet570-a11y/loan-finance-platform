@@ -1,4 +1,10 @@
 ﻿import { Router } from "express";
+import emiRoutes from "../modules/emi/emi.route";
+import pincodeRoutes from "./pincode/pincode.route";
+import aiRoutes from "../modules/ai/ai.routes";
+import lenderPolicyRoutes from "../modules/lenderPolicy/lender-policy.routes";
+import lenderDirectoryRoutes from "../modules/lenderDirectory/lender-directory.routes";
+import eligibilityRoutes from "./eligibility/eligibility.route";
 
 /* =========================================
    ROUTES
@@ -42,6 +48,7 @@ import revenueRoutes from "./revenue/revenue.routes";
 import roleRoutes from "./role/role.route";
 import rolePermissionRoutes from "./rolePermission/rolePermission.route";
 import securityLogRoutes from "./securityLog/securityLog.routes";
+import sessionRoutes from "./session/session.routes";
 import settingsRoutes from "./settings/settings.route";
 import superAdminRoutes from "./superAdmin/superAdmin.route";
 import supportRoutes from "./support/support.route";
@@ -49,6 +56,8 @@ import subAgentRoutes from "./sub-agent/sub-agent.route";
 import systemSettingRoutes from "./systemSetting/systemSetting.routes";
 import transactionRoutes from "./transaction/transaction.route";
 import uploadRoutes from "./upload/upload.route";
+import trainingRoutes from "./training/training.route";
+import liveSessionRoutes from "./liveSession/liveSession.route";
 import userRoutes from "./user/user.route";
 import walletRoutes from "./wallet/wallet.route";
 import refreshTokenRoutes from "./refreshToken.routes";
@@ -58,6 +67,12 @@ import refreshTokenRoutes from "./refreshToken.routes";
 ========================================= */
 
 const router = Router();
+router.use("/ai", aiRoutes);
+router.use("/lender-policy", lenderPolicyRoutes);
+router.use("/lender", lenderDirectoryRoutes);
+router.use("/emi", emiRoutes);
+router.use("/pincode", pincodeRoutes);
+router.use("/eligibility", eligibilityRoutes);
 
 /* =========================================
    AUTH & USER
@@ -77,7 +92,9 @@ router.use("/loan-status-history", loanStatusHistoryRoutes);
 router.use("/kyc", kycRoutes);
 router.use("/document", documentRoutes);
 router.use("/upload", uploadRoutes);
-
+router.use("/training", trainingRoutes);
+
+router.use("/live-sessions", liveSessionRoutes);
 /* =========================================
    BANKING & PAYMENTS
 ========================================= */
@@ -123,6 +140,7 @@ router.use("/support", supportRoutes);
 router.use("/sub-agent", subAgentRoutes);
 router.use("/login-history", loginHistoryRoutes);
 router.use("/security-log", securityLogRoutes);
+router.use("/sessions", sessionRoutes);
 
 /* =========================================
    DASHBOARD & ANALYTICS
@@ -163,5 +181,12 @@ router.use("/customer", customerRoutes);
 router.use("/achievements", achievementRoutes);
 
 export default router;
+
+
+
+
+
+
+
 
 

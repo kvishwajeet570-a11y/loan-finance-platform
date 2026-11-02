@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import DsaSidebar from "@/components/dsa/DsaSidebar";
 
 type Transaction = {
   id?: string;
@@ -59,20 +58,20 @@ const isDebit = (t: Transaction) =>
   );
 
 const money = (v: any) =>
-  `₹${Number(v || 0).toLocaleString("en-IN", {
+  `â‚¹${Number(v || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
 const shortMoney = (v: number) =>
-  `₹${Math.round(v).toLocaleString("en-IN")}`;
+  `â‚¹${Math.round(v).toLocaleString("en-IN")}`;
 
 const formatDate = (v?: string) => {
-  if (!v) return "—";
+  if (!v) return "â€”";
 
   const d = new Date(v);
 
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "â€”";
 
   return d.toLocaleString("en-IN", {
     day: "2-digit",
@@ -496,9 +495,8 @@ export default function DebitTransactionsPage() {
   return (
     <div className="min-h-screen bg-[#f3f7ff] text-[#102b63]">
 
-      <DsaSidebar />
 
-      <div className="lg:pl-[278px]">
+      <div className="">
       <main className="mx-auto max-w-[1550px] px-4 py-5 sm:px-6 lg:px-8">
 
         {/* =====================================================
@@ -531,7 +529,7 @@ export default function DebitTransactionsPage() {
 
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-[12px] font-black tracking-wide text-red-600">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white">
-                  ↓
+                  â†“
                 </span>
                 DEBIT TRANSACTIONS
               </div>
@@ -552,7 +550,7 @@ export default function DebitTransactionsPage() {
 
               <p className="mt-2 max-w-[710px] text-[15px] leading-7 text-[#53688e]">
                 Every payment, recharge, loan EMI, transfer and
-                money-out activity — secure, transparent and
+                money-out activity â€” secure, transparent and
                 always available for smarter financial control.
               </p>
 
@@ -600,7 +598,7 @@ export default function DebitTransactionsPage() {
                     </p>
 
                     <p className="text-lg font-black text-[#102e5d]">
-                      - ₹2,500
+                      - â‚¹2,500
                     </p>
                   </div>
 
@@ -665,11 +663,11 @@ export default function DebitTransactionsPage() {
                 {/* RUPEE COINS */}
 
                 <div className="absolute bottom-[-5px] left-[10px] flex h-[63px] w-[63px] rotate-[-10deg] items-center justify-center rounded-full border-[5px] border-[#f3c45d] bg-gradient-to-br from-[#ffd15b] to-[#e99721] text-[25px] font-black text-white shadow-[0_16px_28px_rgba(206,137,26,.30)]">
-                  ₹
+                  â‚¹
                 </div>
 
                 <div className="absolute bottom-[-8px] right-[10px] flex h-[51px] w-[51px] rotate-[13deg] items-center justify-center rounded-full border-[4px] border-[#f4c35c] bg-gradient-to-br from-[#ffd76b] to-[#ed9520] text-xl font-black text-white shadow-lg">
-                  ₹
+                  â‚¹
                 </div>
 
               </div>
@@ -715,11 +713,11 @@ export default function DebitTransactionsPage() {
                 </p>
 
                 <div className="mt-2 inline-flex rounded-full bg-red-50 px-3 py-1.5 text-[10px] font-black text-red-600">
-                  ↓ {stats.thisMonth > 0 ? "Active" : "0"} this month
+                  â†“ {stats.thisMonth > 0 ? "Active" : "0"} this month
                 </div>
 
                 <p className="mt-3 text-[11px] font-medium italic text-[#596a8d]">
-                  “Every smart expense takes you closer to a better tomorrow.”
+                  â€œEvery smart expense takes you closer to a better tomorrow.â€
                 </p>
 
               </div>
@@ -861,7 +859,7 @@ export default function DebitTransactionsPage() {
 
                 </div>
 
-                <button className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-[12px] font-black text-slate-600">
+                <button type="button" title="Reset all filters" onClick={() => { setSearch(""); setCategory("ALL"); setPeriod("ALL"); }} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-[12px] font-black text-slate-600">
                   <Filter size={16} />
                   Filters
                 </button>
@@ -1474,7 +1472,7 @@ export default function DebitTransactionsPage() {
                 value={
                   selected.transactionId ||
                   selected.id ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1495,7 +1493,7 @@ export default function DebitTransactionsPage() {
                 label="Category"
                 value={
                   selected.category ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1503,7 +1501,7 @@ export default function DebitTransactionsPage() {
                 label="Payment Method"
                 value={
                   selected.paymentMethod ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1522,7 +1520,7 @@ export default function DebitTransactionsPage() {
                     ? money(
                         selected.balanceAfter
                       )
-                    : "—"
+                    : "â€”"
                 }
               />
 
@@ -1651,4 +1649,5 @@ function Detail({
     </div>
   );
 }
+
 

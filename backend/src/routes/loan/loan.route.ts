@@ -9,6 +9,8 @@ import {
   deleteLoan,
   assignLoan,
   startLoanApplication,
+  startCustomerLoanApplication,
+  updateCustomerLoanDob,
   updateLoanApplication,
 } from "../../controllers/loan/loan.controller";
 
@@ -20,6 +22,9 @@ const router = Router();
 // Customer: Apply Loan
 router.post("/", applyLoan);
 
+// Authenticated Customer Panel application routes
+router.post("/customer/start", authMiddleware, startCustomerLoanApplication);
+router.patch("/customer/:id/dob", authMiddleware, updateCustomerLoanDob);
 // Public / DSA: Start loan application
 router.post("/start", optionalAuthMiddleware, startLoanApplication);
 
@@ -64,5 +69,6 @@ router.patch(
 );
 
 export default router;
+
 
 

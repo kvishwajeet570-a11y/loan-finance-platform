@@ -31,7 +31,7 @@ export default function AdminLoansPage() {
       setLoading(true);
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("loan_finance_token");
 
       if (!token) {
         setError("Admin login required.");
@@ -80,7 +80,7 @@ export default function AdminLoansPage() {
       setMessage("");
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("loan_finance_token");
       const amount = Number(amounts[loanId]);
 
       if (!Number.isFinite(amount) || amount <= 0) {
@@ -118,7 +118,7 @@ export default function AdminLoansPage() {
       setMessage("");
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("loan_finance_token");
       const amountText = amounts[loanId];
 
       const amount =
@@ -164,7 +164,7 @@ export default function AdminLoansPage() {
       setMessage("");
       setError("");
 
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("loan_finance_token");
 
       await api.patch(
         `/admin/loans/${loanId}/reject`,
@@ -449,3 +449,4 @@ export default function AdminLoansPage() {
     </main>
   );
 }
+

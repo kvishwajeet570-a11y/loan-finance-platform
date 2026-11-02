@@ -25,7 +25,15 @@ export class EligibilityService {
     annualRate: number,
     tenureMonths: number
   ): number {
+    if (tenureMonths <= 0) {
+      throw new Error("Tenure must be greater than zero.");
+    }
+
     const monthlyRate = annualRate / 12 / 100;
+
+    if (monthlyRate === 0) {
+      return Number((principal / tenureMonths).toFixed(2));
+    }
 
     const emi =
       (principal *
@@ -42,6 +50,13 @@ export class EligibilityService {
     tenureMonths: number
   ): number {
     const monthlyRate = annualRate / 12 / 100;
+    if (availableEMI <= 0) {
+      return 0;
+    }
+
+    if (monthlyRate === 0) {
+      return Number((availableEMI * tenureMonths).toFixed(2));
+    }
 
     const amount =
       availableEMI *

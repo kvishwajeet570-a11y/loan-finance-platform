@@ -123,11 +123,8 @@ const sections: Section[] = [
       },
       {
         label: "Documents",
+        href: "/customer/documents",
         icon: <FileText size={18} />,
-        children: [
-          { label: "My Documents", href: "/customer/documents" },
-          { label: "Upload Document", href: "/customer/documents/upload" },
-        ],
       },
       {
         label: "Credit Score",
@@ -142,14 +139,10 @@ const sections: Section[] = [
         ],
       },
       {
-        label: "FASTag",
-        icon: <Car size={18} />,
-        children: [
-          { label: "My FASTags", href: "/customer/fastag" },
-          { label: "Add FASTag", href: "/customer/fastag/add" },
-          { label: "FASTag Details", href: "/customer/fastag/details" },
-        ],
-      },
+      label: "FASTag",
+      href: "/customer/fastag",
+      icon: <Car size={18} />,
+    },
     ],
   },
 
@@ -157,21 +150,14 @@ const sections: Section[] = [
     title: "REWARDS",
     items: [
       {
-        label: "Referrals",
+        label: "Referral",
+        href: "/customer/referrals",
         icon: <Users size={18} />,
-        children: [
-          { label: "My Referrals", href: "/customer/referrals" },
-          { label: "Referral History", href: "/customer/referrals/history" },
-          { label: "Rewards", href: "/customer/referrals/rewards" },
-        ],
       },
       {
         label: "Earnings",
         icon: <IndianRupee size={18} />,
-        children: [
-          { label: "My Commissions", href: "/customer/earnings" },
-          { label: "Commission History", href: "/customer/earnings/history" },
-        ],
+        href: "/customer/dashboard",
       },
       {
         label: "Achievements",
@@ -191,11 +177,8 @@ const sections: Section[] = [
       },
       {
         label: "Support",
+        href: "/customer/support",
         icon: <Ticket size={18} />,
-        children: [
-          { label: "Create Ticket", href: "/customer/support/create" },
-          { label: "My Tickets", href: "/customer/support" },
-        ],
       },
       {
         label: "Profile",
@@ -737,4 +720,9 @@ export default function CustomerSidebar({
     </>
   );
 }
+
+
+
+
+
 

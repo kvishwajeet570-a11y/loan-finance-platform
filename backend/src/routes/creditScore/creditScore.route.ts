@@ -1,11 +1,15 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
+import roleMiddleware from "../../middlewares/RoleMiddleware";
 
 import {
   checkCreditScore,
+  checkDsaCreditScore,
   getCreditScoreById,
   getAllCreditScores,
   deleteCreditScore,
   getCreditAnalytics,
+  getMyCreditScoreHistory,
 } from "../../controllers/creditScore/creditScore.controller";
 
 const router = Router();
@@ -23,10 +27,9 @@ router.get(
    CREDIT SCORE
 ======================================== */
 
-router.post(
-  "/check",
-  checkCreditScore
-);
+router.get("/my-history", authMiddleware, roleMiddleware("CUSTOMER", "USER"), getMyCreditScoreHistory);
+router.post("/dsa-check", authMiddleware, roleMiddleware("DSA"), checkDsaCreditScore);
+router.post("/check", authMiddleware, roleMiddleware("CUSTOMER", "USER"), checkCreditScore);
 
 router.get(
   "/",
@@ -44,3 +47,10 @@ router.delete(
 );
 
 export default router;
+
+
+
+
+
+
+

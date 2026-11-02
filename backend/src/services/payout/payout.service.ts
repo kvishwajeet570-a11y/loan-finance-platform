@@ -79,38 +79,35 @@ class PayoutService {
       throw new Error("User not found");
     }
 
-    const approvedCommissions = commissions.filter(
-      (c: any) =>
-        String(c.status || "").toUpperCase() === "APPROVED"
-    );
-
-    const pendingCommissions = commissions.filter(
-      (c: any) =>
-        String(c.status || "").toUpperCase() === "PENDING"
-    );
+    const [
+      totalCommissionAggregate,
+      approvedCommissionAggregate,
+      pendingCommissionAggregate,
+    ] = await Promise.all([
+      prisma.commission.aggregate({
+        where: { userId },
+        _sum: { commissionAmount: true },
+      }),
+      prisma.commission.aggregate({
+        where: { userId, status: "APPROVED" },
+        _sum: { commissionAmount: true },
+      }),
+      prisma.commission.aggregate({
+        where: { userId, status: "PENDING" },
+        _sum: { commissionAmount: true },
+      }),
+    ]);
 
     const totalCommission = money(
-      commissions.reduce(
-        (sum: number, c: any) =>
-          sum + Number(c.commissionAmount ?? c.amount ?? 0),
-        0
-      )
+      totalCommissionAggregate._sum.commissionAmount ?? 0
     );
 
     const approvedCommission = money(
-      approvedCommissions.reduce(
-        (sum: number, c: any) =>
-          sum + Number(c.commissionAmount ?? c.amount ?? 0),
-        0
-      )
+      approvedCommissionAggregate._sum.commissionAmount ?? 0
     );
 
     const pendingCommission = money(
-      pendingCommissions.reduce(
-        (sum: number, c: any) =>
-          sum + Number(c.commissionAmount ?? c.amount ?? 0),
-        0
-      )
+      pendingCommissionAggregate._sum.commissionAmount ?? 0
     );
 
     const payoutTransactions = transactions.filter((t: any) => {
@@ -340,7 +337,7 @@ class PayoutService {
       throw new Error("Payout is not eligible for this wallet");
     }
 
-    if (!bankAccount || !(bankAccount as any).isVerified) {
+    if (!bankAccount || String((bankAccount as any).verificationStatus || "").toUpperCase() !== "VERIFIED") {
       throw new Error(
         "Verified bank account is required before requesting payout"
       );
@@ -427,3 +424,5 @@ class PayoutService {
 }
 
 export default new PayoutService();
+
+

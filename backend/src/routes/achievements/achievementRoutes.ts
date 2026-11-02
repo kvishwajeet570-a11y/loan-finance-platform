@@ -1,15 +1,10 @@
-import express from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
+import { getAchievements } from "../../controllers/achievement/achievement.controller";
 
-import {
-getAchievements,
-} from "../../controllers/achievement/achievement.controller";
+const router = Router();
 
-const router = express.Router();
-
-/* ========================================
-ACHIEVEMENT ROUTES
-======================================== */
-
+router.use(authMiddleware);
 router.get("/", getAchievements);
 
 export default router;

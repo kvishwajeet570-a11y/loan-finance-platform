@@ -490,7 +490,7 @@ export const startLoanApplication = async (
   res: Response
 ) => {
   try {
-    const { fullName, phone, panNo, loanType, companyName,
+    const { fullName, phone, email, panNo, loanType, companyName,
       referralCode,
       source,
       utmSource,
@@ -500,7 +500,7 @@ export const startLoanApplication = async (
       utmTerm,
     } = req.body;
 
-    if (!fullName || !phone || !panNo || !loanType) {
+    if (!fullName || (!phone && !email) || !panNo || !loanType) {
       return res.status(400).json({
         success: false,
         message:
@@ -510,9 +510,20 @@ export const startLoanApplication = async (
 
     const normalizedName = String(fullName).trim();
 
-    const normalizedPhone = String(phone)
-      .trim()
-      .replace(/\s+/g, "");
+    const normalizedPhone = phone
+      ? String(phone).trim().replace(/\s+/g, "")
+      : null;
+
+    const normalizedEmail = email
+      ? String(email).trim().toLowerCase()
+      : null;
+
+    if (Boolean(normalizedPhone) === Boolean(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter either a mobile number or an email address, not both.",
+      });
+    }
 
     const normalizedPan = String(panNo)
       .trim()
@@ -527,10 +538,17 @@ export const startLoanApplication = async (
       });
     }
 
-    if (!/^[6-9][0-9]{9}$/.test(normalizedPhone)) {
+    if (normalizedPhone && !/^[6-9][0-9]{9}$/.test(normalizedPhone)) {
       return res.status(400).json({
         success: false,
         message: "Invalid mobile number.",
+      });
+    }
+
+    if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address.",
       });
     }
 
@@ -641,9 +659,11 @@ export const startLoanApplication = async (
     const existingPendingLoan =
       await prisma.loanApplication.findFirst({
         where: {
-          phone: normalizedPhone,
           panNo: normalizedPan,
           status: "PENDING",
+          OR: normalizedPhone
+            ? [{ phone: normalizedPhone }]
+            : [{ email: normalizedEmail }],
         },
         orderBy: {
           createdAt: "desc",
@@ -693,23 +713,47 @@ export const startLoanApplication = async (
       to the existing User account. We do NOT create fake
       email/password credentials.
     */
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        phoneNo: normalizedPhone,
-      },
-      select: {
-        id: true,
-        email: true,
-        isBlocked: true,
-      },
-    });
+    const authenticatedUserId =
+      typeof authUser?.id === "string" ? authUser.id : null;
 
-    if (existingUser?.isBlocked) {
+    const authenticatedUser = authenticatedUserId
+      ? await prisma.user.findUnique({
+          where: { id: authenticatedUserId },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            isBlocked: true,
+            isActive: true,
+            isDeleted: true,
+          },
+        })
+      : null;
+
+    const authenticatedRole = String(authenticatedUser?.role || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+
+    const isCustomerAccount =
+      Boolean(authenticatedUser) &&
+      ["USER", "CUSTOMER"].includes(authenticatedRole);
+
+    if (
+      isCustomerAccount &&
+      (authenticatedUser!.isBlocked ||
+        !authenticatedUser!.isActive ||
+        authenticatedUser!.isDeleted)
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Customer account is blocked.",
+        message: "Customer account is not active.",
       });
     }
+
+    // Only an authenticated Customer owns this application.
+    // DSA and Guest applications remain unlinked until Customer verification.
+    const existingUser = isCustomerAccount ? authenticatedUser : null;
 
     const publicToken = randomBytes(32).toString("hex");
 
@@ -719,7 +763,7 @@ export const startLoanApplication = async (
         publicToken,
 
         fullName: normalizedName,
-        email: existingUser?.email ?? null,
+        email: normalizedEmail ?? existingUser?.email ?? null,
         phone: normalizedPhone,
         loanType: normalizedLoanType,
         companyName: companyName ? String(companyName).trim() : null,
@@ -812,6 +856,73 @@ export const startLoanApplication = async (
   }
 };
 
+export const startCustomerLoanApplication = async (
+  req: Request,
+  res: Response
+) => {
+  const role = String(req.user?.role || "").trim().toUpperCase();
+  if (!req.user?.id || !["USER", "CUSTOMER"].includes(role)) {
+    return res.status(403).json({
+      success: false,
+      message: "Only a logged-in customer can apply from this page.",
+    });
+  }
+
+  return startLoanApplication(req, res);
+};
+
+export const updateCustomerLoanDob = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const customerId = req.user?.id;
+    const loanId = String(req.params.id || "").trim();
+    const dob = String(req.body?.dob || "").trim();
+
+    if (!customerId) {
+      return res.status(401).json({ success: false, message: "Login required." });
+    }
+    if (!loanId || !dob) {
+      return res.status(400).json({ success: false, message: "Application ID and DOB are required." });
+    }
+
+    const loan = await prisma.loanApplication.findFirst({
+      where: { id: loanId, userId: customerId },
+      select: { id: true, status: true },
+    });
+
+    if (!loan) {
+      return res.status(404).json({
+        success: false,
+        message: "Application not found for this customer.",
+      });
+    }
+    if (loan.status !== "PENDING") {
+      return res.status(400).json({
+        success: false,
+        message: "This loan application can no longer be edited.",
+      });
+    }
+
+    const updated = await prisma.loanApplication.update({
+      where: { id: loanId },
+      data: { dob },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "DOB saved successfully.",
+      data: updated,
+    });
+  } catch (error) {
+    console.error("CUSTOMER DOB UPDATE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to save DOB.",
+    });
+  }
+};
 /* ========================================
    UPDATE LOAN APPLICATION
    Step 2-4 details update
@@ -992,6 +1103,8 @@ export const updateLoanApplication = async (
     });
   }
 };;
+
+
 
 
 

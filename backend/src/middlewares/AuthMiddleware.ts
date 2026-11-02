@@ -1,11 +1,13 @@
 ﻿import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import prisma from "../prisma/prisma";
+import { isActiveAuthSession } from "./sessionAuth";
 
 interface JwtPayload {
   id: string;
   email: string;
   role: string;
+  sid?: string;
 }
 
 declare global {
@@ -42,6 +44,15 @@ const authMiddleware = async (
       token,
       process.env.JWT_SECRET!
     ) as JwtPayload;
+
+    if (
+      !(await isActiveAuthSession(decoded.id, decoded.sid))
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or revoked. Please login again.",
+      });
+    }
 
     const user = await prisma.user.findUnique({
       where: {
@@ -173,3 +184,5 @@ const authMiddleware = async (
 };
 
 export default authMiddleware;
+
+

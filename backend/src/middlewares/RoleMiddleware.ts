@@ -24,7 +24,11 @@ const roleMiddleware =
         });
       }
 
-      if (!allowedRoles.includes(req.user.role)) {
+      const normalizedRole = String(req.user.role || "").toUpperCase().replace(/[\s-]+/g, "_");
+      const normalizedAllowedRoles = allowedRoles.map((role) => role.toUpperCase().replace(/[\s-]+/g, "_"));
+      const isSuperAdmin = req.user.permissions.includes("*") ||
+        ["SUPERADMIN", "SUPER_ADMIN"].includes(normalizedRole.replace(/_/g, ""));
+      if (!isSuperAdmin && !normalizedAllowedRoles.includes(normalizedRole)) {
         return res.status(403).json({
           success: false,
           message: "Access denied",
@@ -44,3 +48,4 @@ const roleMiddleware =
   };
 
 export default roleMiddleware;
+

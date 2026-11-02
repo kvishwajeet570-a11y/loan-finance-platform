@@ -1,5 +1,6 @@
 import upload from "../../config/upload/multer";
 import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
 
 import {
   uploadSingleFile,
@@ -121,10 +122,7 @@ router.post(
   uploadMultipleFiles
 );
 
-router.post(
-  "/profile-image",
-  uploadProfileImage
-);
+router.post("/profile-image", authMiddleware, upload.single("file"), uploadProfileImage);
 
 router.post("/kyc", upload.single("file"), uploadKycDocument);
 
@@ -252,15 +250,9 @@ router.patch(
    FILE ACCESS
 ===================================== */
 
-router.get(
-  "/:id/download",
-  downloadFile
-);
+router.get("/:id/download", authMiddleware, downloadFile);
 
-router.get(
-  "/:id/preview",
-  previewFile
-);
+router.get("/:id/preview", authMiddleware, previewFile);
 
 /* =====================================
    FILE LISTING
@@ -343,6 +335,8 @@ router.post(
 );
 
 export default router;
+
+
 
 
 

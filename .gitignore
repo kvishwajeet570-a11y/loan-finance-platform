@@ -2,3 +2,84 @@
 # Large local backup archives
 backend.7z
 backend.zip
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Dependencies and generated files
+node_modules/
+.next/
+coverage/
+
+# Local backups and database dumps
+backups/
+**/backups/
+*backup*/
+*.dump
+*.7z
+
+
+# Compiled backend output
+backend/dist/
+dist/
+build/
+
+# Backup and temporary files
+*.bak
+*.bak.*
+*.backup
+*.backup-*
+*.before-*
+*.tmp
+*.log
+
+# Archives and database exports
+*.zip
+*.7z
+*.dump
+*.sql.gz
+
+# Local diagnostics and audit outputs
+all-files.txt
+all-folders.txt
+*-audit.txt
+*-inspection.txt
+*-diagnostic*.txt
+*-structure.txt
+*-tree.txt
+
+# Private uploaded documents
+backend/uploads/
+
+# Additional editor and timestamped backups
+*.bak-*
+*.backup*
+*.before_*
+*.broken-backup
+*.check-*
+*.bank-logo-backup
+*.real-logo-backup
+
+# All backup naming variations
+*.bak
+*.bak*
+*.backup
+*.backup-*
+*backup*
+*.before*
+*.check*
+
+# Local diagnostic scripts and private data exports
+backend/check-*
+backend/customer-*-backup*.json
+
+# Backup and diagnostic filename variations
+*before*
+*-check.*
+*-check-*
+*backup*

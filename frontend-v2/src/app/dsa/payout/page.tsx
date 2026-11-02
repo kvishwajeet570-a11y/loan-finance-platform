@@ -44,6 +44,7 @@ type PayoutData = {
   summary?: {
     availablePayout?: number;
     totalCommission?: number;
+    approvedCommission?: number;
     pendingPayout?: number;
     paidPayout?: number;
     tdsDeducted?: number;
@@ -375,70 +376,80 @@ export default function DsaPayoutPage() {
       <div className="mx-auto w-full max-w-[1400px] min-w-0 space-y-2.5">
 
         {/* HERO */}
-        <section className="relative min-h-[135px] overflow-hidden rounded-[22px] bg-gradient-to-r from-[#061d57] via-[#073b9d] to-[#0878ee] px-4 py-4 text-white shadow-lg sm:px-5 sm:py-5">
-          <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-cyan-300/20 blur-3xl" />
-          <div className="absolute bottom-[-100px] right-[28%] h-52 w-52 rounded-full bg-blue-300/20 blur-3xl" />
+        <section
+          className="relative min-h-[250px] overflow-hidden rounded-[22px] border border-amber-200/70 px-4 py-4 shadow-lg sm:min-h-[220px] sm:px-6 sm:py-5"
+          style={{
+            backgroundImage: "url(/images/dsa/payout-banner.png)",
+            backgroundSize: "100% 100%",
+            backgroundPosition: "center",
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-white/65 via-white/25 to-transparent" />
 
-          <div className="relative z-10 flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-yellow-300 ring-1 ring-white/20">
-                  <Wallet size={25} />
-                </div>
-
-                <div>
-                  <h1 className="text-3xl font-black leading-none tracking-tight sm:text-4xl">
-                    My <span className="text-yellow-300">Payout</span>
-                  </h1>
-                  <p className="mt-1 text-xs font-medium text-blue-100 sm:text-sm">
-                    Track your commission, check eligibility and withdraw your earnings
-                  </p>
-                </div>
+          <div className="relative z-10 flex min-h-[210px] flex-col justify-between gap-4 lg:flex-row lg:items-center">
+            <div className="min-w-0 lg:max-w-[68%]">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300 bg-white/95 px-3 py-1 shadow-sm">
+                <ShieldCheck size={14} className="text-emerald-600" />
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-slate-700">
+                  DSA FinCorp · Partner Payout Portal
+                </span>
               </div>
 
-              <p className="mt-4 max-w-[650px] text-xs leading-5 text-blue-100 sm:text-sm">
+              <h1 className="text-3xl font-black leading-tight tracking-tight text-slate-900 drop-shadow-sm sm:text-4xl">
+                My <span className="text-emerald-600">Payout</span>
+              </h1>
+
+              <p className="mt-1 text-sm font-bold text-slate-800 sm:text-base">
+                Track your commission, check eligibility and withdraw your earnings.
+              </p>
+
+              <p className="mt-2 max-w-[620px] text-xs font-semibold leading-5 text-slate-700 sm:text-sm">
                 Get instant payout after Bank/NBFC disbursement confirmation.
                 Track every earning with complete transparency.
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold">
-                  <ShieldCheck size={13} />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white/95 px-3 py-2 text-[10px] font-extrabold text-slate-800 shadow-sm sm:text-xs">
+                  <ShieldCheck size={14} className="text-emerald-600" />
                   Transparent Process
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold">
-                  <Zap size={13} className="text-yellow-300" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/95 px-3 py-2 text-[10px] font-extrabold text-slate-800 shadow-sm sm:text-xs">
+                  <Zap size={14} className="text-amber-500" />
                   On-Time Payout
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-bold">
-                  <LockKeyhole size={13} className="text-emerald-300" />
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white/95 px-3 py-2 text-[10px] font-extrabold text-slate-800 shadow-sm sm:text-xs">
+                  <LockKeyhole size={14} className="text-blue-600" />
                   Secure & Safe
                 </span>
               </div>
             </div>
 
-            <div className="hidden w-[260px] shrink-0 space-y-2 lg:block">
-              <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="flex items-center gap-2">
-                  <Zap size={18} className="text-yellow-300" />
+            <div className="grid w-full shrink-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:w-[290px] lg:grid-cols-1">
+              <div className="rounded-2xl border border-amber-200 bg-white/95 px-3 py-3 shadow-md">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100">
+                    <Zap size={19} className="text-amber-600" />
+                  </span>
                   <div>
-                    <p className="text-sm font-black">Instant Payout</p>
-                    <p className="text-[9px] text-blue-100">
-                      After Bank/NBFC Disbursement Confirmation
+                    <p className="text-sm font-black text-slate-900">Instant Payout</p>
+                    <p className="mt-0.5 text-[10px] font-semibold leading-4 text-slate-600">
+                      After Bank/NBFC disbursement confirmation
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="flex items-center gap-2">
-                  <BarChart3 size={18} className="text-cyan-300" />
+              <div className="rounded-2xl border border-emerald-200 bg-white/95 px-3 py-3 shadow-md">
+                <div className="flex items-center gap-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                    <BarChart3 size={19} className="text-emerald-600" />
+                  </span>
                   <div>
-                    <p className="text-sm font-black">Higher Slab %</p>
-                    <p className="text-[9px] text-blue-100">
-                      Earn More Each Month
+                    <p className="text-sm font-black text-slate-900">Higher Slab %</p>
+                    <p className="mt-0.5 text-[10px] font-semibold leading-4 text-slate-600">
+                      Earn more as your business grows
                     </p>
                   </div>
                 </div>
@@ -446,7 +457,6 @@ export default function DsaPayoutPage() {
             </div>
           </div>
         </section>
-
         {/* LIVE MESSAGE */}
         {(message || error) && (
           <div
@@ -496,8 +506,8 @@ export default function DsaPayoutPage() {
 
           <StatCard
             icon={<Receipt size={20} />}
-            title="TDS Deducted"
-            value={loading ? "Loading..." : money(summary.tdsDeducted)}
+            title="Lifetime Earnings"
+            value={loading ? "Loading..." : money(summary.approvedCommission)}
             subtitle="As per Income Tax Act"
             iconClass="bg-pink-50 text-pink-600"
           />
@@ -708,7 +718,7 @@ export default function DsaPayoutPage() {
               ["Loan Disbursed", "From Bank/NBFC", CheckCircle2],
               ["Banker Confirmation", "Verification in progress", CheckCircle2],
               ["Payout Eligible", "As per slab & policy", CheckCircle2],
-              ["TDS Deduction", "As per IT Act", Percent],
+              ["Lifetime Earnings", "As per IT Act", Percent],
               ["Payout Release", "Bank Transfer (NEFT/IMPS)", Wallet],
             ].map(([title, sub, Icon], index) => (
               <div
@@ -942,6 +952,15 @@ export default function DsaPayoutPage() {
     </main>
   );
 }
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import prisma from "../../prisma/prisma";
 import bcrypt from "bcryptjs";
 import * as XLSX from "xlsx";
@@ -233,68 +233,46 @@ export const updateUser = async (
 /**
  * BLOCK USER
  */
-export const blockUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-
+export const blockUser = async (req: Request, res: Response): Promise<void> => {
   try {
-
-    const user =
-      await prisma.user.update({
-        where: {
-          id: req.params.id as string,
-        },
-        data: {
-          isBlocked: true,
-        },
-      });
-
-    res.status(200).json({
-      success: true,
-      data: user,
+    const id = req.params.id as string;
+    const previous = await prisma.user.findUnique({
+      where: { id }, select: { id: true, email: true, isBlocked: true }
     });
+    if (!previous) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
 
-  } catch {
-
-    res.status(500).json({
-      success: false,
-    });
-
+    const user = await prisma.user.update({ where: { id }, data: { isBlocked: true } });
+    await writeBlockAudit(req, previous, previous.isBlocked, true);
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("Block User Error:", error);
+    res.status(500).json({ success: false });
   }
 };
 
 /**
  * UNBLOCK USER
  */
-export const unblockUser = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-
+export const unblockUser = async (req: Request, res: Response): Promise<void> => {
   try {
-
-    const user =
-      await prisma.user.update({
-        where: {
-          id: req.params.id as string,
-        },
-        data: {
-          isBlocked: false,
-        },
-      });
-
-    res.status(200).json({
-      success: true,
-      data: user,
+    const id = req.params.id as string;
+    const previous = await prisma.user.findUnique({
+      where: { id }, select: { id: true, email: true, isBlocked: true }
     });
+    if (!previous) {
+      res.status(404).json({ success: false, message: "User not found" });
+      return;
+    }
 
-  } catch {
-
-    res.status(500).json({
-      success: false,
-    });
-
+    const user = await prisma.user.update({ where: { id }, data: { isBlocked: false } });
+    await writeBlockAudit(req, previous, previous.isBlocked, false);
+    res.status(200).json({ success: true, data: user });
+  } catch (error) {
+    console.error("Unblock User Error:", error);
+    res.status(500).json({ success: false });
   }
 };
 
@@ -1213,15 +1191,28 @@ export const getUserLoans = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = String(req.params.userId);
+    const authUser = (req as any).user;
+    const requestedUserId = String(req.params.userId || "");
+    const role = String(authUser?.role || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+
+    if (
+      !authUser?.id ||
+      String(authUser.id) !== requestedUserId ||
+      !["USER", "CUSTOMER"].includes(role)
+    ) {
+      res.status(403).json({
+        success: false,
+        message: "Access denied for this customer account.",
+      });
+      return;
+    }
 
     const loans = await prisma.loanApplication.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { userId: requestedUserId },
+      orderBy: { createdAt: "desc" },
     });
 
     res.status(200).json({
@@ -1230,10 +1221,10 @@ export const getUserLoans = async (
       data: loans,
     });
   } catch (error) {
+    console.error("GET USER LOANS ERROR:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch user loans",
-      error,
+      message: "Failed to fetch user loans.",
     });
   }
 };
@@ -1279,16 +1270,37 @@ export const getUserDocuments = async (
   res: Response
 ): Promise<void> => {
   try {
-    const userId = String(req.params.userId);
+    const authenticatedUserId = req.user?.id;
+    const requestedUserId = String(req.params.userId || "");
 
-    const documents = await prisma.document.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+    if (!authenticatedUserId) {
+      res.status(401).json({ success: false, message: "Authentication required" });
+      return;
+    }
+
+    if (requestedUserId !== authenticatedUserId) {
+      res.status(403).json({ success: false, message: "You cannot access another user's documents" });
+      return;
+    }
+
+    const uploads = await prisma.upload.findMany({
+      where: { userId: authenticatedUserId, isDeleted: false },
+      orderBy: { createdAt: "desc" },
     });
+
+    const documents = uploads.map((upload) => ({
+      id: upload.id,
+      documentName: upload.originalName || upload.fileName,
+      documentType: upload.documentType || upload.category || "Document",
+      fileName: upload.fileName,
+      originalName: upload.originalName || upload.fileName,
+      fileType: upload.mimeType || upload.fileType,
+      status: upload.status,
+      createdAt: upload.createdAt,
+      fileSize: upload.fileSize,
+      category: upload.category,
+      rejectionReason: upload.rejectReason,
+    }));
 
     res.status(200).json({
       success: true,
@@ -1296,11 +1308,8 @@ export const getUserDocuments = async (
       data: documents,
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user documents",
-      error,
-    });
+    console.error("Failed to fetch user documents:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch user documents" });
   }
 };
 /**
@@ -2479,3 +2488,37 @@ export const bulkDeleteUsers = async (
     });
   }
 };
+
+
+async function writeBlockAudit(
+  req: Request,
+  target: { id: string; email?: string | null },
+  oldBlocked: boolean,
+  newBlocked: boolean
+) {
+  try {
+    const actor = (req as any).user;
+    await prisma.auditLog.create({
+      data: {
+        action: newBlocked ? "USER_BLOCKED" : "USER_UNBLOCKED",
+        module: "USER_MANAGEMENT",
+        entityId: target.id,
+        performedBy: actor?.id || actor?.userId || undefined,
+        role: actor?.role || undefined,
+        severity: newBlocked ? "WARNING" : "INFO",
+        ipAddress: req.ip,
+        userAgent: req.get("user-agent"),
+        oldData: { isBlocked: oldBlocked },
+        newData: { isBlocked: newBlocked },
+        metadata: {
+          targetUserId: target.id,
+          targetEmail: target.email || null,
+          reason: req.body?.reason || "Not provided by operator"
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Block Audit Error:", error);
+  }
+}
+

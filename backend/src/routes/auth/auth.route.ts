@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 
 import {
   sendRegisterOtp,
@@ -10,12 +10,15 @@ import {
   deleteAccount,
 } from "../../controllers/auth/auth.controller";
 
+import { registerPartner } from "../../controllers/auth/partnerAuth.controller";
+
 const router = Router();
 
 router.post("/send-otp", sendRegisterOtp);
 
 router.post("/verify-otp", verifyRegisterOtp);
 
+router.post("/register-partner", registerPartner);
 router.post("/register", registerUser);
 
 router.post("/login", loginUser);

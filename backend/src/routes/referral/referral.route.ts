@@ -1,4 +1,5 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
 
 import {
   createReferral,
@@ -25,7 +26,7 @@ import {
   getPartnerReferrals,
 
   getReferralEarnings,
-  getReferralRewards,
+  getReferralRewards, getReferralHistory,
   getReferralCommissions,
 
   getPendingReferrals,
@@ -139,7 +140,7 @@ router.get("/expired", getExpiredReferrals);
 
 router.post("/generate-code", generateReferralCode);
 router.post("/validate-code", validateReferralCode);
-router.post("/apply-code", applyReferralCode);
+router.post("/apply-code", authMiddleware, applyReferralCode);
 
 /* ========================================
    USER REFERRALS
@@ -154,6 +155,7 @@ router.get("/partner/:partnerId", getPartnerReferrals);
    EARNINGS
 ======================================== */
 
+router.get("/history/:userId", getReferralHistory);
 router.get("/earnings/:userId", getReferralEarnings);
 router.get("/rewards/:userId", getReferralRewards);
 router.get("/commissions/:userId", getReferralCommissions);

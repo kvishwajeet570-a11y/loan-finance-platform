@@ -358,52 +358,57 @@ class DSAService {
         0
       );
 
-    const monthlyApplications =
-      applications.filter(
-        (loan) =>
-          new Date(loan.createdAt) >= sixMonthsStart
-      );
+    const firstApplicationDate = applications.length
+      ? applications.reduce(
+          (earliest, loan) => {
+            const created = new Date(loan.createdAt);
+            return created < earliest ? created : earliest;
+          },
+          new Date(applications[0].createdAt)
+        )
+      : new Date(currentYear, currentMonth, 1);
+
+    const firstMonth = new Date(
+      firstApplicationDate.getFullYear(),
+      firstApplicationDate.getMonth(),
+      1
+    );
+
+    const monthCount = Math.max(
+      1,
+      (currentYear - firstMonth.getFullYear()) * 12 +
+        currentMonth - firstMonth.getMonth() + 1
+    );
 
     const monthlyTrend = Array.from(
-      { length: 6 },
+      { length: monthCount },
       (_, index) => {
         const date = new Date(
-          currentYear,
-          currentMonth - (5 - index),
+          firstMonth.getFullYear(),
+          firstMonth.getMonth() + index,
           1
         );
-
         const year = date.getFullYear();
         const month = date.getMonth();
 
-        const monthLoans = monthlyApplications.filter(
-          (loan) => {
-            const created = new Date(loan.createdAt);
-
-            return (
-              created.getFullYear() === year &&
-              created.getMonth() === month
-            );
-          }
-        );
+        const monthLoans = applications.filter((loan) => {
+          const created = new Date(loan.createdAt);
+          return created.getFullYear() === year &&
+            created.getMonth() === month;
+        });
 
         return {
+          monthKey: `${year}-${String(month + 1).padStart(2, "0")}`,
           month: date.toLocaleString("en-IN", {
             month: "short",
+            year: "2-digit",
           }),
           applications: monthLoans.length,
-          approved: monthLoans.filter(
-            (loan) => loan.status === "APPROVED"
-          ).length,
-          pending: monthLoans.filter(
-            (loan) => loan.status === "PENDING"
-          ).length,
-          rejected: monthLoans.filter(
-            (loan) => loan.status === "REJECTED"
-          ).length,
+          approved: monthLoans.filter((loan) => loan.status === "APPROVED").length,
+          pending: monthLoans.filter((loan) => loan.status === "PENDING").length,
+          rejected: monthLoans.filter((loan) => loan.status === "REJECTED").length,
           loanAmount: monthLoans.reduce(
-            (sum, loan) =>
-              sum + Number(loan.amount || 0),
+            (sum, loan) => sum + Number(loan.amount || 0),
             0
           ),
         };
@@ -416,26 +421,24 @@ class DSAService {
     > = {};
 
     for (const loan of applications) {
+      const rawName = String(loan.loanType || "Other").trim();
+      const normalized = rawName.toUpperCase().replace(/[\s-]+/g, "_");
+
       const name =
-        String(loan.loanType || "Other").trim() ||
-        "Other";
+        normalized === "EDUCATION_LOAN" ? "Education Loan" :
+        normalized === "PERSONAL_LOAN" ? "Personal Loan" :
+        normalized === "INSTANT_PERSONAL_LOAN" ? "Instant Personal Loan" :
+        rawName || "Other";
 
       if (!productMap[name]) {
-        productMap[name] = {
-          applications: 0,
-          amount: 0,
-        };
+        productMap[name] = { applications: 0, amount: 0 };
       }
 
       productMap[name].applications += 1;
-      productMap[name].amount += Number(
-        loan.amount || 0
-      );
+      productMap[name].amount += Number(loan.amount || 0);
     }
 
-    const loanProducts = Object.entries(
-      productMap
-    ).map(([name, data]) => ({
+    const loanProducts = Object.entries(productMap).map(([name, data]) => ({
       name,
       value: data.applications,
       amount: data.amount,
@@ -655,6 +658,8 @@ class DSAService {
 }
 
 export default new DSAService();
+
+
 
 
 

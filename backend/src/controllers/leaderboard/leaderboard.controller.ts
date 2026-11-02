@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import prisma from "../../prisma/prisma";
 
 /* ========================================
@@ -77,8 +77,119 @@ export const getOverallLeaderboard = async (
 export const getCustomerLeaderboard =
   getOverallLeaderboard;
 
-export const getDsaLeaderboard =
-  getOverallLeaderboard;
+export const getDsaLeaderboard = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const dsas = await prisma.user.findMany({
+      where: {
+        role: { in: ["DSA", "dsa"] },
+        isDeleted: false,
+        isBlocked: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        state: true,
+      },
+    });
+
+    const ids = dsas.map((dsa) => dsa.id);
+
+    const [commissions, loans, referrals] = await Promise.all([
+      ids.length
+        ? prisma.commission.findMany({
+            where: {
+              userId: { in: ids },
+              status: "APPROVED",
+            },
+            select: {
+              userId: true,
+              commissionAmount: true,
+            },
+          })
+        : Promise.resolve([]),
+
+      ids.length
+        ? prisma.loanApplication.findMany({
+            where: {
+              assignedTo: { in: ids },
+              status: "APPROVED",
+            },
+            select: {
+              assignedTo: true,
+            },
+          })
+        : Promise.resolve([]),
+
+      ids.length
+        ? prisma.referral.findMany({
+            where: {
+              userId: { in: ids },
+            },
+            select: {
+              userId: true,
+              totalReferrals: true,
+              successfulReferrals: true,
+              totalEarnings: true,
+            },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const rows = dsas.map((dsa) => {
+      const ownCommissions = commissions.filter(
+        (item) => item.userId === dsa.id
+      );
+
+      const ownLoans = loans.filter(
+        (item) => item.assignedTo === dsa.id
+      );
+
+      const ownReferral = referrals.find(
+        (item) => item.userId === dsa.id
+      );
+
+      return {
+        userId: dsa.id,
+        name: dsa.name || "DSA Partner",
+        state: dsa.state || "—",
+        totalReferrals: ownReferral?.totalReferrals ?? 0,
+        successfulReferrals: ownReferral?.successfulReferrals ?? 0,
+        approvedLoans: ownLoans.length,
+        totalEarnings: ownCommissions.reduce(
+          (sum, item) => sum + Number(item.commissionAmount || 0),
+          0
+        ),
+        commissionCount: ownCommissions.length,
+        referralEarnings: Number(ownReferral?.totalEarnings ?? 0),
+      };
+    });
+
+    rows.sort(
+      (a, b) =>
+        b.totalEarnings - a.totalEarnings ||
+        b.approvedLoans - a.approvedLoans ||
+        b.successfulReferrals - a.successfulReferrals
+    );
+
+    return res.status(200).json({
+      success: true,
+      currentUserId: (req as any).user?.id ?? null,
+      data: rows.map((row, index) => ({
+        rank: index + 1,
+        ...row,
+      })),
+    });
+  } catch (error) {
+    console.error("[DSA_LEADERBOARD_ERROR]", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch DSA leaderboard",
+    });
+  }
+};
 
 export const getPartnerLeaderboard =
   getOverallLeaderboard;
@@ -148,8 +259,61 @@ export const getWalletLeaderboard =
    ACHIEVEMENTS
 ======================================== */
 
-export const getAchievementLeaderboard =
-  getOverallLeaderboard;
+export const getAchievementLeaderboard = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const dsas = await prisma.user.findMany({
+      where: { role: { in: ["DSA", "dsa"] } },
+      select: { id: true, name: true },
+    });
+
+    const ids = dsas.map((dsa) => dsa.id);
+
+    const achievements = ids.length
+      ? await prisma.achievement.findMany({
+          where: { userId: { in: ids } },
+          select: { userId: true, reward: true },
+        })
+      : [];
+
+    const leaderboard = dsas
+      .map((dsa) => {
+        const records = achievements.filter(
+          (item) => item.userId === dsa.id
+        );
+
+        return {
+          userId: dsa.id,
+          name: dsa.name || "DSA Partner",
+          totalAchievements: records.length,
+          totalRewards: records.reduce(
+            (sum, item) => sum + Number(item.reward ?? 0),
+            0
+          ),
+        };
+      })
+      .filter((dsa) => dsa.totalAchievements > 0)
+      .sort(
+        (a, b) =>
+          b.totalAchievements - a.totalAchievements ||
+          b.totalRewards - a.totalRewards
+      )
+      .map((dsa, index) => ({
+        rank: index + 1,
+        ...dsa,
+      }));
+
+    res.status(200).json({ success: true, data: leaderboard });
+  } catch (error) {
+    console.error("[ACHIEVEMENT_LEADERBOARD_ERROR]", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch achievement leaderboard",
+    });
+  }
+};
 
 /* ========================================
    ANALYTICS
@@ -231,3 +395,4 @@ export const exportLeaderboardPdf =
         "PDF export coming soon",
     });
   };
+

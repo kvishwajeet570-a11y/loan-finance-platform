@@ -1,4 +1,4 @@
-import crypto from "crypto";
+﻿import crypto from "crypto";
 import { ReferralStatus } from "@prisma/client";
 import prisma from "../../prisma/prisma";
 
@@ -23,8 +23,8 @@ export class ReferralService {
   /* ========================================
      HELPERS
   ======================================== */
-  private static generateCode(): string {
-    return "DSA" + crypto.randomBytes(4).toString("hex").toUpperCase();
+  private static generateCode(prefix: string = "DSA"): string {
+    return prefix + crypto.randomBytes(4).toString("hex").toUpperCase();
   }
 
   /* ========================================
@@ -38,9 +38,10 @@ export class ReferralService {
     const existing = await prisma.referral.findUnique({ where: { userId: dto.userId } });
     if (existing) return { alreadyExists: true, referral: existing };
 
-    let referralCode = this.generateCode();
+    const prefix = user.role.toLowerCase() === "user" ? "CUS" : "DSA";
+    let referralCode = this.generateCode(prefix);
     while (await prisma.referral.findUnique({ where: { referralCode } })) {
-      referralCode = this.generateCode();
+      referralCode = this.generateCode(prefix);
     }
 
     const referral = await prisma.referral.create({
@@ -141,7 +142,7 @@ export class ReferralService {
         data: {
           userId: referral.userId,
           title: "Referral Reward Earned",
-          message: `₹${reward} referral reward has been credited to your wallet.`,
+          message: `â‚¹${reward} referral reward has been credited to your wallet.`,
           type: "referral",
           priority: "high",
           channel: "app",
@@ -244,3 +245,4 @@ export class ReferralService {
     });
   }
 }
+

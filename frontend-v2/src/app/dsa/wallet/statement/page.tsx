@@ -58,6 +58,33 @@ export default function DsaWalletStatementPage() {
 
   const netBalance = totalCredit - totalDebit;
 
+  const exportStatement = (rows: typeof transactions) => {
+    const headers = ["Transaction ID", "Type", "Description", "Amount", "Status", "Date"];
+    const csvRows = [
+      headers,
+      ...rows.map((tx: any) => [
+        tx.transactionId ?? tx.id ?? "",
+        tx.type ?? "",
+        tx.description ?? "",
+        tx.amount ?? 0,
+        tx.status ?? "",
+        tx.createdAt ?? tx.date ?? "",
+      ]),
+    ];
+    const csv = csvRows
+      .map((row) => row.map((value) => '"' + String(value).replace(/"/g, '""') + '"').join(","))
+      .join("\r\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "DSA-Wallet-Statement.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = transactions.filter((tx) => {
     const q = search.toLowerCase();
 
@@ -270,13 +297,12 @@ export default function DsaWalletStatementPage() {
 
             <div className="flex gap-2">
 
-              <button className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-black text-slate-600">
+              <button onClick={() => window.location.reload()} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-black text-slate-600">
                 <RefreshCw size={15} />
                 Refresh
               </button>
 
-              <button
-                onClick={() => window.print()}
+              <button onClick={() => exportStatement(filtered)}
                 className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-xs font-black text-white shadow-lg shadow-blue-200"
               >
                 <Download size={15} />
@@ -952,7 +978,7 @@ export default function DsaWalletStatementPage() {
                     performance from one place.
                   </p>
 
-                  <button className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-xs font-black text-white shadow-lg">
+                  <button onClick={() => window.location.href = "/dsa/wallet/balance"} className="mt-5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-5 py-3 text-xs font-black text-white shadow-lg">
                     Explore Wallet
                   </button>
 
@@ -1150,4 +1176,5 @@ function Insight({
     </div>
   );
 }
+
 

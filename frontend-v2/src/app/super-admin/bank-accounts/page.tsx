@@ -1,924 +1,531 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Building2,
-  CheckCircle2,
-  Clock3,
-  RefreshCw,
-  Search,
-  ShieldCheck,
-  UserRound,
-  XCircle,
-  Star,
-  Users,
-  ChevronRight,
-  MoreVertical,
-  Copy,
-  SlidersHorizontal,
-  X,
+  Landmark, Plus, Search, RefreshCw, Download, Eye, Pencil,
+  Trash2, Star, ShieldCheck, Clock3, X, ChevronLeft, ChevronRight,
+  CheckCircle2, AlertCircle, Building2, CreditCard, Filter
 } from "lucide-react";
 import api from "@/lib/api";
 
-type BankAccount = {
+type Bank = {
   id: string;
-  accountHolderName?: string;
-  bankName?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  branchName?: string;
-  verificationStatus?: string;
+  userId: string;
+  accountHolderName: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branchName?: string | null;
   isPrimary?: boolean;
+  verificationStatus?: string;
+  rejectionReason?: string | null;
+  verifiedAt?: string | null;
   createdAt?: string;
-  user?: {
-    id?: string;
-    name?: string;
-    fullName?: string;
-    email?: string;
-    phone?: string;
-  };
+  updatedAt?: string;
+  user?: { id?: string; name?: string; email?: string; phoneNo?: string };
 };
 
-function unwrap(payload: any): any {
-  if (!payload) return null;
-  if (payload.data !== undefined) return payload.data;
-  return payload;
-}
+type BankForm = {
+  accountHolderName: string;
+  bankName: string;
+  accountNumber: string;
+  ifscCode: string;
+  branchName: string;
+  isPrimary: boolean;
+};
 
-function getAccounts(payload: any): BankAccount[] {
-  const data = unwrap(payload);
+const emptyForm: BankForm = {
+  accountHolderName: "",
+  bankName: "",
+  accountNumber: "",
+  ifscCode: "",
+  branchName: "",
+  isPrimary: false
+};
 
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.accounts)) return data.accounts;
-  if (Array.isArray(data?.banks)) return data.banks;
-  if (Array.isArray(data?.items)) return data.items;
+const maskAccount = (value?: string) => {
+  if (!value) return "—";
+  return value.length <= 4 ? value : `•••• •••• ${value.slice(-4)}`;
+};
 
-  return [];
-}
-
-function maskAccount(value?: string) {
-  const account = String(value || "");
-
-  if (!account) return "•••• ••••";
-
-  if (account.length <= 4) {
-    return `•••• ${account}`;
+const statusClass = (status?: string) => {
+  switch ((status || "").toUpperCase()) {
+    case "VERIFIED": return "border-emerald-400/60 bg-emerald-500/15 text-emerald-300";
+    case "PENDING": return "border-amber-400/60 bg-amber-500/15 text-amber-300";
+    case "REJECTED": return "border-rose-400/60 bg-rose-500/15 text-rose-300";
+    default: return "border-slate-400/40 bg-slate-500/15 text-slate-300";
   }
+};
 
-  return `•••• •••• ${account.slice(-4)}`;
-}
-
-function statusInfo(status?: string) {
-  const value = String(status || "PENDING").toUpperCase();
-
-  if (
-    value === "VERIFIED" ||
-    value === "APPROVED" ||
-    value === "SUCCESS"
-  ) {
-    return {
-      label: "Verified",
-      icon: CheckCircle2,
-      className:
-        "border-emerald-200 bg-emerald-50 text-emerald-700",
-    };
-  }
-
-  if (
-    value === "REJECTED" ||
-    value === "FAILED"
-  ) {
-    return {
-      label: "Rejected",
-      icon: XCircle,
-      className:
-        "border-red-200 bg-red-50 text-red-700",
-    };
-  }
-
-  return {
-    label: "Pending Verification",
-    icon: Clock3,
-    className:
-      "border-amber-200 bg-amber-50 text-amber-700",
-  };
-}
-
-function bankInitial(bankName?: string) {
-  return String(bankName || "B").trim().charAt(0).toUpperCase();
-}
-
-function formatDate(date?: string) {
-  if (!date) return "";
-
-  const value = new Date(date);
-
-  if (Number.isNaN(value.getTime())) return "";
-
-  return value.toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+export default function BankAccountsPage() {
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [analytics, setAnalytics] = useState({
+    totalAccounts: 0,
+    verifiedAccounts: 0,
+    pendingAccounts: 0,
+    rejectedAccounts: 0,
+    primaryAccounts: 0
   });
-}
 
-export default function SuperAdminBankAccountsPage() {
-  const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [verifyingId, setVerifyingId] = useState("");
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [bankFilter, setBankFilter] = useState("ALL");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [copiedId, setCopiedId] = useState("");
+  const [notice, setNotice] = useState("");
 
-  const loadAccounts = useCallback(async () => {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const limit = 10;
+
+  const [modal, setModal] = useState<"add" | "edit" | "view" | null>(null);
+  const [selected, setSelected] = useState<Bank | null>(null);
+  const [form, setForm] = useState<BankForm>(emptyForm);
+
+  const load = useCallback(async (nextPage = page) => {
+    setLoading(true);
+    setError("");
+
     try {
-      setError("");
+      const params: Record<string, string | number> = {
+        page: nextPage,
+        limit
+      };
+      if (search.trim()) params.search = search.trim();
+      if (status) params.status = status;
 
-      const token = localStorage.getItem("loan_finance_token");
+      const [listResult, analyticsResult] = await Promise.all([
+        api.get("/bank", { params }),
+        api.get("/bank/analytics")
+      ]);
 
-      if (!token) {
-        setError("Super Admin session not found.");
-        return;
-      }
+      const list = listResult.data || {};
+      const listData = list.accounts || list.data || list.data?.accounts || [];
 
-      const response = await api.get(
-        `/bank?page=1&limit=100&search=${encodeURIComponent(search)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          withCredentials: true,
-        }
-      );
+      setBanks(Array.isArray(listData) ? listData : []);
+      setTotal(Number(list.total ?? listData.length ?? 0));
+      setPages(Math.max(1, Number(list.totalPages ?? 1)));
+      setPage(Number(list.page ?? nextPage));
 
-      setAccounts(getAccounts(response.data));
-    } catch (err: any) {
-      console.error("Super Admin Bank Accounts Error:", err);
-
-      if (err?.response?.status === 401) {
-        setError("Session expired. Please login again.");
-      } else if (err?.response?.status === 403) {
-        setError(
-          "You do not have permission to manage bank accounts."
-        );
-      } else {
-        setError(
-          err?.response?.data?.message ||
-            "Failed to load bank accounts."
-        );
-      }
+      const stats = analyticsResult.data?.data || analyticsResult.data || {};
+      setAnalytics({
+        totalAccounts: Number(stats.totalAccounts || 0),
+        verifiedAccounts: Number(stats.verifiedAccounts || 0),
+        pendingAccounts: Number(stats.pendingAccounts || 0),
+        rejectedAccounts: Number(stats.rejectedAccounts || 0),
+        primaryAccounts: Number(stats.primaryAccounts || 0)
+      });
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Bank accounts load nahi ho paye.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  }, [search]);
+  }, [page, search, status]);
 
   useEffect(() => {
-    loadAccounts();
-  }, [loadAccounts]);
+    load(1);
+  }, [search, status]);
 
-  const verifyAccount = async (id: string) => {
+  useEffect(() => {
+    load(1);
+  }, []);
+
+  const openAdd = () => {
+    setSelected(null);
+    setForm(emptyForm);
+    setModal("add");
+    setError("");
+    setNotice("");
+  };
+
+  const openEdit = (bank: Bank) => {
+    setSelected(bank);
+    setForm({
+      accountHolderName: bank.accountHolderName || "",
+      bankName: bank.bankName || "",
+      accountNumber: bank.accountNumber || "",
+      ifscCode: bank.ifscCode || "",
+      branchName: bank.branchName || "",
+      isPrimary: Boolean(bank.isPrimary)
+    });
+    setModal("edit");
+    setError("");
+    setNotice("");
+  };
+
+  const saveBank = async () => {
+    setError("");
+    setNotice("");
+
+    if (!form.accountHolderName.trim() || !form.bankName.trim() ||
+        !form.accountNumber.trim() || !form.ifscCode.trim()) {
+      setError("Account holder, bank name, account number and IFSC are required.");
+      return;
+    }
+
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/i.test(form.ifscCode.trim())) {
+      setError("Please enter a valid IFSC code.");
+      return;
+    }
+
+    setSaving(true);
     try {
-      setVerifyingId(id);
-      setError("");
-      setMessage("");
+      const payload = {
+        accountHolderName: form.accountHolderName.trim(),
+        bankName: form.bankName.trim(),
+        accountNumber: form.accountNumber.trim(),
+        ifscCode: form.ifscCode.trim().toUpperCase(),
+        branchName: form.branchName.trim() || undefined,
+        isPrimary: form.isPrimary
+      };
 
-      const token = localStorage.getItem("loan_finance_token");
-
-      const response = await api.patch(
-        `/bank/${id}/verify`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          withCredentials: true,
-        }
-      );
-
-      if (response.data?.success === false) {
-        throw new Error(
-          response.data?.message ||
-            "Verification failed."
-        );
+      if (modal === "edit" && selected) {
+        await api.put(`/bank/${selected.id}`, payload);
+        setNotice("Bank account updated successfully.");
+      } else {
+        await api.post("/bank", payload);
+        setNotice("Bank account added successfully.");
       }
 
-      setMessage(
-        "Bank account verified successfully."
-      );
-
-      await loadAccounts();
-    } catch (err: any) {
-      console.error(
-        "Verify Bank Account Error:",
-        err
-      );
-
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to verify bank account."
-      );
+      setModal(null);
+      await load(1);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Unable to save bank account.");
     } finally {
-      setVerifyingId("");
+      setSaving(false);
     }
   };
 
-  const refresh = async () => {
-    setRefreshing(true);
-    await loadAccounts();
-  };
-
-  const banks = useMemo(() => {
-    return Array.from(
-      new Set(
-        accounts
-          .map((account) =>
-            String(account.bankName || "").trim()
-          )
-          .filter(Boolean)
-      )
-    );
-  }, [accounts]);
-
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((account) => {
-      const status = String(
-        account.verificationStatus || "PENDING"
-      ).toUpperCase();
-
-      const matchesStatus =
-        statusFilter === "ALL" ||
-        (statusFilter === "PENDING" &&
-          status === "PENDING") ||
-        (statusFilter === "VERIFIED" &&
-          (status === "VERIFIED" ||
-            status === "APPROVED")) ||
-        (statusFilter === "REJECTED" &&
-          (status === "REJECTED" ||
-            status === "FAILED"));
-
-      const matchesBank =
-        bankFilter === "ALL" ||
-        account.bankName === bankFilter;
-
-      return matchesStatus && matchesBank;
-    });
-  }, [accounts, statusFilter, bankFilter]);
-
-  const totalAccounts = accounts.length;
-
-  const pendingCount = accounts.filter(
-    (account) =>
-      String(
-        account.verificationStatus || "PENDING"
-      ).toUpperCase() === "PENDING"
-  ).length;
-
-  const verifiedCount = accounts.filter(
-    (account) => {
-      const status = String(
-        account.verificationStatus || ""
-      ).toUpperCase();
-
-      return (
-        status === "VERIFIED" ||
-        status === "APPROVED"
-      );
-    }
-  ).length;
-
-  const uniqueCustomers = new Set(
-    accounts.map(
-      (account) =>
-        account.user?.id ||
-        account.user?.phone ||
-        account.accountHolderName ||
-        account.id
-    )
-  ).size;
-
-  const copyAccount = async (
-    id: string,
-    accountNumber?: string
-  ) => {
-    if (!accountNumber) return;
-
+  const verifyBank = async (bank: Bank) => {
+    if (!window.confirm(`Verify bank account for ${bank.accountHolderName}?`)) return;
+    setError("");
+    setNotice("");
     try {
-      await navigator.clipboard.writeText(
-        accountNumber
-      );
-
-      setCopiedId(id);
-
-      setTimeout(() => {
-        setCopiedId("");
-      }, 1500);
-    } catch {
-      setCopiedId("");
+      await api.patch(`/bank/${bank.id}/verify`);
+      setNotice("Bank account verified successfully.");
+      await load(page);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Verification failed.");
     }
+  };
+
+  const setPrimary = async (bank: Bank) => {
+    if (!window.confirm(`Set ${bank.bankName} as primary account for ${bank.accountHolderName}?`)) return;
+    setError("");
+    setNotice("");
+    try {
+      await api.patch(`/bank/${bank.id}/set-primary`, { userId: bank.userId });
+      setNotice("Primary bank account updated.");
+      await load(page);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Unable to set primary account.");
+    }
+  };
+
+  const deleteBank = async (bank: Bank) => {
+    if (!window.confirm(`Delete bank account ${maskAccount(bank.accountNumber)} for ${bank.accountHolderName}? This cannot be undone.`)) return;
+    setError("");
+    setNotice("");
+    try {
+      await api.delete(`/bank/${bank.id}`);
+      setNotice("Bank account deleted.");
+      await load(page);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || "Unable to delete bank account.");
+    }
+  };
+
+  const exportCSV = () => {
+    const header = [
+      "Bank Name", "Account Holder", "Account Number",
+      "IFSC", "Branch", "User", "Verification Status", "Primary"
+    ];
+    const rows = banks.map(b => [
+      b.bankName, b.accountHolderName, b.accountNumber,
+      b.ifscCode, b.branchName || "", b.user?.name || "",
+      b.verificationStatus || "", b.isPrimary ? "Yes" : "No"
+    ]);
+
+    const csv = [header, ...rows].map(row =>
+      row.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "AIFIN-Bank-Accounts.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const cards = [
+    { label: "Total Accounts", value: analytics.totalAccounts, icon: Landmark, color: "cyan" },
+    { label: "Verified Accounts", value: analytics.verifiedAccounts, icon: ShieldCheck, color: "green" },
+    { label: "Pending Accounts", value: analytics.pendingAccounts, icon: Clock3, color: "amber" },
+    { label: "Rejected Accounts", value: analytics.rejectedAccounts, icon: AlertCircle, color: "red" }
+  ];
+
+  const cardColors: Record<string, string> = {
+    cyan: "border-cyan-400 bg-cyan-500/10 text-cyan-300",
+    green: "border-emerald-400 bg-emerald-500/10 text-emerald-300",
+    amber: "border-amber-400 bg-amber-500/10 text-amber-300",
+    red: "border-rose-400 bg-rose-500/10 text-rose-300"
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="min-h-screen bg-[radial-gradient(ellipse_at_15%_10%,_rgba(0,190,255,0.18),_transparent_32%),radial-gradient(ellipse_at_85%_15%,_rgba(105,0,255,0.16),_transparent_35%),linear-gradient(135deg,#020817,#061a36_55%,#020817)] px-4 pb-8 pt-5 text-white sm:px-5 lg:px-7">
+      <div className="mx-auto max-w-[1600px] space-y-5">
 
-        {/* Premium Header */}
-        <div className="relative mb-6 overflow-hidden rounded-[28px] border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-violet-50 p-6 shadow-sm sm:p-8">
-
-          <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-blue-200/30 blur-2xl" />
-          <div className="absolute -bottom-24 right-1/3 h-56 w-56 rounded-full bg-violet-200/20 blur-2xl" />
-
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-
-            <div className="flex items-center gap-4">
-
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-200">
-                <Building2 size={31} />
-              </div>
-
-              <div>
-                <div className="mb-1 flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
-
-                  <span className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-600">
-                    Central Control
-                  </span>
-                </div>
-
-                <h1 className="text-2xl font-black tracking-tight text-[#071b3a] sm:text-3xl lg:text-4xl">
-                  Bank Accounts
-                </h1>
-
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  Review and verify customer bank accounts.
-                </p>
-              </div>
+        {/* Compact heading - no large banner */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-300/60 bg-gradient-to-br from-cyan-400/25 to-blue-700/30 text-cyan-200 shadow-[0_0_28px_rgba(0,190,255,0.3)]">
+              <Landmark size={30} />
             </div>
-
-            <div className="hidden items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-5 py-4 shadow-sm backdrop-blur md:flex">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <ShieldCheck size={22} />
-              </div>
-
-              <div>
-                <p className="text-xs font-black text-slate-800">
-                  Secure Banking
-                </p>
-
-                <p className="mt-0.5 text-[10px] font-semibold text-slate-400">
-                  Safer Customers • Stronger Ecosystem
-                </p>
-              </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-300">Financial Management</p>
+              <h1 className="text-3xl font-black tracking-tight drop-shadow-[0_0_18px_rgba(0,170,255,0.35)] sm:text-4xl">
+                Bank <span className="text-yellow-400">Accounts</span>
+              </h1>
+              <p className="mt-1 text-sm text-slate-300">Manage customer and partner bank accounts, verification and primary account details.</p>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => load(page)} disabled={loading}
+              className="flex items-center gap-2 rounded-xl border border-cyan-400/50 bg-[#10284a] px-4 py-3 text-sm font-extrabold hover:border-cyan-300 disabled:opacity-50">
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
+            </button>
+            <button onClick={openAdd}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 px-5 py-3 text-sm font-extrabold shadow-[0_0_28px_rgba(0,160,255,0.38)] transition hover:scale-[1.02] hover:brightness-125">
+              <Plus size={18} /> Add Bank Account
+            </button>
           </div>
         </div>
 
-        {/* Messages */}
-        {error && (
-          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            <XCircle
-              size={18}
-              className="mt-0.5 shrink-0"
-            />
-            <span>{error}</span>
-          </div>
-        )}
+        {error && <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
+        {notice && <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">{notice}</div>}
 
-        {message && (
-          <div className="mb-5 flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
-            <CheckCircle2
-              size={18}
-              className="mt-0.5 shrink-0"
-            />
-            <span>{message}</span>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-
-          <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600">
-                <Building2 size={23} />
+        {/* KPI cards */}
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {cards.map(c => {
+            const Icon = c.icon;
+            return (
+              <div key={c.label} className={`rounded-2xl border-2 ${cardColors[c.color]} bg-gradient-to-br from-[#102747]/95 to-[#091a32]/95 p-5 shadow-[0_0_30px_rgba(0,150,255,0.22)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_0_42px_rgba(0,190,255,0.38)] backdrop-blur-xl`}>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-bold text-white">{c.label}</p>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.08] p-3"><Icon size={25} /></div>
+                </div>
+                <p className="mt-3 text-3xl font-black text-white">{loading ? "..." : c.value.toLocaleString("en-IN")}</p>
+                <p className="mt-2 text-xs text-slate-400">Live backend analytics</p>
               </div>
+            );
+          })}
+        </section>
 
-              <ChevronRight
-                size={18}
-                className="text-blue-300"
-              />
+        {/* Default account summary */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-purple-400/50 bg-gradient-to-r from-[#24134b]/80 via-[#10284a]/90 to-[#07182f] p-4 shadow-[0_0_24px_rgba(140,70,255,0.15)]">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-purple-500/20 p-3 text-purple-300"><Star size={23} /></div>
+            <div>
+              <p className="text-xs text-slate-400">Primary Accounts</p>
+              <p className="text-xl font-black text-white">{analytics.primaryAccounts}</p>
             </div>
-
-            <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Total Accounts
-            </p>
-
-            <p className="mt-1 text-2xl font-black text-[#071b3a]">
-              {totalAccounts}
-            </p>
-
-            <p className="mt-1 text-[11px] font-semibold text-slate-400">
-              All customer bank accounts
-            </p>
           </div>
-
-          <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-white to-amber-50/60 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                <Clock3 size={23} />
-              </div>
-
-              <ChevronRight
-                size={18}
-                className="text-amber-300"
-              />
-            </div>
-
-            <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-amber-600">
-              Pending Verification
-            </p>
-
-            <p className="mt-1 text-2xl font-black text-[#071b3a]">
-              {pendingCount}
-            </p>
-
-            <p className="mt-1 text-[11px] font-semibold text-slate-400">
-              Awaiting admin review
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/60 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600">
-                <ShieldCheck size={23} />
-              </div>
-
-              <ChevronRight
-                size={18}
-                className="text-emerald-300"
-              />
-            </div>
-
-            <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-emerald-600">
-              Verified Accounts
-            </p>
-
-            <p className="mt-1 text-2xl font-black text-[#071b3a]">
-              {verifiedCount}
-            </p>
-
-            <p className="mt-1 text-[11px] font-semibold text-slate-400">
-              Verified & active
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-white to-violet-50/60 p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
-                <Users size={23} />
-              </div>
-
-              <ChevronRight
-                size={18}
-                className="text-violet-300"
-              />
-            </div>
-
-            <p className="mt-4 text-[10px] font-black uppercase tracking-wider text-violet-600">
-              Unique Customers
-            </p>
-
-            <p className="mt-1 text-2xl font-black text-[#071b3a]">
-              {uniqueCustomers}
-            </p>
-
-            <p className="mt-1 text-[11px] font-semibold text-slate-400">
-              Customers with accounts
-            </p>
-          </div>
+          <p className="text-xs text-slate-400">Number of accounts currently marked as primary.</p>
         </div>
 
         {/* Filters */}
-        <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="flex flex-col gap-3 xl:flex-row">
-
-            <div className="relative min-w-0 flex-1">
-              <Search
-                size={18}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-
-              <input
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                placeholder="Search by bank name, account holder, IFSC, branch..."
-                className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
-              />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-
-              <div className="relative">
-                <select
-                  value={statusFilter}
-                  onChange={(e) =>
-                    setStatusFilter(e.target.value)
-                  }
-                  className="h-12 min-w-[160px] appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                >
-                  <option value="ALL">
-                    All Status
-                  </option>
-                  <option value="PENDING">
-                    Pending
-                  </option>
-                  <option value="VERIFIED">
-                    Verified
-                  </option>
-                  <option value="REJECTED">
-                    Rejected
-                  </option>
-                </select>
-
-                <ChevronRight
-                  size={16}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"
-                />
-              </div>
-
-              <div className="relative">
-                <select
-                  value={bankFilter}
-                  onChange={(e) =>
-                    setBankFilter(e.target.value)
-                  }
-                  className="h-12 min-w-[160px] appearance-none rounded-xl border border-slate-200 bg-white px-4 pr-10 text-sm font-bold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                >
-                  <option value="ALL">
-                    All Banks
-                  </option>
-
-                  {banks.map((bank) => (
-                    <option
-                      key={bank}
-                      value={bank}
-                    >
-                      {bank}
-                    </option>
-                  ))}
-                </select>
-
-                <ChevronRight
-                  size={16}
-                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rotate-90 text-slate-400"
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch("");
-                  setStatusFilter("ALL");
-                  setBankFilter("ALL");
-                }}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 text-sm font-extrabold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
-              >
-                <X size={16} />
-                Clear
-              </button>
-
-              <button
-                type="button"
-                onClick={refresh}
-                disabled={refreshing}
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-sm font-extrabold text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 disabled:opacity-60"
-              >
-                <RefreshCw
-                  size={16}
-                  className={
-                    refreshing
-                      ? "animate-spin"
-                      : ""
-                  }
-                />
-                Refresh Data
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Results */}
-        {loading ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-16 text-center shadow-sm">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50">
-              <RefreshCw
-                size={25}
-                className="animate-spin text-blue-600"
-              />
-            </div>
-
-            <p className="mt-5 text-sm font-black text-slate-700">
-              Loading bank accounts...
-            </p>
-          </div>
-        ) : filteredAccounts.length === 0 ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-16 text-center shadow-sm">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <Building2
-                size={28}
-                className="text-slate-400"
-              />
-            </div>
-
-            <p className="mt-5 text-base font-black text-slate-800">
-              No bank accounts found
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Try changing your search or filters.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-
-            {filteredAccounts.map((account) => {
-              const status = statusInfo(
-                account.verificationStatus
-              );
-
-              const StatusIcon = status.icon;
-
-              const customerName =
-                account.user?.fullName ||
-                account.user?.name ||
-                "Customer";
-
-              const isPending =
-                String(
-                  account.verificationStatus ||
-                    "PENDING"
-                ).toUpperCase() ===
-                "PENDING";
-
-              return (
-                <div
-                  key={account.id}
-                  className="group relative overflow-hidden rounded-[26px] border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-slate-200/70"
-                >
-
-                  {/* Accent */}
-                  <div className="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-blue-600 to-violet-500" />
-
-                  <div className="p-5 pl-6 sm:p-6 sm:pl-7">
-
-                    {/* Top */}
-                    <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-
-                      <div className="flex min-w-0 items-start gap-4">
-
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-100 text-xl font-black text-blue-600 shadow-inner">
-                          {bankInitial(
-                            account.bankName
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h2 className="text-lg font-black text-[#071b3a] sm:text-xl">
-                              {account.bankName ||
-                                "Bank Account"}
-                            </h2>
-
-                            {account.isPrimary && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-amber-700">
-                                <Star
-                                  size={10}
-                                  fill="currentColor"
-                                />
-                                Primary
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-semibold text-slate-500">
-
-                            <span className="inline-flex items-center gap-1.5">
-                              <UserRound
-                                size={14}
-                              />
-                              {customerName}
-                            </span>
-
-                            {account.user?.phone && (
-                              <span className="text-xs text-slate-400">
-                                {account.user.phone}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-2 flex items-center gap-2">
-                            <p className="text-sm font-black tracking-[0.16em] text-slate-800">
-                              {maskAccount(
-                                account.accountNumber
-                              )}
-                            </p>
-
-                            {account.accountNumber && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  copyAccount(
-                                    account.id,
-                                    account.accountNumber
-                                  )
-                                }
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-blue-50 hover:text-blue-600"
-                                title="Copy account number"
-                              >
-                                <Copy size={14} />
-                              </button>
-                            )}
-
-                            {copiedId ===
-                              account.id && (
-                              <span className="text-[10px] font-bold text-emerald-600">
-                                Copied
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-
-                        <div className="text-left sm:text-right">
-                          <span
-                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-black ${status.className}`}
-                          >
-                            <StatusIcon
-                              size={14}
-                            />
-                            {status.label}
-                          </span>
-
-                          {account.createdAt && (
-                            <p className="mt-1.5 text-[10px] font-semibold text-slate-400">
-                              Added{" "}
-                              {formatDate(
-                                account.createdAt
-                              )}
-                            </p>
-                          )}
-                        </div>
-
-                        {isPending && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              verifyAccount(
-                                account.id
-                              )
-                            }
-                            disabled={
-                              verifyingId ===
-                              account.id
-                            }
-                            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {verifyingId ===
-                            account.id ? (
-                              <>
-                                <RefreshCw
-                                  size={16}
-                                  className="animate-spin"
-                                />
-                                Verifying...
-                              </>
-                            ) : (
-                              <>
-                                <ShieldCheck
-                                  size={17}
-                                />
-                                Verify Account
-                              </>
-                            )}
-                          </button>
-                        )}
-
-                        <button
-                          type="button"
-                          className="hidden h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 sm:flex"
-                        >
-                          <MoreVertical
-                            size={18}
-                          />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Details */}
-                    <div className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-
-                      <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-blue-50/40 p-4">
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
-                          Account Holder
-                        </p>
-
-                        <p className="mt-1.5 text-sm font-black text-slate-800">
-                          {account.accountHolderName ||
-                            "—"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-blue-50/40 p-4">
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
-                          IFSC Code
-                        </p>
-
-                        <p className="mt-1.5 text-sm font-black tracking-wide text-slate-800">
-                          {account.ifscCode ||
-                            "—"}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 to-blue-50/40 p-4">
-                        <p className="text-[9px] font-black uppercase tracking-[0.12em] text-slate-400">
-                          Branch
-                        </p>
-
-                        <p className="mt-1.5 text-sm font-black text-slate-800">
-                          {account.branchName ||
-                            "—"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Bottom */}
-                    <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
-
-                      <div className="flex items-center gap-2 text-[10px] font-semibold text-slate-400">
-                        <ShieldCheck
-                          size={14}
-                          className="text-emerald-500"
-                        />
-                        Secure banking information
-                      </div>
-
-                      <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-                        Account ID:
-                        <span className="font-mono text-slate-500">
-                          {account.id.slice(
-                            0,
-                            10
-                          )}
-                          ...
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
-              <ShieldCheck size={18} />
-            </div>
-
+        <section className="rounded-2xl border border-cyan-400/50 bg-gradient-to-br from-[#0b2b4e]/95 to-[#07182f]/95 p-5 shadow-[0_0_28px_rgba(0,150,255,0.18)]">
+          <h2 className="mb-4 flex items-center gap-2 text-sm font-extrabold text-cyan-300"><Filter size={18} /> Filter & Search</h2>
+          <div className="grid gap-3 md:grid-cols-[1.5fr_1fr_auto_auto]">
             <div>
-              <p className="text-xs font-black text-emerald-800">
-                Secure Bank Verification
-              </p>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-300">Search bank / holder / IFSC</label>
+              <div className="flex items-center gap-2 rounded-xl border border-blue-300/40 bg-[#071a34] px-3 focus-within:border-cyan-400">
+                <Search size={17} className="text-slate-400" />
+                <input value={search} onChange={e => setSearch(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && load(1)}
+                  placeholder="Search bank name, holder or IFSC..."
+                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-500" />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-300">Verification Status</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}
+                className="w-full rounded-xl border border-blue-300/40 bg-[#071a34] px-3 py-3 text-sm outline-none">
+                <option value="">All Status</option>
+                <option value="VERIFIED">Verified</option>
+                <option value="PENDING">Pending</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+            <button onClick={() => load(1)}
+              className="mt-auto flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 py-3 text-sm font-extrabold shadow-[0_0_20px_rgba(0,150,255,0.3)] hover:brightness-110">
+              <Search size={17} /> Search
+            </button>
+            <button onClick={() => { setSearch(""); setStatus(""); setPage(1); }}
+              className="mt-auto flex items-center justify-center gap-2 rounded-xl border border-slate-400/40 bg-[#142947] px-5 py-3 text-sm font-bold hover:bg-slate-700">
+              <RefreshCw size={16} /> Reset
+            </button>
+          </div>
+        </section>
 
-              <p className="text-[10px] font-semibold text-emerald-700/70">
-                Only authorized Super Admins can verify accounts.
-              </p>
+        {/* Bank account table */}
+        <section className="overflow-hidden rounded-2xl border border-cyan-300/70 bg-gradient-to-br from-[#102e52] via-[#091f3b] to-[#041329] shadow-[0_0_38px_rgba(0,160,255,0.25)] backdrop-blur-xl">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-300/20 px-5 py-4">
+            <h2 className="flex items-center gap-2 text-lg font-extrabold"><Building2 size={22} className="text-cyan-300" /> Bank Account List</h2>
+            <button onClick={exportCSV} disabled={!banks.length}
+              className="flex items-center gap-2 rounded-full border border-emerald-500/70 bg-emerald-500/10 px-4 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-40">
+              <Download size={15} /> Export CSV
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1200px] text-left text-sm">
+              <thead className="bg-gradient-to-r from-[#07518a] via-[#123e70] to-[#28165b] text-xs uppercase tracking-widest text-cyan-100">
+                <tr>
+                  {["#", "Bank Details", "Account Details", "Account Holder / User", "IFSC / Branch", "Verification", "Primary", "Added On", "Actions"].map(h =>
+                    <th key={h} className="px-4 py-4 font-bold">{h}</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-blue-200/15">
+                {banks.map((b, i) => (
+                  <tr key={b.id} className="transition duration-200 hover:bg-gradient-to-r hover:from-cyan-400/[0.12] hover:to-blue-500/[0.08]">
+                    <td className="px-4 py-5 text-slate-300">{(page - 1) * limit + i + 1}</td>
+                    <td className="px-4 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 to-blue-700/20 text-cyan-200"><Landmark size={22} /></div>
+                        <div><p className="font-extrabold text-white">{b.bankName}</p><p className="mt-1 text-xs text-slate-400">Bank account</p></div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-5">
+                      <p className="font-bold tracking-wider text-white">{maskAccount(b.accountNumber)}</p>
+                      <p className="mt-1 text-xs text-slate-400">Account number protected</p>
+                    </td>
+                    <td className="px-4 py-5">
+                      <p className="font-bold text-white">{b.accountHolderName}</p>
+                      <p className="mt-1 text-xs text-slate-400">{b.user?.name || "—"}</p>
+                      <p className="text-xs text-slate-500">{b.user?.email || ""}</p>
+                    </td>
+                    <td className="px-4 py-5">
+                      <p className="font-bold text-cyan-200">{b.ifscCode}</p>
+                      <p className="mt-1 text-xs text-slate-400">{b.branchName || "Branch not provided"}</p>
+                    </td>
+                    <td className="px-4 py-5">
+                      <span className={`rounded-full border px-3 py-1.5 text-xs font-extrabold ${statusClass(b.verificationStatus)}`}>{b.verificationStatus || "UNKNOWN"}</span>
+                    </td>
+                    <td className="px-4 py-5">
+                      {b.isPrimary
+                        ? <span className="inline-flex items-center gap-1 text-amber-300"><Star size={18} fill="currentColor" /> Primary</span>
+                        : <button onClick={() => setPrimary(b)} className="rounded-lg border border-purple-400/50 bg-purple-500/10 px-3 py-1.5 text-xs font-bold text-purple-300 hover:bg-purple-500/20">Set Primary</button>}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-5 text-xs text-slate-300">{b.createdAt ? new Date(b.createdAt).toLocaleDateString("en-IN") : "—"}</td>
+                    <td className="px-4 py-5">
+                      <div className="flex items-center gap-2">
+                        <button title="View" onClick={() => { setSelected(b); setModal("view"); }}
+                          className="rounded-lg border border-cyan-400/60 bg-cyan-500/10 p-2 text-cyan-200 hover:bg-cyan-500/25"><Eye size={16} /></button>
+                        <button title="Edit" onClick={() => openEdit(b)}
+                          className="rounded-lg border border-blue-400/60 bg-blue-500/10 p-2 text-blue-200 hover:bg-blue-500/25"><Pencil size={16} /></button>
+                        {b.verificationStatus !== "VERIFIED" && (
+                          <button title="Verify" onClick={() => verifyBank(b)}
+                            className="rounded-lg border border-emerald-400/60 bg-emerald-500/10 p-2 text-emerald-200 hover:bg-emerald-500/25"><CheckCircle2 size={16} /></button>
+                        )}
+                        <button title="Delete" onClick={() => deleteBank(b)}
+                          className="rounded-lg border border-rose-400/60 bg-rose-500/10 p-2 text-rose-200 hover:bg-rose-500/25"><Trash2 size={16} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && banks.length === 0 && <tr><td colSpan={9} className="px-4 py-14 text-center text-slate-400">No bank accounts found.</td></tr>}
+                {loading && <tr><td colSpan={9} className="px-4 py-14 text-center text-cyan-300">Loading real bank account records...</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-blue-300/20 px-5 py-4">
+            <p className="text-sm text-slate-300">Showing {total ? (page - 1) * limit + 1 : 0} to {Math.min(page * limit, total)} of <strong className="text-white">{total}</strong> accounts</p>
+            <div className="flex items-center gap-2">
+              <button onClick={() => load(page - 1)} disabled={page <= 1 || loading}
+                className="flex items-center gap-1 rounded-lg border border-blue-400/30 bg-[#10294a] px-3 py-2 text-xs font-bold disabled:opacity-30"><ChevronLeft size={15} /> Previous</button>
+              <span className="rounded-lg border border-cyan-400 bg-blue-600 px-4 py-2 text-sm font-extrabold">{page}</span>
+              <span className="text-xs text-slate-400">of {pages}</span>
+              <button onClick={() => load(page + 1)} disabled={page >= pages || loading}
+                className="flex items-center gap-1 rounded-lg border border-blue-400/30 bg-[#10294a] px-3 py-2 text-xs font-bold disabled:opacity-30">Next <ChevronRight size={15} /></button>
             </div>
           </div>
+        </section>
+      </div>
 
-          <div className="text-[10px] font-bold text-emerald-700">
-            Showing {filteredAccounts.length} of{" "}
-            {totalAccounts} accounts
+      {/* Add / Edit / View modal */}
+      {modal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" onClick={() => setModal(null)}>
+          <div className="w-full max-w-2xl rounded-2xl border border-cyan-300/70 bg-gradient-to-br from-[#10345c] to-[#06152c] p-6 shadow-[0_0_45px_rgba(0,150,255,0.3)]" onClick={e => e.stopPropagation()}>
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-cyan-300">AIFIN · Bank Management</p>
+                <h3 className="mt-1 text-xl font-extrabold">{modal === "add" ? "Add Bank Account" : modal === "edit" ? "Edit Bank Account" : "Bank Account Details"}</h3>
+              </div>
+              <button onClick={() => setModal(null)} className="rounded-full border border-white/10 p-2 text-slate-300 hover:bg-white/10"><X size={20} /></button>
+            </div>
+
+            {modal === "view" && selected ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ["Bank Name", selected.bankName],
+                  ["Account Holder", selected.accountHolderName],
+                  ["Account Number", selected.accountNumber],
+                  ["IFSC Code", selected.ifscCode],
+                  ["Branch", selected.branchName || "—"],
+                  ["Account Owner", selected.user?.name || "—"],
+                  ["Owner Email", selected.user?.email || "—"],
+                  ["Verification", selected.verificationStatus || "—"],
+                  ["Primary Account", selected.isPrimary ? "Yes" : "No"],
+                  ["Created", selected.createdAt ? new Date(selected.createdAt).toLocaleString("en-IN") : "—"]
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-xl border border-blue-300/20 bg-[#071a34] p-3">
+                    <p className="text-xs text-slate-400">{label}</p>
+                    <p className="mt-1 break-all text-sm font-bold text-white">{value}</p>
+                  </div>
+                ))}
+                {selected.rejectionReason && <div className="col-span-full rounded-xl border border-rose-400/30 bg-rose-500/10 p-3"><p className="text-xs text-rose-300">Rejection Reason</p><p className="mt-1 text-sm text-white">{selected.rejectionReason}</p></div>}
+              </div>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    ["Bank Name", "bankName", "e.g. State Bank of India"],
+                    ["Account Holder Name", "accountHolderName", "Full account holder name"],
+                    ["Account Number", "accountNumber", "Enter account number"],
+                    ["IFSC Code", "ifscCode", "e.g. SBIN0001234"],
+                    ["Branch Name", "branchName", "Branch name (optional)"]
+                  ].map(([label, key, placeholder]) => (
+                    <div key={key}>
+                      <label className="mb-1.5 block text-xs font-semibold text-slate-300">{label}{key !== "branchName" && <span className="text-rose-400"> *</span>}</label>
+                      <input value={form[key as keyof BankForm] as string}
+                        onChange={e => setForm(prev => ({ ...prev, [key]: key === "ifscCode" ? e.target.value.toUpperCase() : e.target.value }))}
+                        placeholder={placeholder}
+                        className="w-full rounded-xl border border-blue-300/40 bg-[#071a34] px-3 py-3 text-sm text-white outline-none focus:border-cyan-400" />
+                    </div>
+                  ))}
+                </div>
+                <label className="mt-4 flex items-center gap-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3 text-sm text-slate-200">
+                  <input type="checkbox" checked={form.isPrimary} onChange={e => setForm(prev => ({ ...prev, isPrimary: e.target.checked }))} className="h-4 w-4 accent-purple-500" />
+                  Set as primary bank account for this account owner
+                </label>
+                <p className="mt-3 text-xs text-amber-300">New bank accounts are created under the currently logged-in admin account by the existing backend API.</p>
+                {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
+                <button onClick={saveBank} disabled={saving}
+                  className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-purple-600 py-3 text-sm font-extrabold shadow-[0_0_28px_rgba(0,150,255,0.3)] hover:brightness-110 disabled:opacity-50">
+                  <Plus size={18} /> {saving ? "Saving..." : modal === "edit" ? "Save Changes" : "Add Bank Account"}
+                </button>
+              </>
+            )}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </main>
   );
 }
+

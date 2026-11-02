@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 
@@ -30,15 +30,15 @@ const loans: Loan[] = [
  initials: "TC",
  product: "Personal Loan",
  category: "Personal Loan",
- amount: "â‚¹75,000 â€“ â‚¹35 Lakh",
+ amount: "₹75,000 “ ₹35 Lakh",
  minAmount: 75000,
  maxAmount: 3500000,
- rate: "10.99% â€“ 33% p.a.",
- tenure: "1 â€“ 6 Years",
+ rate: "10.99% “ 33% p.a.",
+ tenure: "1 “ 6 Years",
  processing: "Up to 5% + GST",
  eligibility: [
- "Age 21â€“58 years for salaried applicants",
- "Minimum monthly income â‚¹20,000",
+ "Age 21“58 years for salaried applicants",
+ "Minimum monthly income ₹20,000",
  "Minimum 1 year at current job",
  "725+ CIBIL preferred",
  "Indian resident"
@@ -58,8 +58,8 @@ const loans: Loan[] = [
  ],
  charges: [
  "Processing fee up to 5% + GST",
- "Documentation charges up to â‚¹1,999",
- "Bounce charge â‚¹600 per instrument",
+ "Documentation charges up to ₹1,999",
+ "Bounce charge ₹600 per instrument",
  "Foreclosure charges depend on facility and timing"
  ],
  badge: "POPULAR",
@@ -76,12 +76,12 @@ const loans: Loan[] = [
  amount: "Small-ticket personal loan",
  minAmount: 50000,
  maxAmount: 500000,
- rate: "10.99% â€“ 33% p.a.",
+ rate: "10.99% “ 33% p.a.",
  tenure: "Flexible",
  processing: "Up to 5% + GST",
  eligibility: [
- "Minimum salary â‚¹20,000/month",
- "Age generally 21â€“58 years",
+ "Minimum salary ₹20,000/month",
+ "Age generally 21“58 years",
  "At least 1 year of employment",
  "Credit and repayment profile assessed"
  ],
@@ -114,16 +114,16 @@ const loans: Loan[] = [
  initials: "TC",
  product: "Salaried Personal Loan",
  category: "Salaried",
- amount: "Up to â‚¹35 Lakh",
+ amount: "Up to ₹35 Lakh",
  minAmount: 75000,
  maxAmount: 3500000,
- rate: "10.99% â€“ 33% p.a.",
+ rate: "10.99% “ 33% p.a.",
  tenure: "Up to 6 Years",
  processing: "Up to 5% + GST",
  eligibility: [
  "Salaried applicant",
- "Age 21â€“58 years",
- "Minimum monthly income â‚¹20,000",
+ "Age 21“58 years",
+ "Minimum monthly income ₹20,000",
  "Minimum 1 year at current job",
  "725+ CIBIL preferred"
  ],
@@ -156,11 +156,11 @@ const loans: Loan[] = [
  initials: "BF",
  product: "Personal Loan",
  category: "Personal Loan",
- amount: "â‚¹40,000 â€“ â‚¹55 Lakh",
+ amount: "₹40,000 “ ₹55 Lakh",
  minAmount: 40000,
  maxAmount: 5500000,
- rate: "10% â€“ 30.5% p.a.",
- tenure: "12 â€“ 108 Months",
+ rate: "10% “ 30.5% p.a.",
+ tenure: "12 “ 108 Months",
  processing: "Up to 4.13% inclusive of applicable taxes",
  eligibility: [
  "Eligibility depends on credit profile",
@@ -176,14 +176,14 @@ const loans: Loan[] = [
  "Employment documents where applicable"
  ],
  benefits: [
- "Loan amounts up to â‚¹55 lakh",
+ "Loan amounts up to ₹55 lakh",
  "Digital application",
  "Multiple repayment options",
  "Personalised eligibility"
  ],
  charges: [
  "Processing fee up to 4.13%",
- "Bounce charges â‚¹700â€“â‚¹1,200",
+ "Bounce charges ₹700“₹1,200",
  "Full prepayment charges up to 4.72%",
  "Stamp duty as applicable"
  ],
@@ -198,11 +198,11 @@ const loans: Loan[] = [
  initials: "BF",
  product: "Salaried Personal Loan",
  category: "Salaried",
- amount: "â‚¹40,000 â€“ â‚¹55 Lakh",
+ amount: "₹40,000 “ ₹55 Lakh",
  minAmount: 40000,
  maxAmount: 5500000,
- rate: "10% â€“ 30.5% p.a.",
- tenure: "12 â€“ 108 Months",
+ rate: "10% “ 30.5% p.a.",
+ tenure: "12 “ 108 Months",
  processing: "Up to 4.13%",
  eligibility: [
  "Salaried applicants",
@@ -225,7 +225,7 @@ const loans: Loan[] = [
  ],
  charges: [
  "Processing fee up to 4.13%",
- "Bounce charges â‚¹700â€“â‚¹1,200",
+ "Bounce charges ₹700“₹1,200",
  "Foreclosure charges up to 4.72%"
  ],
  badge: "SALARIED",
@@ -239,11 +239,11 @@ const loans: Loan[] = [
  initials: "BF",
  product: "Emergency Personal Loan",
  category: "Emergency",
- amount: "Up to â‚¹55 Lakh",
+ amount: "Up to ₹55 Lakh",
  minAmount: 40000,
  maxAmount: 5500000,
- rate: "10% â€“ 30.5% p.a.",
- tenure: "12 â€“ 108 Months",
+ rate: "10% “ 30.5% p.a.",
+ tenure: "12 “ 108 Months",
  processing: "Up to 4.13%",
  eligibility: [
  "Credit profile assessment",
@@ -264,7 +264,7 @@ const loans: Loan[] = [
  charges: [
  "Processing fee up to 4.13%",
  "Foreclosure charges up to 4.72%",
- "Bounce charges â‚¹700â€“â‚¹1,200"
+ "Bounce charges ₹700“₹1,200"
  ],
  badge: "EMERGENCY",
  source: "https://www.bajajfinserv.in/emergency-loan",
@@ -277,14 +277,14 @@ const loans: Loan[] = [
  initials: "AB",
  product: "Personal Loan",
  category: "Personal Loan",
- amount: "â‚¹25,000 â€“ â‚¹5 Lakh",
+ amount: "₹25,000 “ ₹5 Lakh",
  minAmount: 25000,
  maxAmount: 500000,
- rate: "10% â€“ 28% p.a.",
- tenure: "12 â€“ 36 Months",
+ rate: "10% “ 28% p.a.",
+ tenure: "12 “ 36 Months",
  processing: "Up to 4% of sanctioned amount",
  eligibility: [
- "Age generally 23â€“60 years",
+ "Age generally 23“60 years",
  "Salaried and self-employed profiles supported",
  "Minimum income varies by location/profile",
  "Credit profile evaluated"
@@ -305,7 +305,7 @@ const loans: Loan[] = [
  charges: [
  "Processing fee up to 4%",
  "Penal charge 3% p.m. on overdue amount",
- "Mandate cancellation â‚¹450",
+ "Mandate cancellation ₹450",
  "Other statutory charges as applicable"
  ],
  badge: "DIGITAL",
@@ -358,11 +358,11 @@ const loans: Loan[] = [
  initials: "HF",
  product: "Personal Loan",
  category: "Personal Loan",
- amount: "â‚¹50,000 â€“ â‚¹7 Lakh",
+ amount: "₹50,000 “ ₹7 Lakh",
  minAmount: 50000,
  maxAmount: 700000,
  rate: "Starting from 18% p.a.",
- tenure: "12 â€“ 36 Months",
+ tenure: "12 “ 36 Months",
  processing: "Minimum 2.5% + GST",
  eligibility: [
  "Income and credit profile evaluated",
@@ -379,14 +379,14 @@ const loans: Loan[] = [
  benefits: [
  "Digital application",
  "Collateral-free",
- "Loan amount up to â‚¹7 lakh",
- "Flexible 12â€“36 month tenure"
+ "Loan amount up to ₹7 lakh",
+ "Flexible 12“36 month tenure"
  ],
  charges: [
  "Processing fee minimum 2.5% + GST",
  "Prepayment charges not applicable",
  "Foreclosure up to 5% + GST",
- "EMI bounce â‚¹350"
+ "EMI bounce ₹350"
  ],
  badge: "DIGITAL",
  source: "https://www.herofincorp.com/personal-loans",
@@ -425,7 +425,7 @@ const loans: Loan[] = [
  "Processing fee from 2.5% + GST",
  "Prepayment charges not applicable",
  "Foreclosure up to 5% + GST",
- "Bounce charge â‚¹350"
+ "Bounce charge ₹350"
  ],
  badge: "CONSUMER",
  source: "https://www.herofincorp.com/personal-loans/consumer-durable-loan",
@@ -442,7 +442,7 @@ const loans: Loan[] = [
  minAmount: 10000,
  maxAmount: 5000000,
  rate: "Starting from 11% p.a.",
- tenure: "12 â€“ 60 Months",
+ tenure: "12 “ 60 Months",
  processing: "Up to 5%",
  eligibility: [
  "Credit profile evaluated",
@@ -457,7 +457,7 @@ const loans: Loan[] = [
  "Address proof"
  ],
  benefits: [
- "12â€“60 month repayment options",
+ "12“60 month repayment options",
  "Online application",
  "Wide branch network",
  "Personalised assessment"

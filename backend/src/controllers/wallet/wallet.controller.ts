@@ -881,15 +881,38 @@ export const getWalletTransactions = async (
   res: Response
 ) => {
   try {
-    const walletId = String(req.params.walletId);
+    const walletId = String(req.params.walletId || "");
+    const userId = String((req as any).user?.id || "");
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const wallet = await prisma.wallet.findUnique({
+      where: { id: walletId },
+      select: { id: true, userId: true },
+    });
+
+    if (!wallet) {
+      return res.status(404).json({
+        success: false,
+        message: "Wallet not found",
+      });
+    }
+
+    if (wallet.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to access this wallet",
+      });
+    }
 
     const transactions = await prisma.transaction.findMany({
-      where: {
-        walletId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { walletId },
+      orderBy: { createdAt: "desc" },
     });
 
     return res.status(200).json({
@@ -899,7 +922,6 @@ export const getWalletTransactions = async (
     });
   } catch (error) {
     console.error(error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch transactions",
@@ -915,17 +937,21 @@ export const getWalletStatement = async (
   res: Response
 ) => {
   try {
-    const walletId = String(req.params.walletId);
+    const walletId = String(req.params.walletId || "");
+    const userId = String((req as any).user?.id || "");
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
 
     const wallet = await prisma.wallet.findUnique({
-      where: {
-        id: walletId,
-      },
+      where: { id: walletId },
       include: {
         transactions: {
-          orderBy: {
-            createdAt: "desc",
-          },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -934,6 +960,13 @@ export const getWalletStatement = async (
       return res.status(404).json({
         success: false,
         message: "Wallet not found",
+      });
+    }
+
+    if (wallet.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to access this wallet",
       });
     }
 
@@ -950,7 +983,6 @@ export const getWalletStatement = async (
     });
   } catch (error) {
     console.error(error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to fetch statement",
@@ -1746,6 +1778,7 @@ export const getLiveWalletActivities = async (
     });
   }
 };
+
 
 
 

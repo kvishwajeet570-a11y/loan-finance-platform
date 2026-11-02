@@ -1,7 +1,8 @@
 ﻿import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { isActiveAuthSession } from "./sessionAuth";
 
-const authMiddleware = (
+const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -17,24 +18,32 @@ const authMiddleware = (
     }
 
     const token = authHeader.split(" ")[1];
-
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    );
+    ) as jwt.JwtPayload;
+
+    if (
+      typeof decoded.id !== "string" ||
+      !(await isActiveAuthSession(decoded.id, decoded.sid))
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or revoked. Please login again.",
+      });
+    }
 
     (req as any).user = decoded;
-
     next();
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: "Invalid token",
+      message: "Invalid or expired token",
     });
   }
 };
 
-export const optionalAuthMiddleware = (
+export const optionalAuthMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -47,20 +56,29 @@ export const optionalAuthMiddleware = (
     }
 
     const token = authHeader.split(" ")[1];
-
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET as string
-    );
+    ) as jwt.JwtPayload;
+
+    if (
+      typeof decoded.id !== "string" ||
+      !(await isActiveAuthSession(decoded.id, decoded.sid))
+    ) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or revoked",
+      });
+    }
 
     (req as any).user = decoded;
-
     next();
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: "Invalid token",
+      message: "Invalid or expired token",
     });
   }
 };
+
 export default authMiddleware;

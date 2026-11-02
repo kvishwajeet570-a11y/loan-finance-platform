@@ -148,9 +148,38 @@ class LeadService {
       },
     });
 
+    const trendStart = new Date();
+    trendStart.setHours(0, 0, 0, 0);
+    trendStart.setDate(trendStart.getDate() - 29);
+
+    const trendLeads = await prisma.lead.findMany({
+      where: {
+        isDeleted: false,
+        createdAt: { gte: trendStart },
+      },
+      select: { createdAt: true },
+    });
+
+    const countByDate = new Map<string, number>();
+    for (const lead of trendLeads) {
+      const d = lead.createdAt;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      countByDate.set(key, (countByDate.get(key) ?? 0) + 1);
+    }
+
+    const dailyLeads = Array.from({ length: 30 }, (_, index) => {
+      const day = new Date(trendStart);
+      day.setDate(trendStart.getDate() + index);
+      const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+      return {
+        date,
+        count: countByDate.get(date) ?? 0,
+      };
+    });
     return {
       totalLeads,
       newLeads,
+      dailyLeads,
       assignedLeads,
     };
   }
@@ -357,7 +386,7 @@ class LeadService {
         contactedLeads,
         convertedLeads,
         highPriorityLeads,
-        totalLoanAmount: loanAggregate._sum.loanAmount || 0,
+        totalLoanAmount: loanAggregate?._sum?.loanAmount ?? 0,
       },
       subAgents,
     };
@@ -365,4 +394,5 @@ class LeadService {
 }
 
 export default new LeadService();
+
 

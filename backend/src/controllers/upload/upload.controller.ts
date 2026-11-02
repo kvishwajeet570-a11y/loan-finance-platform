@@ -143,6 +143,8 @@ export const uploadSingleFile = async (
 ) => {
   try {
     const file = (req as any).file;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) { if (file?.path) removeFileIfExists(file.path); return failure(res, "Authentication required", 401); }
 
     if (!file) {
       return failure(res, "No file uploaded", 400);
@@ -229,6 +231,8 @@ export const uploadProfileImage = async (
 ) => {
   try {
     const file = (req as any).file;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) { if (file?.path) removeFileIfExists(file.path); return failure(res, "Authentication required", 401); }
 
     if (!file) {
       return failure(res, "Profile image is required", 400);
@@ -246,17 +250,12 @@ export const uploadProfileImage = async (
       fileType: file.mimetype,
       fileSize: file.size,
       category: "PROFILE",
-      uploadedBy: req.body.uploadedBy,
-      userId: req.body.userId,
-      loanApplicationId: req.body.loanApplicationId,
+      uploadedBy: userId,
+      userId,
     });
 
-    return success(
-      res,
-      "Profile image uploaded successfully",
-      createUploadResponse(upload),
-      201
-    );
+    await prisma.user.update({ where: { id: userId }, data: { profileImage: `/uploads/${file.filename}` } });
+    return success(res, "Profile image uploaded successfully", { ...createUploadResponse(upload), profileImage: `/uploads/${file.filename}` }, 201);
   } catch (error) {
     return failure(res, error);
   }
@@ -273,6 +272,8 @@ export const uploadKycDocument = async (
 ) => {
   try {
     const file = (req as any).file;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) { if (file?.path) removeFileIfExists(file.path); return failure(res, "Authentication required", 401); }
 
     if (!file) {
       return failure(res, "KYC document is required", 400);
@@ -313,6 +314,8 @@ export const uploadLoanDocument = async (
 ) => {
   try {
     const file = (req as any).file;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) { if (file?.path) removeFileIfExists(file.path); return failure(res, "Authentication required", 401); }
 
     if (!file) {
       return failure(res, "Loan document is required", 400);
@@ -353,6 +356,8 @@ export const uploadBankDocument = async (
 ) => {
   try {
     const file = (req as any).file;
+    const userId = (req as any).user?.id as string | undefined;
+    if (!userId) { if (file?.path) removeFileIfExists(file.path); return failure(res, "Authentication required", 401); }
 
     if (!file) {
       return failure(res, "Bank document is required", 400);
@@ -744,32 +749,27 @@ export const downloadFile = async (
   res: Response
 ) => {
   try {
-    const id = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
-
-    const upload = await prisma.upload.findUnique({
-      where: {
-        id: id!,
-      },
-    });
-
-    if (!upload) {
-      return failure(res, "Upload not found", 404);
+    const authenticatedUserId = req.user?.id;
+    if (!authenticatedUserId) {
+      return failure(res, "Authentication required", 401);
     }
 
-    const filePath =
-      upload.filePath ||
-      path.join(UPLOAD_DIR, upload.fileName);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const upload = await prisma.upload.findUnique({ where: { id: id! } });
 
+    if (!upload || upload.isDeleted) {
+      return failure(res, "Upload not found", 404);
+    }
+    if (upload.userId !== authenticatedUserId) {
+      return failure(res, "You cannot access this file", 403);
+    }
+
+    const filePath = upload.filePath || path.join(UPLOAD_DIR, upload.fileName);
     if (!fs.existsSync(filePath)) {
       return failure(res, "File not found", 404);
     }
 
-    return res.download(
-      filePath,
-      upload.originalName || upload.fileName
-    );
+    return res.download(filePath, upload.originalName || upload.fileName);
   } catch (error) {
     return failure(res, error);
   }
@@ -786,33 +786,30 @@ export const previewFile = async (
   res: Response
 ) => {
   try {
-    const id = Array.isArray(req.params.id)
-      ? req.params.id[0]
-      : req.params.id;
-
-    const upload = await prisma.upload.findUnique({
-      where: {
-        id: id!,
-      },
-    });
-
-    if (!upload) {
-      return failure(res, "Upload not found", 404);
+    const authenticatedUserId = req.user?.id;
+    if (!authenticatedUserId) {
+      return failure(res, "Authentication required", 401);
     }
 
-    const filePath =
-      upload.filePath ||
-      path.join(UPLOAD_DIR, upload.fileName);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const upload = await prisma.upload.findUnique({ where: { id: id! } });
 
+    if (!upload || upload.isDeleted) {
+      return failure(res, "Upload not found", 404);
+    }
+    if (upload.userId !== authenticatedUserId) {
+      return failure(res, "You cannot access this file", 403);
+    }
+
+    const filePath = upload.filePath || path.join(UPLOAD_DIR, upload.fileName);
     if (!fs.existsSync(filePath)) {
       return failure(res, "File not found", 404);
     }
 
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Disposition", "inline");
     if (upload.mimeType) {
-      res.setHeader(
-        "Content-Type",
-        upload.mimeType
-      );
+      res.setHeader("Content-Type", upload.mimeType);
     }
 
     return res.sendFile(filePath);
@@ -1616,6 +1613,8 @@ export const exportDocumentsExcel = async (req: Request, res: Response) => {
 export const exportDocumentsPdf = async (req: Request, res: Response) => {
   return res.status(501).json({ message: "Not implemented" });
 };
+
+
 
 
 

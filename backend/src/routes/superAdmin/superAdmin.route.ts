@@ -1,4 +1,11 @@
 ﻿import { Router } from "express";
+import { listPayoutRequests, approvePayoutRequest, rejectPayoutRequest } from "../../controllers/superAdmin/payout.controller";
+import {
+  listFollowUps,
+  createFollowUp,
+  updateFollowUp,
+  deleteFollowUp,
+} from "../../controllers/superAdmin/followUp.controller";
 
 import authMiddleware from "../../middlewares/AuthMiddleware";
 import { rbac } from "../../middlewares/rbac";
@@ -411,5 +418,16 @@ router.post(
   bulkApproveLoans
 );
 
+router.get("/follow-ups", listFollowUps);
+router.post("/follow-ups", createFollowUp);
+router.patch("/follow-ups/:id", updateFollowUp);
+router.delete("/follow-ups/:id", deleteFollowUp);
+
+router.get("/payouts", listPayoutRequests);
+router.patch("/payouts/:id/approve", approvePayoutRequest);
+router.patch("/payouts/:id/reject", rejectPayoutRequest);
+
 export default router;
+
+
 

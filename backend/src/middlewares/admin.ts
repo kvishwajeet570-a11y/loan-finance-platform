@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+﻿import { Request, Response, NextFunction } from "express";
 import prisma from "../prisma/prisma";
 
 export const adminMiddleware = async (
@@ -34,7 +34,19 @@ export const adminMiddleware = async (
       });
     }
 
-    if (user.role !== "admin") {
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin account is blocked",
+      });
+    }
+
+    const normalizedRole = String(user.role || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+
+    if (!["ADMIN", "SUPER_ADMIN", "SUPERADMIN"].includes(normalizedRole)) {
       return res.status(403).json({
         success: false,
         message: "Admin access required",

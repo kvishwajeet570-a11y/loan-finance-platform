@@ -1,11 +1,11 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import path from "path";
 
 import routes from "./routes";
 
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../.env"), override: true });
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -50,7 +50,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Backend running on http://localhost:${PORT}`);
-  console.log(`📡 API: http://localhost:${PORT}/api`);
-  console.log(`📁 Uploads: http://localhost:${PORT}/uploads`);
+  console.log(`?? Backend running on http://localhost:${PORT}`);
+  console.log(`?? API: http://localhost:${PORT}/api`);
+  console.log(`?? Uploads: http://localhost:${PORT}/uploads`);
 });

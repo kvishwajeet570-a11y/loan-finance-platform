@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import {
@@ -82,6 +82,29 @@ function SectionHeader({
   subtitle: string;
   badge?: React.ReactNode;
 }) {
+<style jsx global>{`
+  .min-h-screen input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .min-h-screen select,
+  .min-h-screen textarea {
+    background-color: #eef6ff !important;
+    border-color: #a8c9ff !important;
+    color: #172554 !important;
+    border-radius: 10px !important;
+    transition: background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+  }
+  .min-h-screen input::placeholder,
+  .min-h-screen textarea::placeholder {
+    color: #7185a8 !important;
+  }
+  .min-h-screen input:focus,
+  .min-h-screen select:focus,
+  .min-h-screen textarea:focus {
+    background-color: #ffffff !important;
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18) !important;
+    outline: none !important;
+  }
+`}</style>
   return (
     <div className="flex flex-col gap-3 border-b border-slate-100 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3">
@@ -325,12 +348,54 @@ export default function KycPage() {
     return Math.round(((filledFields + uploaded) / total) * 100);
   }, [form, files]);
 
-  const submitKyc = () => {
-    setSubmitted(true);
+  const submitKyc = async () => {
+    try {
+      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+      const token = localStorage.getItem("loan_finance_token");
+      const rawUser = localStorage.getItem("loan_finance_user");
 
-    setTimeout(() => {
-      setSubmitted(false);
-    }, 3000);
+      if (!token || !rawUser) {
+        alert("Session expired. Please login again.");
+        return;
+      }
+
+      const user = JSON.parse(rawUser);
+      const payload = {
+        userId: user.id,
+        fullName: form.fullName.trim(),
+        panNumber: form.pan.trim().toUpperCase(),
+        dob: form.dob,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode
+      };
+
+      if (!payload.fullName || !payload.panNumber || !payload.dob) {
+        alert("Please fill Full Name, PAN and Date of Birth.");
+        return;
+      }
+
+      const response = await fetch(`${API}/kyc/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        credentials: "include",
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.success === false) {
+        throw new Error(result.message || `KYC submission failed (${response.status})`);
+      }
+
+      setSubmitted(true);
+      alert("KYC submitted successfully.");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Unable to submit KYC.");
+    }
   };
 
   const saveDraft = () => {

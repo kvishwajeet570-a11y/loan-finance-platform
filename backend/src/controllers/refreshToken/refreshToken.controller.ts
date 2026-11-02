@@ -1,15 +1,18 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { createHash } from "crypto";
 import prisma from "../../prisma/prisma";
 
-const ACCESS_SECRET =
-  process.env.JWT_ACCESS_SECRET!;
+const hashToken = (token: string) =>
+  createHash("sha256").update(token).digest("hex");
 
-const REFRESH_SECRET =
-  process.env.JWT_REFRESH_SECRET!;
+const getUserId = (req: Request): string | null => {
+  const id = (req as any).user?.id;
+  return typeof id === "string" && id.length > 0 ? id : null;
+};
 
 /**
- * GENERATE NEW ACCESS TOKEN
+ * Generate a new access token using a valid refresh token.
  */
 export const refreshAccessToken = async (
   req: Request,
@@ -17,69 +20,101 @@ export const refreshAccessToken = async (
 ): Promise<void> => {
   try {
     const { refreshToken } = req.body;
+    const refreshSecret = process.env.JWT_REFRESH_SECRET;
+    const accessSecret = process.env.JWT_SECRET;
 
-    if (!refreshToken) {
+    if (!refreshToken || !refreshSecret || !accessSecret) {
       res.status(400).json({
         success: false,
-        message: "Refresh token required",
+        message: "Refresh token or token configuration missing",
       });
       return;
     }
 
-    const tokenRecord =
-      await prisma.refreshToken.findUnique({
-        where: {
-          token: refreshToken,
-        },
-        include: {
-          user: true,
-        },
+    let payload: any;
+
+    try {
+      payload = jwt.verify(refreshToken, refreshSecret);
+    } catch {
+      res.status(401).json({
+        success: false,
+        message: "Invalid or expired refresh token",
       });
+      return;
+    }
+
+    if (!payload?.id) {
+      res.status(401).json({
+        success: false,
+        message: "Invalid refresh token payload",
+      });
+      return;
+    }
+
+    const tokenHash = hashToken(refreshToken);
+
+    const tokenRecord = await prisma.refreshToken.findUnique({
+      where: { token: tokenHash },
+      include: { user: true },
+    });
 
     if (
       !tokenRecord ||
-      tokenRecord.isRevoked
+      tokenRecord.isRevoked ||
+      tokenRecord.userId !== payload.id ||
+      tokenRecord.expiresAt <= new Date() ||
+      tokenRecord.user.isBlocked
     ) {
       res.status(401).json({
         success: false,
-        message: "Invalid refresh token",
+        message: "Refresh token is no longer active",
       });
       return;
     }
 
-    if (
-      new Date() >
-      tokenRecord.expiresAt
-    ) {
+    const session = await prisma.session.findUnique({
+      where: { token: tokenHash },
+    });
+
+    if (!session || !session.isActive || session.expiresAt <= new Date()) {
       res.status(401).json({
         success: false,
-        message: "Refresh token expired",
+        message: "Session is no longer active",
       });
       return;
     }
-
-    const payload = jwt.verify(
-      refreshToken,
-      REFRESH_SECRET
-    ) as any;
 
     const accessToken = jwt.sign(
       {
-        userId: payload.userId,
-        role: payload.role,
+        id: tokenRecord.user.id,
+        email: tokenRecord.user.email,
+        role: tokenRecord.user.role,
+        sid: session.id,
       },
-      ACCESS_SECRET,
-      {
-        expiresIn: "15m",
-      }
+      accessSecret,
+      { expiresIn: "7d" }
     );
+
+    await prisma.securityLog.create({
+      data: {
+        userId: tokenRecord.userId,
+        action: "TOKEN_REFRESH",
+        severity: "LOW",
+        status: "SUCCESS",
+        module: "AUTH",
+        description: "Access token refreshed successfully",
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      },
+    });
 
     res.status(200).json({
       success: true,
       accessToken,
     });
-  } catch {
-    res.status(401).json({
+  } catch (error) {
+    console.error("Refresh token error:", error);
+    res.status(500).json({
       success: false,
       message: "Token refresh failed",
     });
@@ -87,29 +122,99 @@ export const refreshAccessToken = async (
 };
 
 /**
- * LOGOUT CURRENT DEVICE
+ * Logout current device using tokenId.
  */
 export const revokeRefreshToken = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const { refreshToken } = req.body;
+    const userId = getUserId(req);
+    const { tokenId } = req.body;
 
-    await prisma.refreshToken.update({
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    if (!tokenId) {
+      res.status(400).json({
+        success: false,
+        message: "Token ID required",
+      });
+      return;
+    }
+
+    const record = await prisma.refreshToken.findFirst({
       where: {
-        token: refreshToken,
+        id: tokenId,
+        userId,
+        isRevoked: false,
       },
-      data: {
-        isRevoked: true,
-      },
+    });
+
+    if (!record) {
+      res.status(404).json({
+        success: false,
+        message: "Active token not found",
+      });
+      return;
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.update({
+        where: { id: record.id },
+        data: { isRevoked: true },
+      });
+
+      const session = await tx.session.findUnique({
+        where: { token: record.token },
+      });
+
+      if (session) {
+        await tx.session.update({
+          where: { id: session.id },
+          data: { isActive: false, logoutAt: now },
+        });
+
+        await tx.loginHistory.updateMany({
+          where: {
+            sessionId: session.id,
+            isActive: true,
+          },
+          data: {
+            isActive: false,
+            logoutTime: now,
+          },
+        });
+      }
+
+      await tx.securityLog.create({
+        data: {
+          userId,
+          action: "LOGOUT",
+          severity: "LOW",
+          status: "SUCCESS",
+          module: "AUTH",
+          description: "User logged out from a device",
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"],
+          metadata: { tokenId: record.id },
+        },
+      });
     });
 
     res.status(200).json({
       success: true,
       message: "Logged out successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error("Logout error:", error);
     res.status(500).json({
       success: false,
       message: "Logout failed",
@@ -118,30 +223,61 @@ export const revokeRefreshToken = async (
 };
 
 /**
- * LOGOUT ALL DEVICES
+ * Logout all devices.
  */
 export const revokeAllTokens = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
 
-    await prisma.refreshToken.updateMany({
-      where: {
-        userId,
-      },
-      data: { 
-        isRevoked: true,
-      },
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+      return;
+    }
+
+    const now = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.refreshToken.updateMany({
+        where: { userId, isRevoked: false },
+        data: { isRevoked: true },
+      });
+
+      await tx.session.updateMany({
+        where: { userId, isActive: true },
+        data: { isActive: false, logoutAt: now },
+      });
+
+      await tx.loginHistory.updateMany({
+        where: { userId, isActive: true },
+        data: { isActive: false, logoutTime: now },
+      });
+
+      await tx.securityLog.create({
+        data: {
+          userId,
+          action: "LOGOUT_ALL",
+          severity: "MEDIUM",
+          status: "SUCCESS",
+          module: "AUTH",
+          description: "All user refresh tokens and sessions revoked",
+          ipAddress: req.ip,
+          userAgent: req.headers["user-agent"],
+        },
+      });
     });
 
     res.status(200).json({
       success: true,
-      message:
-        "All sessions terminated",
+      message: "All refresh tokens and sessions terminated",
     });
-  } catch {
+  } catch (error) {
+    console.error("Logout all error:", error);
     res.status(500).json({
       success: false,
       message: "Operation failed",
@@ -150,80 +286,103 @@ export const revokeAllTokens = async (
 };
 
 /**
- * GET ACTIVE SESSIONS
+ * Get active sessions without exposing token hashes.
  */
 export const getActiveSessions = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = getUserId(req);
 
-    const sessions =
-      await prisma.refreshToken.findMany({
-        where: {
-          userId,
-          isRevoked: false,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication required",
       });
+      return;
+    }
+
+    const sessions = await prisma.refreshToken.findMany({
+      where: {
+        userId,
+        isRevoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      select: {
+        id: true,
+        deviceId: true,
+        deviceType: true,
+        deviceName: true,
+        ipAddress: true,
+        userAgent: true,
+        createdAt: true,
+        expiresAt: true,
+        isRevoked: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
     res.status(200).json({
       success: true,
       data: sessions,
     });
-  } catch {
+  } catch (error) {
+    console.error("Active sessions error:", error);
     res.status(500).json({
       success: false,
-      message:
-        "Failed to fetch sessions",
+      message: "Failed to fetch sessions",
     });
   }
 };
 
 /**
- * TOKEN ANALYTICS
+ * Refresh token analytics.
  */
-export const refreshTokenAnalytics =
-  async (
-    req: Request,
-    res: Response
-  ): Promise<void> => {
-    try {
-      const [
+export const refreshTokenAnalytics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const [
+      totalTokens,
+      activeTokens,
+      revokedTokens,
+      expiredTokens,
+    ] = await Promise.all([
+      prisma.refreshToken.count(),
+      prisma.refreshToken.count({
+        where: {
+          isRevoked: false,
+          expiresAt: { gt: new Date() },
+        },
+      }),
+      prisma.refreshToken.count({
+        where: { isRevoked: true },
+      }),
+      prisma.refreshToken.count({
+        where: {
+          isRevoked: false,
+          expiresAt: { lte: new Date() },
+        },
+      }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
         totalTokens,
         activeTokens,
         revokedTokens,
-      ] = await Promise.all([
-        prisma.refreshToken.count(),
+        expiredTokens,
+      },
+    });
+  } catch (error) {
+    console.error("Refresh analytics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Analytics failed",
+    });
+  }
+};
 
-        prisma.refreshToken.count({
-          where: {
-            isRevoked: false,
-          },
-        }),
-
-        prisma.refreshToken.count({
-          where: {
-            isRevoked: true,
-          },
-        }),
-      ]);
-
-      res.status(200).json({
-        success: true,
-        data: {
-          totalTokens,
-          activeTokens,
-          revokedTokens,
-        },
-      });
-    } catch {
-      res.status(500).json({
-        success: false,
-        message: "Analytics failed",
-      });
-    }
-  };

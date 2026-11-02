@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import DsaSidebar from "@/components/dsa/DsaSidebar";
 
 type Transaction = {
   id?: string;
@@ -57,18 +56,18 @@ const isCredit = (t: Transaction) =>
   CREDIT.includes(String(t.type || "").toUpperCase());
 
 const money = (v: any) =>
-  `₹${Number(v || 0).toLocaleString("en-IN", {
+  `â‚¹${Number(v || 0).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 
 const shortMoney = (v: number) =>
-  `₹${Math.round(v).toLocaleString("en-IN")}`;
+  `â‚¹${Math.round(v).toLocaleString("en-IN")}`;
 
 const formatDate = (v?: string) => {
-  if (!v) return "—";
+  if (!v) return "â€”";
   const d = new Date(v);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "â€”";
 
   return d.toLocaleString("en-IN", {
     day: "2-digit",
@@ -382,9 +381,8 @@ export default function AllTransactionsPage() {
   return (
     <div className="min-h-screen bg-[#f5f8ff] text-[#102450]">
 
-      <DsaSidebar />
 
-      <div className="lg:pl-[278px]">
+      <div className="">
       <main className="mx-auto max-w-[1550px] px-4 py-5 sm:px-6 lg:px-8">
 
         {/* ================= HERO ================= */}
@@ -528,13 +526,13 @@ export default function AllTransactionsPage() {
                 {/* coin 1 */}
 
                 <div className="absolute bottom-[-3px] left-[25px] flex h-14 w-14 rotate-[-10deg] items-center justify-center rounded-full border-4 border-orange-300 bg-gradient-to-br from-orange-300 to-yellow-500 text-xl font-black text-white shadow-lg">
-                  ₹
+                  â‚¹
                 </div>
 
                 {/* coin 2 */}
 
                 <div className="absolute bottom-[-5px] right-[13px] flex h-12 w-12 rotate-[13deg] items-center justify-center rounded-full border-4 border-orange-300 bg-gradient-to-br from-yellow-300 to-orange-500 text-lg font-black text-white shadow-lg">
-                  ₹
+                  â‚¹
                 </div>
 
               </div>
@@ -767,7 +765,7 @@ export default function AllTransactionsPage() {
                   </option>
                 </select>
 
-                <button className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-[12px] font-black text-slate-600">
+                <button type="button" title="Reset all filters" onClick={() => { setSearch(""); setStatus("ALL"); setPeriod("ALL"); }} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-[12px] font-black text-slate-600">
                   <Filter size={14} />
                   Filters
                 </button>
@@ -1326,7 +1324,7 @@ export default function AllTransactionsPage() {
                 value={
                   selected.transactionId ||
                   selected.id ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1351,7 +1349,7 @@ export default function AllTransactionsPage() {
                 label="Category"
                 value={
                   selected.category ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1359,7 +1357,7 @@ export default function AllTransactionsPage() {
                 label="Payment Method"
                 value={
                   selected.paymentMethod ||
-                  "—"
+                  "â€”"
                 }
               />
 
@@ -1378,7 +1376,7 @@ export default function AllTransactionsPage() {
                     ? money(
                         selected.balanceAfter
                       )
-                    : "—"
+                    : "â€”"
                 }
               />
 
@@ -1503,5 +1501,6 @@ function Detail({
     </div>
   );
 }
+
 
 

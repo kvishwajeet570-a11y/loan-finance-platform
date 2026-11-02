@@ -1,4 +1,5 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import authMiddleware from "../../middlewares/AuthMiddleware";
 
 import {
   createCustomer,
@@ -101,10 +102,7 @@ router.get(
   getInactiveCustomers
 );
 
-router.get(
-  "/user/:userId",
-  getCustomerByUserId
-);
+router.get("/user/:userId", authMiddleware, getCustomerByUserId);
 
 router.get(
   "/profile/:customerId",

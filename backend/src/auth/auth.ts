@@ -10,7 +10,7 @@ export class AuthService {
         email: user.email,
         role: user.role,
       },
-      process.env.JWT_SECRET || "secret",
+      process.env.JWT_SECRET!,
       {
         expiresIn: "7d",
       }
@@ -149,4 +149,5 @@ export class AuthService {
 }
 
 export default new AuthService();
+
 

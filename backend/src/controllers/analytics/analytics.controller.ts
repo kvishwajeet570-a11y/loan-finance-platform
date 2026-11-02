@@ -498,6 +498,8 @@ export const getRecentActivities = async (
               name: true,
               email: true,
               phoneNo: true,
+              city: true,
+              state: true,
             },
           },
         },
@@ -747,6 +749,7 @@ export const getMonthlyLoanAnalytics = async (
     return;
   }
 };
+
 
 
 

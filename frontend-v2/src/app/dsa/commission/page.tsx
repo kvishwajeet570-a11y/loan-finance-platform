@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -41,8 +41,7 @@ export default function CommissionPage() {
         setError("");
 
         const token =
-          localStorage.getItem("token") ||
-          localStorage.getItem("accessToken");
+          localStorage.getItem("loan_finance_token");
 
         const headers: HeadersInit = {
           "Content-Type": "application/json",
@@ -52,9 +51,9 @@ export default function CommissionPage() {
           headers.Authorization = `Bearer ${token}`;
         }
 
-        const userId =
-          localStorage.getItem("userId") ||
-          localStorage.getItem("user_id");
+        const rawUser = localStorage.getItem("loan_finance_user");
+        const user = rawUser ? JSON.parse(rawUser) : null;
+        const userId = user?.id ? String(user.id) : null;
 
         const endpoint = userId
           ? `${API_URL}/commission/user/${userId}`
@@ -314,10 +313,10 @@ export default function CommissionPage() {
                   {money(totalCommission)}
                 </h2>
                 <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
-                  ✓ Live Total
+                  • Live Total
                 </span>
               </div>
-              <div className="rounded-2xl bg-blue-50 p-4 text-2xl">◈</div>
+              <div className="rounded-2xl bg-blue-50 p-4 text-2xl">₹</div>
             </div>
           </div>
 
@@ -335,7 +334,7 @@ export default function CommissionPage() {
                 </span>
               </div>
               <div className="rounded-2xl bg-emerald-50 p-4 text-2xl text-emerald-600">
-                ✓
+                ?
               </div>
             </div>
           </div>
@@ -354,7 +353,7 @@ export default function CommissionPage() {
                 </span>
               </div>
               <div className="rounded-2xl bg-orange-50 p-4 text-2xl text-orange-500">
-                ◷
+                ?
               </div>
             </div>
           </div>
@@ -369,11 +368,11 @@ export default function CommissionPage() {
                   {money(paidCommission)}
                 </h2>
                 <button className="mt-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 text-xs font-bold text-white shadow-lg">
-                  ⇄ Transfer to Wallet
+                  ↗ Transfer to Wallet
                 </button>
               </div>
               <div className="rounded-2xl bg-purple-50 p-4 text-2xl">
-                ⇄
+                ?
               </div>
             </div>
           </div>
@@ -395,7 +394,7 @@ export default function CommissionPage() {
               </div>
 
               <div className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">
-                Last 6 Months ▾
+                Last 6 Months
               </div>
             </div>
 
@@ -519,7 +518,7 @@ export default function CommissionPage() {
           <div className="rounded-[22px] border border-blue-100 bg-white p-5 shadow-sm">
             <div className="flex items-center gap-4">
               <div className="rounded-2xl bg-blue-50 p-4 text-2xl">
-                ◫
+                ↔
               </div>
               <div>
                 <p className="text-xs font-semibold text-slate-500">
@@ -720,7 +719,7 @@ export default function CommissionPage() {
               Showing {filteredCommissions.length} of {commissions.length} real records
             </span>
             <span>
-              API: Connected • Database data only
+              API: Connected - Database data only
             </span>
           </div>
 
@@ -730,6 +729,7 @@ export default function CommissionPage() {
     </main>
   );
 }
+
 
 
 

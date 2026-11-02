@@ -1,4 +1,5 @@
-import { Router } from "express";
+﻿import { Router } from "express";
+import { authGuard } from "../../guards/authGuard";
 
 import {
   getOverallLeaderboard,
@@ -77,6 +78,7 @@ router.get(
 
 router.get(
   "/dsa",
+  authGuard,
   getDsaLeaderboard
 );
 

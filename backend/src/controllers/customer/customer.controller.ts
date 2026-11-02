@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from "express";
 import { customerService } from "../../services/customer/customer.service";
 
 export const getAllCustomers = async (req: Request, res: Response) => {
@@ -15,10 +15,44 @@ export const getCustomerByUserId = async (
   req: Request,
   res: Response
 ) => {
-  const data = await customerService.getCustomerByUserId(
-    String(req.params.userId)
-  );
-  res.json(data);
+  try {
+    const authUser = (req as any).user;
+    const requestedUserId = String(req.params.userId || "");
+    const role = String(authUser?.role || "")
+      .trim()
+      .toUpperCase()
+      .replace(/[\s-]+/g, "_");
+
+    if (
+      !authUser?.id ||
+      String(authUser.id) !== requestedUserId ||
+      !["USER", "CUSTOMER"].includes(role)
+    ) {
+      res.status(403).json({
+        success: false,
+        message: "Access denied for this customer account.",
+      });
+      return;
+    }
+
+    const data = await customerService.getCustomerByUserId(requestedUserId);
+
+    if (!data) {
+      res.status(404).json({
+        success: false,
+        message: "Customer account not found.",
+      });
+      return;
+    }
+
+    res.json(data);
+  } catch (error) {
+    console.error("GET CUSTOMER BY USER ID ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch customer account.",
+    });
+  }
 };
 
 export const createCustomer = async (
@@ -91,7 +125,7 @@ export const getCustomerLoans = async (
   res: Response
 ) => {
   const data = await customerService.getCustomerLoans(
-    String(req.params.id)
+    String(req.params.customerId)
   );
 
   res.json(data);
@@ -103,7 +137,7 @@ export const getCustomerTransactions = async (
 ) => {
   const data =
     await customerService.getCustomerTransactions(
-      String(req.params.id)
+      String(req.params.customerId)
     );
 
   res.json(data);
@@ -114,7 +148,7 @@ export const getCustomerDocuments = async (
   res: Response
 ) => {
   const data = await customerService.getCustomerDocuments(
-    String(req.params.id)
+    String(req.params.customerId)
   );
 
   res.json(data);
@@ -125,7 +159,7 @@ export const getCustomerKyc = async (
   res: Response
 ) => {
   const data = await customerService.getCustomerKyc(
-    String(req.params.id)
+    String(req.params.customerId)
   );
 
   res.json(data);
@@ -200,7 +234,7 @@ export const getCustomerProfile = async (
 ) => {
   const data =
     await customerService.getCustomerProfile(
-      String(req.params.id)
+      String(req.params.customerId)
     );
 
   res.json(data);
@@ -235,3 +269,4 @@ export const exportCustomersPdf = async (
 
   res.json(data);
 };
+
